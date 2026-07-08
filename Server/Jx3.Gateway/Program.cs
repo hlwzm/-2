@@ -2,6 +2,8 @@ using Jx3.Common;
 using Jx3.Common.Config;
 using Jx3.Common.Network;
 using Jx3.Common.Utils;
+using System.Net;
+using System.Net.Sockets;
 
 namespace Jx3.Gateway;
 
