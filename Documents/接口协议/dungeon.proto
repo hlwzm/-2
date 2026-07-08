@@ -1,0 +1,58 @@
+﻿syntax = "proto3";
+package jx3.dungeon;
+
+message DungeonInfo {
+  uint32 dungeon_id = 1;
+  string name = 2;
+  uint32 min_level = 3;
+  uint32 min_players = 4;
+  uint32 max_players = 5;
+  string description = 6;
+  bool unlocked = 7;
+  uint32 best_time = 8;
+}
+
+message BossInfo {
+  uint32 boss_index = 1;
+  string name = 2;
+  uint32 hp = 3;
+  uint32 max_hp = 4;
+  uint32 phase = 5;
+  bool is_dead = 6;
+}
+
+message CSDungeonListReq {}
+message CSDungeonEnter { uint32 dungeon_id = 1; uint32 difficulty = 2; }
+message CSDungeonLeave {}
+message CSDungeonSetDifficulty { uint32 difficulty = 1; }
+
+message SCDungeonList { repeated DungeonInfo dungeons = 1; }
+message SCDungeonEnterResult { int32 code = 1; uint32 dungeon_id = 2; uint32 difficulty = 3; string err_msg = 4; }
+message SCDungeonState {
+  uint32 dungeon_id = 1;
+  uint32 elapsed_seconds = 2;
+  uint32 time_limit = 3;
+  repeated BossInfo bosses = 4;
+  bool ultimate_unlocked = 5;
+}
+message SCDungeonBossHP { uint32 boss_index = 1; uint32 hp_percent = 2; uint32 phase = 3; }
+message SCDungeonBossDead { uint32 boss_index = 1; uint32 kill_time = 2; repeated ItemDrop drops = 3; }
+message SCDungeonUltimateUnlock {
+  uint32 dungeon_id = 1;
+  uint32 total_time_used = 2;
+  uint32 time_limit = 3;
+}
+message SCDungeonComplete {
+  uint32 dungeon_id = 1;
+  uint32 difficulty = 2;
+  bool ultimate_killed = 3;
+  uint32 total_time = 4;
+  repeated ItemInfo rewards = 5;
+  uint32 exp_reward = 6;
+  uint32 gold_reward = 7;
+  float rating = 8;
+}
+message SCDungeonFail { uint32 dungeon_id = 1; string reason = 2; }
+
+message ItemDrop { uint32 item_id = 1; string item_name = 2; uint32 quality = 3; uint32 count = 4; }
+message ItemInfo { uint32 item_id = 1; string item_name = 2; uint32 count = 3; uint32 quality = 4; }

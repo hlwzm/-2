@@ -1,0 +1,49 @@
+﻿syntax = "proto3";
+package jx3.combat;
+
+message Vector3 { float x = 1; float y = 2; float z = 3; }
+
+message CombatUnit {
+  uint64 unit_id = 1;
+  string name = 2;
+  uint32 unit_type = 3;
+  uint32 template_id = 4;
+  uint32 hp = 5;
+  uint32 max_hp = 6;
+  Vector3 position = 7;
+  float facing = 8;
+  repeated BuffInfo buffs = 9;
+}
+message BuffInfo { uint32 buff_id = 1; string name = 2; float remain_time = 3; int32 stack_count = 4; }
+message DamageInfo {
+  uint64 target_id = 1;
+  uint32 damage = 2;
+  uint32 damage_type = 3;
+  bool is_crit = 4;
+  bool is_dodge = 5;
+  bool is_block = 6;
+}
+
+message CSCombatMove { Vector3 direction = 1; float speed = 2; }
+message CSCombatCastSkill { uint32 skill_id = 1; uint64 target_id = 2; Vector3 target_position = 3; }
+message CSCombatSwitchHero { uint64 hero_uid = 1; }
+message CSCombatDodge { Vector3 direction = 1; }
+message CSCombatAutoOn {}
+message CSCombatAutoOff {}
+
+message SCCombatStateInit {
+  uint64 combat_id = 1;
+  repeated CombatUnit ally_units = 2;
+  repeated CombatUnit enemy_units = 3;
+  uint32 combat_type = 4;
+  uint32 time_limit = 5;
+}
+message SCCombatUnitUpdate { repeated CombatUnit units = 1; }
+message SCCombatHPChange { uint64 unit_id = 1; uint32 old_hp = 2; uint32 new_hp = 3; uint32 damage = 4; uint32 heal = 5; }
+message SCCombatDamage { repeated DamageInfo damages = 1; }
+message SCCombatSkillEffect { uint64 caster_id = 1; uint32 skill_id = 2; Vector3 target_position = 3; float effect_radius = 4; }
+message SCCombatBuffAdd { uint64 target_id = 1; BuffInfo buff = 2; }
+message SCCombatBuffRemove { uint64 target_id = 1; uint32 buff_id = 2; }
+message SCCombatHeroSwitchResult { uint64 new_hero_uid = 1; uint32 cd_remain = 2; }
+message SCCombatEnd { bool victory = 1; uint32 combat_time = 2; CombatStats stats = 3; }
+message CombatStats { uint32 total_damage = 1; uint32 total_heal = 2; uint32 max_combo = 3; uint32 dodge_count = 4; float rating = 5; }

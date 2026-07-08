@@ -1,0 +1,42 @@
+﻿syntax = "proto3";
+package jx3.guild;
+
+message GuildInfo {
+  uint64 guild_id = 1;
+  string name = 2;
+  uint64 leader_id = 3;
+  string leader_name = 4;
+  uint32 level = 5;
+  uint32 member_count = 6;
+  uint32 max_members = 7;
+  uint64 funds = 8;
+  string notice = 9;
+}
+
+message GuildMember {
+  uint64 player_id = 1;
+  string name = 2;
+  uint32 level = 3;
+  uint32 position = 4;
+  uint32 contribution = 5;
+  bool online = 6;
+}
+
+message CSGuildCreate { string name = 1; }
+message CSGuildApply { uint64 guild_id = 1; }
+message CSGuildApprove { uint64 player_id = 1; }
+message CSGuildLeave {}
+message CSGuildKick { uint64 target_id = 1; }
+message CSGuildPositionSet { uint64 target_id = 1; uint32 position = 2; }
+message CSGuildDonate { uint64 amount = 1; }
+message CSFriendAdd { uint64 target_id = 1; string message = 2; }
+message CSFriendRemove { uint64 friend_id = 1; }
+
+message SCGuildInfo { GuildInfo guild = 1; repeated GuildMember members = 2; }
+message SCGuildMemberJoin { GuildMember member = 1; }
+message SCGuildMemberLeave { uint64 player_id = 1; }
+message SCGuildLevelUp { uint32 new_level = 1; }
+message SCFriendList { repeated uint64 friend_ids = 1; }
+message SCFriendOnline { uint64 player_id = 1; }
+message SCFriendOffline { uint64 player_id = 1; }
+message SCFriendRequest { uint64 player_id = 1; string name = 2; string message = 3; }

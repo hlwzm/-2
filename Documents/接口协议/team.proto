@@ -1,0 +1,42 @@
+﻿syntax = "proto3";
+package jx3.team;
+
+message TeamMember {
+  uint64 player_id = 1;
+  string name = 2;
+  uint32 level = 3;
+  uint32 role_type = 4;
+  uint64 hero_uid = 5;
+  string hero_name = 6;
+  bool is_leader = 7;
+  bool online = 8;
+}
+
+message TeamInfo {
+  uint64 team_id = 1;
+  uint64 leader_id = 2;
+  repeated TeamMember members = 3;
+  uint32 max_members = 4;
+  uint32 loot_mode = 5;
+  uint32 dungeon_id = 6;
+  string voice_channel = 7;
+}
+
+message CSTeamCreate { uint32 dungeon_id = 1; }
+message CSTeamLeave {}
+message CSTeamKick { uint64 target_id = 1; }
+message CSTeamTransfer { uint64 target_id = 1; }
+message CSTeamInvite { uint64 target_id = 1; }
+message CSTeamInviteAccept { uint64 team_id = 1; }
+message CSTeamInviteDecline { uint64 team_id = 1; }
+message CSTeamApply { uint64 team_id = 1; }
+message CSTeamApplyApprove { uint64 player_id = 1; }
+message CSTeamRecruitPublish { uint32 dungeon_id = 1; string comment = 2; }
+message CSTeamMatchStart { uint32 dungeon_id = 1; uint32 difficulty = 2; }
+
+message SCTeamInfo { TeamInfo team = 1; }
+message SCTeamMemberJoin { TeamMember member = 1; }
+message SCTeamMemberLeave { uint64 player_id = 1; string name = 2; string reason = 3; }
+message SCTeamInviteReceive { uint64 team_id = 1; string leader_name = 2; }
+message SCTeamApplyNotify { uint64 player_id = 1; string player_name = 2; }
+message SCTeamDisband { string reason = 1; }

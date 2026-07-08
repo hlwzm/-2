@@ -1,0 +1,23 @@
+﻿syntax = "proto3";
+package jx3.chat;
+
+message ChatMessage {
+  uint64 msg_id = 1;
+  uint32 channel = 2;
+  uint64 sender_id = 3;
+  string sender_name = 4;
+  uint32 sender_level = 5;
+  string content = 6;
+  uint32 msg_type = 7;
+  string extra_data = 8;
+  uint64 timestamp = 9;
+}
+
+message CSChatSend { uint32 channel = 1; string content = 2; uint32 msg_type = 3; string extra_data = 4; }
+message CSChatPrivateSend { uint64 target_id = 1; string content = 2; }
+message CSChatHistoryReq { uint32 channel = 1; uint32 before_id = 2; uint32 count = 3; }
+
+message SCChatMessage { ChatMessage message = 1; }
+message SCChatPrivateMessage { ChatMessage message = 1; }
+message SCChatSystemNotice { string title = 1; string content = 2; uint32 notice_type = 3; uint64 end_time = 4; }
+message SCChatHistory { uint32 channel = 1; repeated ChatMessage messages = 2; bool has_more = 3; }

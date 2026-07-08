@@ -1,0 +1,162 @@
+-- ===== 指尖江湖2 数据库建表脚本 =====
+-- 数据库: jx3
+
+CREATE DATABASE IF NOT EXISTS jx3 DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE jx3;
+
+-- 账号表
+CREATE TABLE IF NOT EXISTS account (
+  account_id   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  phone        VARCHAR(20) NOT NULL UNIQUE KEY,
+  password     VARCHAR(64) NOT NULL,
+  create_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_login   DATETIME,
+  status       TINYINT NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 玩家表
+CREATE TABLE IF NOT EXISTS player (
+  player_id    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  account_id   BIGINT UNSIGNED NOT NULL,
+  name         VARCHAR(32) NOT NULL UNIQUE KEY,
+  level        INT NOT NULL DEFAULT 1,
+  exp          BIGINT NOT NULL DEFAULT 0,
+  gold         BIGINT NOT NULL DEFAULT 0,
+  bind_gold    BIGINT NOT NULL DEFAULT 0,
+  tongbao      BIGINT NOT NULL DEFAULT 0,
+  vitality     INT NOT NULL DEFAULT 100,
+  create_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_offline DATETIME,
+  map_id       INT NOT NULL DEFAULT 1001,
+  pos_x        FLOAT NOT NULL DEFAULT 0,
+  pos_y        FLOAT NOT NULL DEFAULT 0,
+  pos_z        FLOAT NOT NULL DEFAULT 0,
+  FOREIGN KEY (account_id) REFERENCES account(account_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 英雄表
+CREATE TABLE IF NOT EXISTS hero (
+  hero_uid     BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  player_id    BIGINT UNSIGNED NOT NULL,
+  template_id  INT UNSIGNED NOT NULL,
+  level        INT NOT NULL DEFAULT 1,
+  star         INT NOT NULL DEFAULT 1,
+  exp          BIGINT NOT NULL DEFAULT 0,
+  breakthrough INT NOT NULL DEFAULT 0,
+  skill_levels JSON,
+  favorability INT NOT NULL DEFAULT 0,
+  obtain_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (player_id) REFERENCES player(player_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 背包物品表
+CREATE TABLE IF NOT EXISTS bag_item (
+  bag_id       BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  player_id    BIGINT UNSIGNED NOT NULL,
+  item_id      INT UNSIGNED NOT NULL,
+  slot_index   INT NOT NULL,
+  count        INT NOT NULL DEFAULT 1,
+  bind_type    TINYINT NOT NULL DEFAULT 0,
+  enhance_lvl  INT NOT NULL DEFAULT 0,
+  socket_data  JSON,
+  durability   INT NOT NULL DEFAULT 100,
+  create_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (player_id) REFERENCES player(player_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 拍卖行物品表
+CREATE TABLE IF NOT EXISTS auction_item (
+  auction_id   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  player_id    BIGINT UNSIGNED NOT NULL,
+  player_name  VARCHAR(32) NOT NULL,
+  bag_item_id  BIGINT UNSIGNED NOT NULL,
+  item_id      INT UNSIGNED NOT NULL,
+  category     INT NOT NULL,
+  quality      TINYINT NOT NULL,
+  price        BIGINT UNSIGNED NOT NULL,
+  duration     INT NOT NULL DEFAULT 24,
+  status       TINYINT NOT NULL DEFAULT 1,
+  create_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  sold_time    DATETIME,
+  buyer_id     BIGINT UNSIGNED,
+  fee          BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  seller_income BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  FOREIGN KEY (player_id) REFERENCES player(player_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 交易记录表
+CREATE TABLE IF NOT EXISTS trade_log (
+  log_id       BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  auction_id   BIGINT UNSIGNED NOT NULL,
+  seller_id    BIGINT UNSIGNED NOT NULL,
+  buyer_id     BIGINT UNSIGNED NOT NULL,
+  item_id      INT UNSIGNED NOT NULL,
+  price        BIGINT UNSIGNED NOT NULL,
+  fee          BIGINT UNSIGNED NOT NULL,
+  seller_income BIGINT UNSIGNED NOT NULL,
+  trade_time   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 聊天记录表
+CREATE TABLE IF NOT EXISTS chat_log (
+  msg_id       BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  channel      TINYINT NOT NULL,
+  sender_id    BIGINT UNSIGNED NOT NULL,
+  content      TEXT NOT NULL,
+  msg_type     TINYINT NOT NULL DEFAULT 0,
+  timestamp    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 副本进度表
+CREATE TABLE IF NOT EXISTS dungeon_progress (
+  progress_id  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  team_id      BIGINT UNSIGNED NOT NULL,
+  dungeon_id   INT NOT NULL,
+  difficulty   TINYINT NOT NULL DEFAULT 1,
+  boss1_dead   TINYINT NOT NULL DEFAULT 0,
+  boss2_dead   TINYINT NOT NULL DEFAULT 0,
+  boss3_dead   TINYINT NOT NULL DEFAULT 0,
+  boss1_time   INT DEFAULT 0,
+  boss2_time   INT DEFAULT 0,
+  boss3_time   INT DEFAULT 0,
+  ultimate_unlocked TINYINT NOT NULL DEFAULT 0,
+  ultimate_dead     TINYINT NOT NULL DEFAULT 0,
+  start_time   DATETIME NOT NULL,
+  end_time     DATETIME,
+  status       TINYINT NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 同盟表
+CREATE TABLE IF NOT EXISTS guild (
+  guild_id     BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name         VARCHAR(32) NOT NULL UNIQUE KEY,
+  leader_id    BIGINT UNSIGNED NOT NULL,
+  level        INT NOT NULL DEFAULT 1,
+  member_count INT NOT NULL DEFAULT 1,
+  max_members  INT NOT NULL DEFAULT 50,
+  funds        BIGINT NOT NULL DEFAULT 0,
+  notice       VARCHAR(256),
+  create_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (leader_id) REFERENCES player(player_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 同盟成员表
+CREATE TABLE IF NOT EXISTS guild_member (
+  id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  guild_id     BIGINT UNSIGNED NOT NULL,
+  player_id    BIGINT UNSIGNED NOT NULL,
+  position     TINYINT NOT NULL DEFAULT 4,
+  contribution INT NOT NULL DEFAULT 0,
+  join_time    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (guild_id) REFERENCES guild(guild_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 好友关系表
+CREATE TABLE IF NOT EXISTS friend (
+  id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  player_id    BIGINT UNSIGNED NOT NULL,
+  friend_id    BIGINT UNSIGNED NOT NULL,
+  group_name   VARCHAR(32) DEFAULT 'default',
+  create_time  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (player_id) REFERENCES player(player_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

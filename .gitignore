@@ -1,0 +1,25 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Unity
+Client/Library/
+Client/Temp/
+Client/obj/
+Client/Build/
+Client/*.csproj
+Client/*.sln
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+.DS_Store

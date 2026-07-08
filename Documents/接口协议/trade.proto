@@ -1,0 +1,76 @@
+﻿// 交易/拍卖行系统协议
+// 模块名: Trade | 依赖: IPlayer, IBag
+syntax = "proto3";
+package jx3.trade;
+
+message CSTradeSearch {
+  string keyword = 1;
+  uint32 category = 2;
+  uint32 min_level = 3;
+  uint32 max_level = 4;
+  uint32 min_quality = 5;
+  uint32 max_price = 6;
+  uint32 page = 7;
+  uint32 page_size = 8;
+}
+
+message CSTradeSellItem {
+  uint64 bag_item_id = 1;
+  uint64 price = 2;
+  uint32 duration = 3;
+  uint32 category = 4;
+}
+
+message CSTradeBuyItem {
+  uint64 auction_id = 1;
+  uint32 count = 2;
+}
+
+message CSTradeCancelSell {
+  uint64 auction_id = 1;
+}
+
+message SCTradeSearchResult {
+  int32 code = 1;
+  repeated AuctionItem items = 2;
+  uint32 total_count = 3;
+  uint32 page = 4;
+}
+
+message SCTradeSellResult {
+  int32 code = 1;
+  uint64 auction_id = 2;
+  uint64 fee = 3;
+  string err_msg = 4;
+}
+
+message SCTradeBuyResult {
+  int32 code = 1;
+  uint64 cost_gold = 2;
+  uint64 fee = 3;
+  uint64 bag_item_id = 4;
+  string err_msg = 5;
+}
+
+message AuctionItem {
+  uint64 auction_id = 1;
+  uint32 item_id = 2;
+  string item_name = 3;
+  string seller_name = 4;
+  uint32 category = 5;
+  uint32 quality = 6;
+  uint32 level = 7;
+  uint64 price = 8;
+  uint32 remain_hours = 9;
+  uint32 status = 10;
+  uint64 create_time = 11;
+  uint32 count = 12;
+  bytes item_detail = 13;
+}
+
+message SCTradeItemSold {
+  uint64 auction_id = 1;
+  uint64 price = 2;
+  uint64 fee = 3;
+  uint64 income = 4;
+}

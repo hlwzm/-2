@@ -1,0 +1,36 @@
+﻿syntax = "proto3";
+package jx3.quest;
+
+message QuestInfo {
+  uint32 quest_id = 1;
+  string name = 2;
+  uint32 quest_type = 3;
+  string description = 4;
+  string objective_text = 5;
+  uint32 progress = 6;
+  uint32 target = 7;
+  bool completed = 8;
+  bool rewarded = 9;
+  repeated QuestReward rewards = 10;
+}
+
+message QuestReward {
+  uint32 exp = 1;
+  uint32 gold = 2;
+  repeated ItemReward items = 3;
+}
+message ItemReward { uint32 item_id = 1; uint32 count = 2; }
+
+message CSQuestListReq {}
+message CSQuestAccept { uint32 quest_id = 1; }
+message CSQuestAbandon { uint32 quest_id = 1; }
+message CSQuestSubmit { uint32 quest_id = 1; }
+message CSQuestAchievementList {}
+
+message SCQuestList { repeated QuestInfo quests = 1; }
+message SCQuestAcceptResult { int32 code = 1; QuestInfo quest = 2; }
+message SCQuestProgress { uint32 quest_id = 1; uint32 progress = 2; uint32 target = 3; }
+message SCQuestComplete { uint32 quest_id = 1; string name = 2; }
+message SCQuestReward { uint32 quest_id = 1; QuestReward reward = 2; }
+message SCQuestDailyReset { repeated uint32 daily_quest_ids = 1; }
+message SCQuestAchievement { uint32 achievement_id = 1; string name = 2; string title = 3; }

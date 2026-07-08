@@ -1,0 +1,65 @@
+﻿syntax = "proto3";
+package jx3.hero;
+
+message HeroInfo {
+  uint64 hero_uid = 1;
+  uint32 template_id = 2;
+  string name = 3;
+  uint32 level = 4;
+  uint32 star = 5;
+  uint32 breakthrough = 6;
+  uint32 quality = 7;
+  uint32 role_type = 8;
+  uint32 attack_type = 9;
+  repeated SkillInfo skills = 10;
+  HeroStats stats = 11;
+  repeated uint32 equip_ids = 12;
+  bool in_team = 13;
+  uint32 exp = 14;
+  uint32 favorability = 15;
+}
+
+message SkillInfo {
+  uint32 skill_id = 1;
+  string name = 2;
+  uint32 level = 3;
+  uint32 slot = 4;
+  uint32 cd_remain = 5;
+}
+
+message HeroStats {
+  uint32 max_hp = 1;
+  uint32 attack = 2;
+  uint32 defense = 3;
+  float crit_rate = 4;
+  float crit_damage = 5;
+  float dodge_rate = 6;
+  uint32 speed = 7;
+  uint32 heal_power = 8;
+}
+
+message TeamInfo {
+  repeated uint64 hero_ids = 1;
+  uint32 main_hero_index = 2;
+}
+
+message CSHeroListReq {}
+message CSHeroInfoReq { uint64 hero_uid = 1; }
+message CSHeroLevelUp { uint64 hero_uid = 1; }
+message CSHeroStarUp { uint64 hero_uid = 1; }
+message CSHeroTeamSet { repeated uint64 hero_ids = 1; }
+
+message SCHeroList { repeated HeroInfo heroes = 1; }
+message SCHeroInfo { HeroInfo hero = 1; }
+message SCHeroLevelUpdate {
+  uint64 hero_uid = 1;
+  uint32 new_level = 2;
+  HeroStats stats_change = 3;
+}
+message SCHeroStarUpdate {
+  uint64 hero_uid = 1;
+  uint32 new_star = 2;
+  HeroStats stats_change = 3;
+}
+message SCHeroNew { HeroInfo hero = 1; }
+message SCHeroTeamInfo { TeamInfo team = 1; }

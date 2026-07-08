@@ -1,0 +1,27 @@
+﻿syntax = "proto3";
+package jx3.shop;
+
+message ShopItem {
+  uint32 shop_item_id = 1;
+  string name = 2;
+  uint32 item_id = 3;
+  uint32 item_count = 4;
+  uint32 price_type = 5;
+  uint64 price = 6;
+  uint32 stock = 7;
+  uint32 daily_limit = 8;
+  bool on_sale = 9;
+  float discount = 10;
+}
+
+message CSShopListReq { uint32 category = 1; }
+message CSShopBuy { uint32 shop_item_id = 1; uint32 count = 2; }
+message CSShopRecharge { uint32 amount = 1; uint32 pay_type = 2; }
+message CSShopGiftCode { string code = 1; }
+message CSShopMonthlyClaim {}
+
+message SCShopList { repeated ShopItem items = 1; }
+message SCShopBuyResult { int32 code = 1; string err_msg = 2; }
+message SCCurrencyUpdate { uint64 gold = 1; uint64 bind_gold = 2; uint64 tongbao = 3; }
+message SCShopRechargeResult { int32 code = 1; uint64 amount = 2; uint64 bonus = 3; }
+message SCShopMonthlyUpdate { uint32 remain_days = 1; bool claimed_today = 2; }

@@ -1,0 +1,34 @@
+﻿syntax = "proto3";
+package jx3.recruit;
+
+message RecruitPool {
+  uint32 pool_id = 1;
+  string name = 2;
+  string description = 3;
+  uint32 cost_type = 4;
+  uint32 cost_amount = 5;
+  uint32 pity_count = 6;
+  uint32 max_pity = 7;
+  uint32 up_hero_id = 8;
+  uint64 end_time = 9;
+}
+
+message HeroItem {
+  uint32 hero_id = 1;
+  uint32 quality = 2;
+  uint32 fragment_count = 3;
+  bool is_new = 4;
+}
+
+message CSRecruitDraw { uint32 pool_id = 1; uint32 count = 2; }
+message CSRecruitPoolList {}
+message CSRecruitPityInfo {}
+
+message SCRecruitDrawResult {
+  int32 code = 1;
+  repeated HeroItem items = 2;
+  uint32 pity_count = 3;
+}
+message SCRecruitPoolList { repeated RecruitPool pools = 1; }
+message SCRecruitPityUpdate { uint32 pool_id = 1; uint32 pity_count = 2; }
+message SCRecruitNewHero { HeroItem item = 1; }
