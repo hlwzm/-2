@@ -17,6 +17,7 @@ public class ShopServer : GameServer
         ServiceRegistry.RegisterHandler((uint)MsgId.CSShopRecharge, HandleRecharge);
         ServiceRegistry.RegisterHandler((uint)MsgId.CSShopGiftCode, HandleGiftCode);
         ServiceRegistry.RegisterHandler((uint)MsgId.CSShopMonthlyClaim, HandleMonthlyClaim);
+        ServiceRegistry.RegisterHandler((uint)MsgId.CSShopCurrencyExchange, HandleExchange);
         Logger.Info("Shop", "ShopServer ready on port 9006");
         return Task.CompletedTask;
     }
@@ -71,6 +72,17 @@ public class ShopServer : GameServer
         var (days, claimed) = ShopService.GetMonthlyInfo(pid);
         using var ms = new MemoryStream(); using var w = new BinaryWriter(ms);
         w.Write(ok ? 0 : 1); w.Write(days); w.Write(claimed);
+        return Task.FromResult(ms.ToArray());
+    }
+
+    private Task<byte[]> HandleExchange(byte[] body)
+    {
+        using var r = new BinaryReader(new MemoryStream(body));
+        var pid = r.ReadUInt64(); var amount = r.ReadUInt64();
+        var (code, gold, fee, newTongbao, err) = ShopService.ExchangeCurrency(pid, amount);
+        using var ms = new MemoryStream(); using var w = new BinaryWriter(ms);
+        if (code == 0) { w.Write(0); w.Write(gold); w.Write(fee); w.Write((uint)newTongbao); }
+        else { w.Write(code); w.Write(err ?? ""); }
         return Task.FromResult(ms.ToArray());
     }
 }

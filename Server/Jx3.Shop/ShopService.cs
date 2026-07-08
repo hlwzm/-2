@@ -26,6 +26,15 @@ public class RechargeTier
     public bool FirstDouble = true;
 }
 
+/// <summary>货币兑换配置</summary>
+public class CurrencyExchangeConfig
+{
+    public float Rate = 100f;       // 1通宝=100金币
+    public ulong MinExchange = 10;
+    public ulong MaxExchange = 10000;
+    public float FeeRate = 0.02f;   // 2%手续费
+}
+
 public static class ShopService
 {
     public static readonly List<ShopItem> Items = new()
@@ -52,6 +61,9 @@ public static class ShopService
         new() { Id = 5, RmbAmount = 328, Tongbao = 3280, Bonus = 328 },
         new() { Id = 6, RmbAmount = 648, Tongbao = 6480, Bonus = 648 },
     };
+
+    /// <summary>兑换配置(通宝→金币)</summary>
+    public static readonly CurrencyExchangeConfig Exchange = new();
 
     public static readonly Dictionary<string, List<(uint ItemId, uint Count)>> GiftCodes = new()
     {
@@ -89,4 +101,19 @@ public static class ShopService
 
     public static (int remainDays, bool claimedToday) GetMonthlyInfo(ulong playerId) => (0, false);
     public static bool ClaimMonthly(ulong playerId) { Logger.Info("Shop", $"Player {playerId} claimed monthly"); return true; }
+
+    /// <summary>通宝→金币兑换</summary>
+    public static (int code, ulong gold, ulong fee, ulong newTongbao, string? err) ExchangeCurrency(ulong playerId, ulong tongbao)
+    {
+        if (tongbao < Exchange.MinExchange) return (1, 0, 0, 0, $"最低兑换{Exchange.MinExchange}通宝");
+        if (tongbao > Exchange.MaxExchange) return (2, 0, 0, 0, $"单次最多兑换{Exchange.MaxExchange}通宝");
+
+        ulong gold = (ulong)(tongbao * Exchange.Rate);
+        ulong fee = (ulong)(gold * Exchange.FeeRate);
+        ulong netGold = gold - fee;
+
+        // 实际项目中: 从DB扣通宝、加金币, 记流水
+        Logger.Info("Shop", $"Player {playerId} exchanged {tongbao}通宝→{netGold}金币(fee={fee})");
+        return (0, netGold, fee, 0, null);
+    }
 }

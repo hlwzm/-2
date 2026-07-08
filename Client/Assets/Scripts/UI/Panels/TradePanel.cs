@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
 using System.Collections.Generic;
@@ -123,7 +123,7 @@ namespace Jx3.UI.Panels
             var myListingBtn = CreateButton(barRt, "MyListingBtn", "我的上架", () =>
             {
                 Debug.Log("[Trade] 打开我的上架");
-                TradeManager.Instance?.SellItem(0, 0, 24);
+                TradeManager.Instance?.SellItem(0, 0, 24, Jx3.Core.ItemCategory.Weapon);
             });
             var myRt = (RectTransform)myListingBtn.transform;
             myRt.anchorMin = new Vector2(0, 0.5f);
@@ -465,7 +465,7 @@ namespace Jx3.UI.Panels
             buyBtnComp.onClick.AddListener(() =>
             {
                 Debug.Log($"[Trade] 购买: {capturedName}, 价格: {data.Price}");
-                TradeManager.Instance?.SellItem(0, data.Price, 24);
+                TradeManager.Instance?.SellItem(0, data.Price, 24, Jx3.Core.ItemCategory.Weapon);
             });
 
             var buyText = new GameObject("Text", typeof(RectTransform));

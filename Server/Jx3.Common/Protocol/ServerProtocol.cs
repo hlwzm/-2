@@ -90,6 +90,7 @@ public enum MsgId : uint
     SCTradeMyListings = 4011,
     CSTradeClaimGold = 4012,
     CSTradeClaimItem = 4013,
+    SCTradeClaimGold = 4015,
     SCTradeClaimItem = 4014,
 
     // 聊天 (5001-5099)
@@ -164,6 +165,9 @@ public enum MsgId : uint
     CSShopGiftCode = 8007,
     CSShopMonthlyClaim = 8008,
     SCShopMonthlyUpdate = 8009,
+
+    CSShopCurrencyExchange = 8010,
+    SCShopCurrencyExchange = 8011,
 
     // 任务 (9001-9099)
     CSQuestList = 9001,
