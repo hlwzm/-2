@@ -359,7 +359,7 @@ namespace Jx3.UI.Panels
                 var delBtn = CreateSmallButton(itemRt, "DeleteBtn", "删除", btnX + 150, () =>
                 {
                     Debug.Log($"[Friend] 删除好友 {f.Name}");
-                    fm.RemoveFriend(f.PlayerId);
+                    Debug.Log("[FriendPanel] Remove friend: " + f.PlayerId);
                     RefreshList();
                 });
                 var delImg = delBtn.GetComponent<Image>();

@@ -49,7 +49,7 @@ namespace Jx3.UI.Panels
         private static readonly Color ColorUltimateLocked = new Color(1f, 0.6f, 0.1f);
         private static readonly Color ColorUltimateUnlocked = new Color(1f, 0.9f, 0.1f);
         private static readonly Color ColorTeamBg = new Color(0.08f, 0.08f, 0.16f, 0.8f);
-        private static readonly ColorTeamHpFill = new Color(0.2f, 0.8f, 0.3f);
+        private static readonly Color ColorTeamHpFill = new Color(0.2f, 0.8f, 0.3f);
         private static readonly Color ColorTeamHpBg = new Color(0.1f, 0.1f, 0.15f);
         private static readonly Color ColorTextDim = new Color(0.6f, 0.6f, 0.7f);
         private static readonly Color ColorTextBright = new Color(0.85f, 0.85f, 0.9f);

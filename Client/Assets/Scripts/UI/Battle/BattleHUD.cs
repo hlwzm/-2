@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
 using Jx3.Core.Battle;
+using Jx3.Core.Scene;
 using System.Collections;
 
 namespace Jx3.UI.Battle

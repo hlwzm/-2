@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 namespace Jx3.Core
 {
@@ -40,7 +41,7 @@ namespace Jx3.Core
         public static List<SkillData> GetHeroSkills(int heroId)
         {
             if (_skills == null) Init();
-            return _skills.Values.FindAll(s => s.ownerHeroId == heroId);
+            return _skills.Values.Where(s => s.ownerHeroId == heroId).ToList();
         }
 
         static void Init()

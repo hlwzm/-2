@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 namespace Jx3.Core
 {
@@ -74,7 +75,7 @@ namespace Jx3.Core
         public static List<BossData> GetDungeonBosses(int dungeonId)
         {
             if (_bosses == null) Init();
-            return _bosses.Values.FindAll(b => b.dungeonId == dungeonId);
+            return _bosses.Values.Where(b => b.dungeonId == dungeonId).ToList();
         }
 
         static void Init()

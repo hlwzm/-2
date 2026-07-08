@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using Jx3.Core.Battle;
 
 namespace Jx3.Core.Scene
@@ -9,10 +10,9 @@ namespace Jx3.Core.Scene
         public int enemyBossId = 3001;  // 默认董龙
         public string dungeonName = "训练场";
 
-        public override void OnSceneLoaded()
+        protected override void SetupScene()
         {
-            base.OnSceneLoaded();
-            SetupEnvironment();
+            
 
             Debug.Log($"[BattleBoot] Initializing battle: {dungeonName}");
 
