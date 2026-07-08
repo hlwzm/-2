@@ -9,12 +9,44 @@ namespace Jx3.Core.Scene
         public int heroId = 1001;
         public int enemyBossId = 3001;  // 默认董龙
         public string dungeonName = "训练场";
+        public int dungeonId = 1;        // 当前副本ID
 
         protected override void SetupScene()
         {
-            
+            // 从GameManager读取副本数据（由DungeonSelectPanel设置）
+            var gm = GameManager.Instance;
+            if (gm != null && gm.CurrentDungeonIndex >= 0)
+            {
+                var dungeons = DungeonConfig.GetAllDungeons();
+                if (gm.CurrentDungeonIndex < dungeons.Count)
+                {
+                    var dungeonData = dungeons[gm.CurrentDungeonIndex];
+                    dungeonId = dungeonData.id;
+                    dungeonName = dungeonData.name;
 
-            Debug.Log($"[BattleBoot] Initializing battle: {dungeonName}");
+                    // 选第一个Boss作为初始Boss
+                    if (dungeonData.bossIds != null && dungeonData.bossIds.Count > 0)
+                        enemyBossId = dungeonData.bossIds[0];
+
+                    Debug.Log($"[BattleBoot] 从GameManager读取副本: {dungeonName} | 副本ID={dungeonId} | 初始BossID={enemyBossId}");
+                }
+            }
+
+            Debug.Log($"[BattleBoot] Initializing battle: {dungeonName} (dungeonId={dungeonId})");
+
+            // 初始化副本管理器
+            if (DungeonManager.Instance != null)
+            {
+                DungeonManager.Instance.InitDungeon(dungeonId);
+                DungeonManager.Instance.OnDungeonFailed += (reason) =>
+                {
+                    Debug.Log($"[BattleBoot] 副本失败回调: {reason}");
+                };
+                DungeonManager.Instance.OnDungeonComplete += () =>
+                {
+                    Debug.Log("[BattleBoot] 副本通关回调！");
+                };
+            }
 
             // 生成玩家英雄
             SpawnPlayerHero();
@@ -31,19 +63,17 @@ namespace Jx3.Core.Scene
 
         void SpawnPlayerHero()
         {
-            var heroGo = new GameObject("PlayerHero", typeof(HeroUnit));
-            heroGo.transform.position = new Vector3(-4, 0, 0);
-            var hero = heroGo.GetComponent<HeroUnit>();
-            hero.heroId = heroId;
-            var template = HeroConfig.Get(heroId);
-            if (template != null)
+            var systemGo = new GameObject("HeroSwitchSystem", typeof(HeroSwitchSystem));
+            var system = systemGo.GetComponent<HeroSwitchSystem>();
+            system.teamIds = new System.Collections.Generic.List<int> { 1001, 1002, 1004, 1006 };
+            system.transform.position = Vector3.zero;
+            system.OnTeamWipe += () =>
             {
-                hero.heroName = template.name;
-                hero.maxHp = template.baseHp;
-                hero.currentHp = template.baseHp;
-                hero.level = 20;
-            }
-            Debug.Log($"[BattleBoot] Spawned hero {hero.heroName} (HP:{hero.maxHp})");
+                Debug.Log("[BattleBoot] Team wiped - battle failed");
+                var hud = FindObjectOfType<Jx3.UI.Battle.BattleHUD>();
+                if (hud != null) hud.ShowDefeat();
+            };
+            Debug.Log("[BattleBoot] HeroSwitchSystem created (4-hero team)");
         }
 
         void SpawnEnemy()

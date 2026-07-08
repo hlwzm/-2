@@ -6,7 +6,7 @@ namespace Jx3.Core.Scene
 {
     public enum GameScene
     {
-        Boot, Login, MainCity, DungeonSelect, Battle, PVP
+        Boot, Login, MainCity, DungeonSelect, Battle, PVP, Dungeon, HeroScreen
     }
 
     public class SceneManager : MonoBehaviour
@@ -24,6 +24,7 @@ namespace Jx3.Core.Scene
             (GameScene.Boot, "Boot"), (GameScene.Login, "Login"),
             (GameScene.MainCity, "MainCity"), (GameScene.DungeonSelect, "DungeonSelect"),
             (GameScene.Battle, "Battle"), (GameScene.PVP, "PVP"),
+            (GameScene.Dungeon, "Battle"), (GameScene.HeroScreen, "HeroScreen"),
         };
 
         void Awake()
@@ -49,7 +50,7 @@ namespace Jx3.Core.Scene
             var op = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(name);
             if (op == null)
             {
-                Debug.LogError($"[Scene] Scene {name} not found in build settings!");
+                Debug.LogError("[Scene] Scene " + name + " not found in build settings!");
                 yield break;
             }
 
@@ -57,12 +58,12 @@ namespace Jx3.Core.Scene
             {
                 LoadingProgress = op.progress;
                 if (_loadingBar != null) _loadingBar.value = op.progress;
-                if (_loadingText != null) _loadingText.text = $"加载中...{op.progress * 100:F0}%";
+                if (_loadingText != null) _loadingText.text = "加载中..." + (op.progress * 100).ToString("F0") + "%";
                 yield return null;
             }
 
             if (_loadingCanvas != null) _loadingCanvas.SetActive(false);
-            Debug.Log($"[Scene] Loaded {name}");
+            Debug.Log("[Scene] Loaded " + name);
         }
     }
 }

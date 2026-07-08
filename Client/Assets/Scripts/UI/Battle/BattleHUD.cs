@@ -3,12 +3,14 @@ using UnityEngine.UI;
 using Jx3.Core;
 using Jx3.Core.Battle;
 using Jx3.Core.Scene;
+using System.Collections.Generic;
 using System.Collections;
 
 namespace Jx3.UI.Battle
 {
     /// <summary>
     /// 战斗HUD - 完全程序化生成，无需Inspector配置
+    /// 增强版：会心特效/连击显示/Buff提示/屏幕震动
     /// </summary>
     public class BattleHUD : MonoBehaviour
     {
@@ -28,13 +30,66 @@ namespace Jx3.UI.Battle
         private Text _timerText;
         private Text _resultText;
         private RectTransform _buffRoot;
+    // 增强UI元素
+            private HeroSwitchSystem _switchSystem;
+    private List<HeroAvatarSlot> _avatarSlots = new();
+    private RectTransform _switchBar;
+        private Text _critLabelText;        // "会心!" 大文字
+        private Text _comboEffectText;      // 连击特效文字（火焰/闪电）
+        private Text _buffNotificationText; // Buff添加/移除提示
 
         void Start()
         {
-            _player = FindObjectOfType<HeroUnit>();
+            _switchSystem = FindObjectOfType<HeroSwitchSystem>();
+            if (_switchSystem != null)
+            {
+                _player = _switchSystem.CurrentHero;
+                _switchSystem.OnHeroSwitched += (idx, hero) => { _player = hero; };
+            }
+            else
+            {
+                _player = FindObjectOfType<HeroUnit>();
+            }
             _enemy = FindObjectOfType<EnemyUnit>();
             _active = _player != null;
             BuildHUD();
+        }
+
+        void Update()
+        {
+            if (_switchSystem != null && _avatarSlots.Count > 0)
+            {
+                for (int i = 0; i < _avatarSlots.Count; i++)
+                {
+                    var slot = _avatarSlots[i];
+                    if (slot.unit == null) continue;
+                    float hpPct = slot.unit.currentHp / slot.unit.maxHp;
+                    slot.hpFill.fillAmount = hpPct;
+                    slot.border.color = (i == _switchSystem.currentIndex)
+                        ? new Color(1f, 0.8f, 0.2f)
+                        : new Color(0.25f, 0.25f, 0.3f);
+                    if (_switchSystem.SwitchCooldownRemaining > 0 && i != _switchSystem.currentIndex)
+                    {
+                        float cdPct = _switchSystem.SwitchCooldownRemaining / _switchSystem.switchCooldown;
+                        slot.cdOverlay.fillAmount = cdPct;
+                        slot.cdOverlay.gameObject.SetActive(true);
+                    }
+                    else
+                    {
+                        slot.cdOverlay.gameObject.SetActive(false);
+                    }
+                    if (!slot.unit.isAlive)
+                    {
+                        slot.nameText.color = new Color(0.5f, 0.5f, 0.5f);
+                        slot.hpFill.color = new Color(0.3f, 0.3f, 0.3f);
+                    }
+                    else
+                    {
+                        slot.nameText.color = Color.white;
+                        slot.hpFill.color = new Color(0.3f, 0.9f, 0.3f);
+                    }
+                }
+            }
         }
 
         void BuildHUD()
@@ -86,145 +141,121 @@ namespace Jx3.UI.Battle
                 btnGo.transform.SetParent(skillArea, false);
                 var btnRt = btnGo.GetComponent<RectTransform>();
                 btnRt.anchorMin = new Vector2(0, 0.5f); btnRt.anchorMax = new Vector2(0, 0.5f);
-                btnRt.sizeDelta = new Vector2(70, 70);
-                btnRt.anchoredPosition = new Vector2(40 + i * 90, 0);
-                var btnImg = btnGo.GetComponent<Image>();
-                btnImg.color = new Color(0.2f, 0.2f, 0.35f);
+                btnRt.sizeDelta = new Vector2(80, 80);
+                btnRt.anchoredPosition = new Vector2(60 + i * 110, 0);
+                var btnBg = btnGo.GetComponent<Image>();
+                btnBg.color = new Color(0.2f, 0.2f, 0.25f);
+                btnBg.raycastTarget = true;
 
-                _skillBtns[i] = btnGo.AddComponent<Button>();
-                _skillBtns[i].targetGraphic = btnImg;
-                _skillBtns[i].onClick.AddListener(() => CastSkill(idx));
+                var btn = btnGo.AddComponent<Button>();
+                btn.onClick.AddListener(() => OnSkillClick(idx));
+                _skillBtns[i] = btn;
 
-                // 快捷键
-                var keyText = CreateLabel(btnRt, "Key", keys[i], 12, TextAnchor.UpperLeft, new Color(0.6f, 0.6f, 0.8f), new Vector2(0, 1), new Vector2(0, 1), new Vector2(25, 18), new Vector2(2, -2));
+                // 快捷键文字
+                CreateLabel(btnRt, "KeyText", keys[i], 14, TextAnchor.UpperLeft, new Color(0.6f, 0.6f, 0.6f),
+                    new Vector2(0, 1), new Vector2(0, 1), new Vector2(30, 20), new Vector2(5, -5));
 
-                // 技能名
-                CreateLabel(btnRt, "Name", skillNames[i], 14, TextAnchor.MiddleCenter, Color.white, Vector2.one * 0.5f, Vector2.one * 0.5f, Vector2.zero, Vector2.zero);
+                // 技能名称
+                var nameText = CreateLabel(btnRt, "NameText", skillNames[i], 16, TextAnchor.MiddleCenter, Color.white,
+                    Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
                 // CD遮罩
                 var cdGo = new GameObject("CdMask", typeof(RectTransform), typeof(Image));
                 cdGo.transform.SetParent(btnRt, false);
-                cdGo.GetComponent<RectTransform>().anchorMin = Vector2.zero;
-                cdGo.GetComponent<RectTransform>().anchorMax = Vector2.one;
-                cdGo.GetComponent<RectTransform>().sizeDelta = Vector2.zero;
-                _skillCdMasks[i] = cdGo.GetComponent<Image>();
-                _skillCdMasks[i].color = new Color(0, 0, 0, 0.6f);
-                _skillCdMasks[i].type = Image.Type.Filled;
-                _skillCdMasks[i].fillMethod = Image.FillMethod.Radial360;
-                _skillCdMasks[i].fillOrigin = 2;
-                _skillCdMasks[i].gameObject.SetActive(false);
+                var cdRt = cdGo.GetComponent<RectTransform>();
+                cdRt.anchorMin = Vector2.zero; cdRt.anchorMax = Vector2.one; cdRt.sizeDelta = Vector2.zero;
+                var cdImg = cdGo.GetComponent<Image>();
+                cdImg.color = new Color(0, 0, 0, 0.6f);
+                cdImg.type = Image.Type.Filled; cdImg.fillMethod = Image.FillMethod.Radial360;
+                cdImg.fillOrigin = (int)Image.Origin360.Top;
+                cdImg.fillClockwise = true;
+                _skillCdMasks[i] = cdImg;
 
-                _skillCdTexts[i] = CreateLabel(btnRt, "CdText", "", 18, TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.3f), Vector2.one * 0.5f, Vector2.one * 0.5f, Vector2.zero, Vector2.zero);
-                _skillCdTexts[i].gameObject.SetActive(false);
+                _skillCdTexts[i] = CreateLabel(btnRt, "CdText", "", 20, TextAnchor.MiddleCenter, Color.white,
+                    Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             }
 
-            // === 连击/计时 (中上) ===
-            _comboText = CreateLabel(root, "ComboText", "", 32, TextAnchor.MiddleCenter, new Color(1f, 0.6f, 0.2f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(300, 50), new Vector2(0, 80));
-            _comboText.gameObject.SetActive(false);
+            // === 计时器 (顶部中间) ===
+            _timerText = CreateLabel(root, "TimerText", "0.0s", 24, TextAnchor.MiddleCenter, Color.white,
+                new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(200, 40), new Vector2(0, -100));
 
-            _timerText = CreateLabel(root, "TimerText", "00:00", 24, TextAnchor.MiddleCenter, new Color(0.8f, 0.8f, 0.9f), new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(100, 30), new Vector2(0, -120));
+            // === 连击显示 (右侧) ===
+            var comboArea = CreatePanel(root, "ComboArea", new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(200, 120), new Vector2(-30, 40));
+            _comboText = CreateLabel(comboArea, "ComboCount", "", 48, TextAnchor.MiddleCenter, new Color(1f, 0.6f, 0f),
+                Vector2.one * 0.5f, Vector2.one * 0.5f, new Vector2(200, 60), Vector2.zero);
 
-            // === Buff区 ===
-            _buffRoot = CreatePanel(root, "BuffArea", new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(400, 40), new Vector2(20, 0));
+            _comboEffectText = CreateLabel(comboArea, "ComboEffect", "", 18, TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.2f),
+                new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(200, 30), new Vector2(0, 5));
 
-            // === 结果文字(居中) ===
-            _resultText = CreateLabel(root, "ResultText", "", 48, TextAnchor.MiddleCenter, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(400, 80), new Vector2(0, 0));
+            // === 会心标签 (敌人上方，隐藏) ===
+            _critLabelText = CreateLabel(root, "CritLabel", "会心!", 52, TextAnchor.MiddleCenter, new Color(1f, 0.9f, 0.1f),
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(400, 80), Vector2.zero);
+            _critLabelText.gameObject.SetActive(false);
+
+            // === Buff通知文字 ===
+            _buffNotificationText = CreateLabel(root, "BuffNotify", "", 28, TextAnchor.MiddleCenter, Color.white,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(500, 60), new Vector2(0, 100));
+            _buffNotificationText.gameObject.SetActive(false);
+
+            // === Buff图标根节点 ===
+            _buffRoot = CreatePanel(root, "BuffRoot", new Vector2(0, 1), new Vector2(0, 1), new Vector2(300, 40), new Vector2(20, -150));
+
+            // === 战斗结果 ===
+            _resultText = CreateLabel(root, "ResultText", "", 60, TextAnchor.MiddleCenter, Color.white,
+                Vector2.one * 0.5f, Vector2.one * 0.5f, new Vector2(600, 100), Vector2.zero);
             _resultText.gameObject.SetActive(false);
-
-            // 更新技能名称
-            if (_player != null)
-            {
-                for (int i = 0; i < 4 && i < _player.skills.Length; i++)
-                {
-                    if (_player.skills[i] != null)
-                    {
-                        var nameText = _skillBtns[i]?.transform.Find("Name")?.GetComponent<Text>();
-                        if (nameText != null) nameText.text = _player.skills[i].name.Length > 2
-                            ? _player.skills[i].name.Substring(0, 2) : _player.skills[i].name;
-                    }
-                }
-            }
         }
 
-        void Update()
+        void OnSkillClick(int slotIndex)
         {
-            if (!_active) return;
-            _battleTime += Time.deltaTime;
-            UpdateBossHp();
-            UpdatePlayerStatus();
-            UpdateSkills();
-            UpdateCombo();
-            _timerText.text = $"{(int)_battleTime / 60:D2}:{(int)_battleTime % 60:D2}";
+            if (_player == null || _enemy == null || !_active) return;
+            if (!_player.CanCastSkill(slotIndex)) return;
+            var skill = _player.skills[slotIndex];
+            if (skill == null) return;
 
-            if (Input.GetKeyDown(KeyCode.Alpha1)) CastSkill(0);
-            if (Input.GetKeyDown(KeyCode.Alpha2)) CastSkill(1);
-            if (Input.GetKeyDown(KeyCode.Alpha3)) CastSkill(2);
-            if (Input.GetKeyDown(KeyCode.Alpha4)) CastSkill(3);
-        }
-
-        void UpdateBossHp()
-        {
-            if (_enemy == null) return;
-            _bossNameText.text = _enemy.bossName;
-            float ratio = _enemy.currentHp / _enemy.maxHp;
-            _bossHpFill.fillAmount = ratio;
-            _bossHpText.text = $"{Mathf.CeilToInt(_enemy.currentHp)}/{Mathf.CeilToInt(_enemy.maxHp)}";
-        }
-
-        void UpdatePlayerStatus()
-        {
-            if (_player == null) return;
-            _hpFill.fillAmount = _player.currentHp / _player.maxHp;
-            _hpText.text = $"{Mathf.CeilToInt(_player.currentHp)}/{Mathf.CeilToInt(_player.maxHp)}";
-            _mpFill.fillAmount = _player.currentMp / _player.maxMp;
-            _mpText.text = $"{Mathf.CeilToInt(_player.currentMp)}/{Mathf.CeilToInt(_player.maxMp)}";
-        }
-
-        void UpdateSkills()
-        {
-            if (_player == null) return;
-            for (int i = 0; i < 4; i++)
-            {
-                bool onCd = i < _player.skillCooldowns.Length && _player.skillCooldowns[i] > 0;
-                _skillCdMasks[i].gameObject.SetActive(onCd);
-                _skillCdTexts[i].gameObject.SetActive(onCd);
-                if (onCd)
-                {
-                    _skillCdMasks[i].fillAmount = _player.skillCooldowns[i] /
-                        (_player.skills[i]?.cooldown ?? 1);
-                    _skillCdTexts[i].text = $"{_player.skillCooldowns[i]:F1}";
-                }
-            }
-        }
-
-        void UpdateCombo()
-        {
-            if (_player == null) return;
-            if (Time.time - _player.lastHitTime > 2f && _player.comboCount > 0)
-                _player.ResetCombo();
-
-            if (_player.comboCount > 1)
-            {
-                _comboText.text = $"{_player.comboCount} 连击!";
-                _comboText.gameObject.SetActive(true);
-                _comboText.color = Color.Lerp(Color.white, new Color(1f, 0.6f, 0.2f),
-                    Mathf.Min(_player.comboCount / 10f, 1f));
-            }
-            else _comboText.gameObject.SetActive(false);
-        }
-
-        void CastSkill(int slot)
-        {
-            if (_player == null || _enemy == null || !_enemy.isAlive) return;
-            if (!_player.CanCastSkill(slot)) return;
-
-            var skill = _player.skills[slot];
-            _player.CastSkill(slot);
-
+            _player.CastSkill(slotIndex);
             float comboMul = CombatEngine.GetComboMultiplier(_player.comboCount);
             var dmg = CombatEngine.CalculateDamage(_player.heroId, _enemy.bossId, skill);
             dmg.damage = Mathf.RoundToInt(dmg.damage * comboMul);
             _enemy.TakeDamage(dmg);
+
+            // 增强：播放技能特效
+            if (skill.type == SkillType.终极)
+            {
+                Jx3.Battle.Skill.SkillEffect.PlayUltimate(_enemy.transform.position, new Color(1f, 0.6f, 0.1f));
+                if (dmg.isCrit)
+                    ShowCritLabel();
+            }
+            else if (skill.target == SkillTarget.群体)
+            {
+                Jx3.Battle.Skill.SkillEffect.PlayAoE(_enemy.transform.position, new Color(1f, 0.4f, 0.1f));
+            }
+            else if (skill.damageMultiplier < 0)
+            {
+                // 治疗技能 - 对玩家播放治疗特效
+                Jx3.Battle.Skill.SkillEffect.PlayHeal(_player.transform.position);
+            }
+            else
+            {
+                Jx3.Battle.Skill.SkillEffect.PlaySingleTarget(_enemy.transform.position, new Color(1f, 0.4f, 0.1f));
+            }
+
+            // Buff处理
+            if (skill.hasBuff)
+            {
+                if (skill.buffValue > 0)
+                {
+                    _player.buffs.Add(new BuffInstance(skill.buffName, skill.buffDuration, skill.buffValue, BuffType.属性增强));
+                    ShowBuffNotification(skill.buffName, true);
+                    Jx3.Battle.Skill.SkillEffect.PlayBuff(_player.transform.position, Color.green);
+                }
+                else
+                {
+                    _enemy.buffs.Add(new BuffInstance(skill.buffName, skill.buffDuration, skill.buffValue, BuffType.持续伤害));
+                    ShowBuffNotification(skill.buffName, false);
+                    Jx3.Battle.Skill.SkillEffect.PlayBuff(_enemy.transform.position, new Color(0.6f, 0f, 0f), 2.0f, false);
+                }
+            }
 
             ShowDamageNumber(dmg);
             _enemy = FindObjectOfType<EnemyUnit>();
@@ -239,24 +270,82 @@ namespace Jx3.UI.Battle
             }
         }
 
+        // ===== 增强：伤害数字显示 =====
+
         void ShowDamageNumber(DamageResult dmg)
         {
             if (_enemy == null) return;
-            var go = new GameObject("Dmg");
-            go.transform.SetParent(_enemy.transform, false);
-            go.transform.localPosition = new Vector3(0, 3, 0);
+
+            if (dmg.isHeal)
+            {
+                // 治疗：绿色数字，在玩家头上
+                ShowFloatingText(_player?.transform, dmg.damage, true, false);
+                return;
+            }
+
+            // 在敌人头上显示伤害
+            ShowFloatingText(_enemy.transform, dmg.damage, false, dmg.isCrit);
+
+            if (dmg.isCrit)
+            {
+                // 会心额外效果：大文字 + 屏幕震动
+                ShowCritLabel();
+                StartCoroutine(ShakeCamera(0.15f, 0.3f));
+                // 连击界面更新
+                if (_player != null)
+                    ShowComboEffect();
+            }
+
+            // 普通伤害
+            if (_player != null && _player.comboCount > 0 && !dmg.isCrit)
+            {
+                UpdateComboDisplay();
+            }
+        }
+
+        /// <summary>
+        /// 在世界空间创建浮动数字
+        /// </summary>
+        void ShowFloatingText(Transform parent, int amount, bool isHeal, bool isCrit)
+        {
+            if (parent == null) return;
+            var go = new GameObject(isHeal ? "HealNum" : "DmgNum");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = new Vector3(Random.Range(-0.5f, 0.5f), 3, 0);
             var canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.worldCamera = Camera.main;
             var text = go.AddComponent<Text>();
-            text.text = dmg.isCrit ? $"会心! {dmg.damage}" : $"-{dmg.damage}";
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = dmg.isCrit ? 28 : 22;
-            text.fontStyle = dmg.isCrit ? FontStyle.Bold : FontStyle.Normal;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = dmg.isCrit ? new Color(1f, 0.8f, 0.2f) : new Color(1f, 0.5f, 0.2f);
 
-            StartCoroutine(FloatAndDestroy(go, 1.0f));
+            if (isHeal)
+            {
+                text.text = $"+{amount}";
+                text.fontSize = 24;
+                text.color = new Color(0.3f, 1f, 0.3f);
+                text.fontStyle = FontStyle.Normal;
+            }
+            else if (isCrit)
+            {
+                text.text = $"-{amount}";
+                text.fontSize = 36;
+                text.color = new Color(1f, 0.9f, 0.1f);
+                text.fontStyle = FontStyle.Bold;
+                // 会心数字略大
+                go.transform.localPosition = new Vector3(Random.Range(-0.3f, 0.3f), 3.5f, 0);
+                go.transform.localScale = Vector3.one * 1.4f;
+            }
+            else
+            {
+                text.text = $"-{amount}";
+                text.fontSize = 20;
+                text.color = Color.white;
+                text.fontStyle = FontStyle.Normal;
+            }
+
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.alignment = TextAnchor.MiddleCenter;
+
+            StartCoroutine(FloatAndDestroy(go, isCrit ? 1.5f : 1.0f));
         }
 
         IEnumerator FloatAndDestroy(GameObject go, float duration)
@@ -275,13 +364,168 @@ namespace Jx3.UI.Battle
             Destroy(go);
         }
 
+        // ===== 增强：会心特效 =====
+
+        void ShowCritLabel()
+        {
+            if (_critLabelText == null) return;
+            StopCoroutine("CritLabelAnimation");
+            StartCoroutine(CritLabelAnimation());
+        }
+
+        IEnumerator CritLabelAnimation()
+        {
+            _critLabelText.gameObject.SetActive(true);
+            _critLabelText.text = "会心!";
+            _critLabelText.color = new Color(1f, 0.9f, 0.1f);
+            _critLabelText.fontSize = 52;
+
+            float t = 0;
+            float duration = 0.8f;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                float p = t / duration;
+                // 放大 + 淡出
+                float scale = 1f + p * 0.5f;
+                _critLabelText.transform.localScale = Vector3.one * scale;
+                _critLabelText.color = new Color(1f, 0.9f, 0.1f, 1 - p);
+                yield return null;
+            }
+            _critLabelText.gameObject.SetActive(false);
+            _critLabelText.transform.localScale = Vector3.one;
+        }
+
+        // ===== 增强：屏幕震动 =====
+
+        IEnumerator ShakeCamera(float intensity, float duration)
+        {
+            Camera cam = Camera.main;
+            if (cam == null) yield break;
+            Vector3 originalPos = cam.transform.localPosition;
+            float t = 0;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                float p = t / duration;
+                float decay = 1f - p;
+                float offsetX = Random.Range(-intensity, intensity) * decay;
+                float offsetY = Random.Range(-intensity, intensity) * decay;
+                cam.transform.localPosition = originalPos + new Vector3(offsetX, offsetY, 0);
+                yield return null;
+            }
+            cam.transform.localPosition = originalPos;
+        }
+
+        // ===== 增强：连击显示 =====
+
+        void UpdateComboDisplay()
+        {
+            if (_player == null || _comboText == null) return;
+            int combo = _player.comboCount;
+            if (combo > 0)
+            {
+                _comboText.text = $"{combo}连击!";
+                // 根据连击数变色
+                if (combo >= 10)
+                    _comboText.color = new Color(1f, 0.3f, 0.1f); // 红
+                else if (combo >= 5)
+                    _comboText.color = new Color(1f, 0.7f, 0f);   // 橙
+                else
+                    _comboText.color = new Color(1f, 0.9f, 0.2f); // 金
+            }
+            else
+            {
+                _comboText.text = "";
+                if (_comboEffectText != null)
+                    _comboEffectText.text = "";
+            }
+        }
+
+        void ShowComboEffect()
+        {
+            if (_player == null || _comboEffectText == null) return;
+            int combo = _player.comboCount;
+
+            string effect = "";
+            if (combo >= 15)
+                effect = "🔥🔥 无双! 🔥🔥";
+            else if (combo >= 10)
+                effect = "⚡⚡ 破军! ⚡⚡";
+            else if (combo >= 5)
+                effect = "🔥 连击! 🔥";
+            else
+                effect = "⚡ 连击 ⚡";
+
+            _comboEffectText.text = effect;
+            Color effectColor = combo >= 10 ? new Color(1f, 0.3f, 0.1f) : new Color(1f, 0.7f, 0f);
+            _comboEffectText.color = effectColor;
+
+            // 闪烁动画
+            StopCoroutine("ComboEffectPulse");
+            StartCoroutine(ComboEffectPulse());
+        }
+
+        IEnumerator ComboEffectPulse()
+        {
+            if (_comboEffectText == null) yield break;
+            float t = 0;
+            float duration = 0.6f;
+            while (t < duration * 3)
+            {
+                t += Time.deltaTime;
+                float pulse = Mathf.Sin(t * 20f) * 0.15f + 1f;
+                _comboEffectText.transform.localScale = Vector3.one * pulse;
+                yield return null;
+            }
+            if (_comboEffectText != null)
+                _comboEffectText.transform.localScale = Vector3.one;
+        }
+
+        // ===== 增强：Buff通知 =====
+
+        void ShowBuffNotification(string buffName, bool isBuff)
+        {
+            if (_buffNotificationText == null) return;
+            StopCoroutine("BuffNotifyAnimation");
+            StartCoroutine(BuffNotifyAnimation(buffName, isBuff));
+        }
+
+        IEnumerator BuffNotifyAnimation(string buffName, bool isBuff)
+        {
+            _buffNotificationText.gameObject.SetActive(true);
+            _buffNotificationText.text = isBuff ? $"✨ {buffName}!" : $"☠ {buffName}!";
+            _buffNotificationText.color = isBuff ? new Color(0.3f, 1f, 0.3f) : new Color(1f, 0.3f, 0.3f);
+            _buffNotificationText.fontSize = 28;
+
+            float t = 0;
+            float duration = 1.2f;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                float p = t / duration;
+                _buffNotificationText.color = new Color(
+                    _buffNotificationText.color.r,
+                    _buffNotificationText.color.g,
+                    _buffNotificationText.color.b,
+                    1 - p
+                );
+                // 上浮
+                var rt = _buffNotificationText.rectTransform;
+                rt.anchoredPosition = new Vector2(0, 100 + p * 40);
+                yield return null;
+            }
+            _buffNotificationText.gameObject.SetActive(false);
+            _buffNotificationText.rectTransform.anchoredPosition = new Vector2(0, 100);
+        }
+
         IEnumerator BackToCity(float delay)
         {
             yield return new WaitForSeconds(delay);
             SceneManager.Instance.LoadScene(GameScene.MainCity);
         }
 
-        // ===== UI辅助方法 =====
+                // ===== UI辅助方法 =====
         RectTransform CreatePanel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 size, Vector2 pos)
         {
             var go = new GameObject(name, typeof(RectTransform));
@@ -332,5 +576,122 @@ namespace Jx3.UI.Battle
 
         public void SetHero(HeroUnit h) { _player = h; }
         public void SetEnemy(EnemyUnit e) { _enemy = e; }
+
+        // ===== 英雄切换UI =====
+
+        void BuildSwitchBar(RectTransform root)
+        {
+            _switchBar = CreatePanel(root, "HeroSwitchBar", new Vector2(0.5f, 0), new Vector2(0.5f, 0),
+                new Vector2(500, 80), new Vector2(0, -80));
+
+            int slotCount = _switchSystem.Team.Count;
+            float slotWidth = 80f;
+            float totalWidth = slotCount * slotWidth + (slotCount - 1) * 8;
+            float startX = -totalWidth / 2 + slotWidth / 2;
+
+            for (int i = 0; i < slotCount; i++)
+            {
+                var slot = new HeroAvatarSlot { heroIndex = i, unit = _switchSystem.Team[i].unit };
+
+                var slotGo = new GameObject("HeroSlot_" + i, typeof(RectTransform));
+                slotGo.transform.SetParent(_switchBar, false);
+                var slotRt = slotGo.GetComponent<RectTransform>();
+                slotRt.anchorMin = new Vector2(0, 0.5f);
+                slotRt.anchorMax = new Vector2(0, 0.5f);
+                slotRt.sizeDelta = new Vector2(slotWidth, 70);
+                slotRt.anchoredPosition = new Vector2(startX + i * (slotWidth + 8), 0);
+                slot.root = slotRt;
+
+                var borderGo = new GameObject("Border", typeof(RectTransform), typeof(Image));
+                borderGo.transform.SetParent(slotRt, false);
+                borderGo.GetComponent<RectTransform>().anchorMin = Vector2.zero;
+                borderGo.GetComponent<RectTransform>().anchorMax = Vector2.one;
+                borderGo.GetComponent<RectTransform>().sizeDelta = Vector2.zero;
+                slot.border = borderGo.GetComponent<Image>();
+                slot.border.color = new Color(0.25f, 0.25f, 0.3f);
+                slot.border.type = Image.Type.Sliced;
+
+                var avatarGo = new GameObject("Avatar", typeof(RectTransform), typeof(Image));
+                avatarGo.transform.SetParent(borderGo.transform, false);
+                var avatarRt = avatarGo.GetComponent<RectTransform>();
+                avatarRt.anchorMin = new Vector2(0.5f, 0.5f);
+                avatarRt.anchorMax = new Vector2(0.5f, 0.5f);
+                avatarRt.sizeDelta = new Vector2(50, 50);
+                avatarRt.anchoredPosition = Vector2.zero;
+                avatarGo.GetComponent<Image>().color = new Color(0.12f, 0.1f, 0.18f);
+                avatarGo.GetComponent<Image>().type = Image.Type.Sliced;
+
+                var avatarTextGo = new GameObject("AvatarText", typeof(RectTransform), typeof(Text));
+                avatarTextGo.transform.SetParent(avatarGo.transform, false);
+                avatarTextGo.GetComponent<RectTransform>().anchorMin = Vector2.zero;
+                avatarTextGo.GetComponent<RectTransform>().anchorMax = Vector2.one;
+                avatarTextGo.GetComponent<RectTransform>().sizeDelta = Vector2.zero;
+                slot.nameText = avatarTextGo.GetComponent<Text>();
+                slot.nameText.text = slot.unit.heroName.Length > 0 ? slot.unit.heroName[0].ToString() : "?";
+                slot.nameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                slot.nameText.fontSize = 24;
+                slot.nameText.fontStyle = FontStyle.Bold;
+                slot.nameText.alignment = TextAnchor.MiddleCenter;
+                slot.nameText.color = Color.white;
+
+                var hpBarGo = new GameObject("HpBar", typeof(RectTransform), typeof(Image));
+                hpBarGo.transform.SetParent(slotRt, false);
+                var hpBarRt = hpBarGo.GetComponent<RectTransform>();
+                hpBarRt.anchorMin = new Vector2(0, 0);
+                hpBarRt.anchorMax = new Vector2(1, 0);
+                hpBarRt.sizeDelta = new Vector2(-4, 6);
+                hpBarRt.anchoredPosition = new Vector2(0, 4);
+                hpBarGo.GetComponent<Image>().color = new Color(0.15f, 0.1f, 0.1f);
+
+                var hpFillGo = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+                hpFillGo.transform.SetParent(hpBarRt, false);
+                hpFillGo.GetComponent<RectTransform>().anchorMin = Vector2.zero;
+                hpFillGo.GetComponent<RectTransform>().anchorMax = Vector2.one;
+                hpFillGo.GetComponent<RectTransform>().sizeDelta = Vector2.zero;
+                slot.hpFill = hpFillGo.GetComponent<Image>();
+                slot.hpFill.color = new Color(0.3f, 0.9f, 0.3f);
+                slot.hpFill.type = Image.Type.Filled;
+                slot.hpFill.fillMethod = Image.FillMethod.Horizontal;
+
+                var cdGo = new GameObject("CdOverlay", typeof(RectTransform), typeof(Image));
+                cdGo.transform.SetParent(slotRt, false);
+                var cdRt = cdGo.GetComponent<RectTransform>();
+                cdRt.anchorMin = new Vector2(0.7f, 0.6f);
+                cdRt.anchorMax = new Vector2(1f, 1f);
+                cdRt.sizeDelta = Vector2.zero;
+                slot.cdOverlay = cdGo.GetComponent<Image>();
+                slot.cdOverlay.color = new Color(0f, 0f, 0f, 0.6f);
+                slot.cdOverlay.type = Image.Type.Filled;
+                slot.cdOverlay.fillMethod = Image.FillMethod.Radial360;
+                slot.cdOverlay.fillOrigin = (int)Image.Origin360.Top;
+                slot.cdOverlay.fillClockwise = false;
+                slot.cdOverlay.gameObject.SetActive(false);
+
+                _avatarSlots.Add(slot);
+            }
+        }
+
+        public void ShowDefeat()
+        {
+            _active = false;
+            if (_resultText != null)
+            {
+                _resultText.text = "\U0001F480 \u56e2\u706d...";
+                _resultText.gameObject.SetActive(true);
+                _resultText.color = new Color(1f, 0.2f, 0.2f);
+            }
+            StartCoroutine(BackToCity(3f));
+        }
+    }
+
+    class HeroAvatarSlot
+    {
+        public int heroIndex;
+        public RectTransform root;
+        public Image border;
+        public Text nameText;
+        public Image hpFill;
+        public Image cdOverlay;
+        public HeroUnit unit;
     }
 }

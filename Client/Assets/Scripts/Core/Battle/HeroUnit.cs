@@ -4,9 +4,6 @@ using Jx3.Core.Battle;
 
 namespace Jx3.Core.Battle
 {
-    /// <summary>
-    /// 战斗中的英雄单位 - 3D表现+技能+属性
-    /// </summary>
     public class HeroUnit : MonoBehaviour
     {
         [Header("英雄数据")]
@@ -25,7 +22,7 @@ namespace Jx3.Core.Battle
         public bool isAlive => currentHp > 0;
 
         [Header("技能")]
-        public SkillData[] skills = new SkillData[4];  // 3主动+1终极
+        public SkillData[] skills = new SkillData[4];
         public float[] skillCooldowns;
 
         [Header("3D表现")]
@@ -46,25 +43,21 @@ namespace Jx3.Core.Battle
             var heroSkills = SkillConfig.GetHeroSkills(heroId);
             for (int i = 0; i < Mathf.Min(heroSkills.Count, 3); i++)
                 skills[i] = heroSkills[i];
-            // 终极技
             var ultimate = heroSkills.Find(s => s.type == SkillType.终极);
             if (ultimate != null) skills[3] = ultimate;
         }
 
         void Update()
         {
-            // 冷却恢复
             for (int i = 0; i < skillCooldowns.Length; i++)
                 if (skillCooldowns[i] > 0) skillCooldowns[i] -= Time.deltaTime;
 
-            // Buff更新
             for (int i = buffs.Count - 1; i >= 0; i--)
             {
                 buffs[i].remainingTime -= Time.deltaTime;
                 if (buffs[i].remainingTime <= 0) buffs.RemoveAt(i);
             }
 
-            // 模型旋转跟随摄像机
             if (modelRoot != null && Camera.main != null)
             {
                 var dir = Camera.main.transform.forward;
@@ -78,6 +71,8 @@ namespace Jx3.Core.Battle
         {
             if (!isAlive) return;
             currentHp = Mathf.Max(0, currentHp - dmg.damage);
+            var animCtrl = GetComponent<AnimationController>();
+            if (animCtrl != null) animCtrl.PlayHit();
         }
 
         public void Heal(float amount)
@@ -106,8 +101,8 @@ namespace Jx3.Core.Battle
             var skill = skills[slotIndex];
             ConsumeMp(skill.cost);
             skillCooldowns[slotIndex] = skill.cooldown;
-
-            // 连击递增
+            var animCtrl = GetComponent<AnimationController>();
+            if (animCtrl != null) animCtrl.PlaySkill();
             comboCount++;
             lastHitTime = Time.time;
         }
@@ -122,25 +117,25 @@ namespace Jx3.Core.Battle
             modelRoot = new GameObject("HeroModel");
             modelRoot.transform.SetParent(transform, false);
 
-            // 身体(胶囊体)
             var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             body.name = "Body";
             body.transform.SetParent(modelRoot.transform, false);
             body.transform.localPosition = new Vector3(0, 1, 0);
             body.transform.localScale = new Vector3(0.6f, 1, 0.6f);
-            
+
             bodyMaterial = body.GetComponent<MeshRenderer>().material;
+            var animCtrl = GetComponent<AnimationController>();
+            if (animCtrl != null) { animCtrl.bodyRoot = modelRoot.transform; }
             var quality = HeroConfig.Get(heroId)?.quality ?? 3;
             bodyMaterial.color = quality switch
             {
-                5 => new Color(1f, 0.8f, 0.2f),  // 金
-                4 => new Color(0.8f, 0.4f, 0.8f),  // 紫
-                3 => new Color(0.4f, 0.4f, 0.8f),  // 蓝
+                5 => new Color(1f, 0.8f, 0.2f),
+                4 => new Color(0.8f, 0.4f, 0.8f),
+                3 => new Color(0.4f, 0.4f, 0.8f),
                 _ => new Color(0.8f, 0.8f, 0.8f),
             };
             bodyMaterial.SetFloat("_Metallic", 0.5f);
 
-            // 头顶名称
             var nameGo = new GameObject("NameTag", typeof(RectTransform));
             nameGo.transform.SetParent(modelRoot.transform, false);
             nameGo.transform.localPosition = new Vector3(0, 2.2f, 0);
@@ -160,7 +155,6 @@ namespace Jx3.Core.Battle
 
         public void PlayHitEffect()
         {
-            // 被击中闪红
             if (bodyMaterial != null)
             {
                 bodyMaterial.color = Color.red;
