@@ -1,16 +1,19 @@
+using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Sockets;
 using Jx3.Common;
 using Jx3.Common.Config;
 using Jx3.Common.Network;
+using Jx3.Common.Service;
 using Jx3.Common.Utils;
-using System.Net;
-using System.Net.Sockets;
 
 namespace Jx3.Gateway;
 
 public class GatewayServer : GameServer
 {
     private TcpListener? _listener;
-    private readonly Dictionary<uint, TcpClient> _sessions = new();
+    private readonly ConcurrentDictionary<uint, TcpClient> _sessions = new();
+    private uint _nextSessionId = 1;
 
     public GatewayServer() : base("Gateway", GameConfig.GatewayPort) { }
 
@@ -18,76 +21,75 @@ public class GatewayServer : GameServer
     {
         _listener = new TcpListener(IPAddress.Any, Port);
         _listener.Start();
-        Logger.Info("Gateway", "Accepting connections...");
+        Logger.Info("Gateway", $"Listening on port {Port}...");
+
+        // 等待其他微服务注册完成
+        await Task.Delay(500);
 
         while (true)
         {
             var client = await _listener.AcceptTcpClientAsync();
-            _ = HandleClientAsync(client);
+            var sessionId = Interlocked.Increment(ref _nextSessionId);
+            _sessions[sessionId] = client;
+            Logger.Info("Gateway", $"Session[{sessionId}] connected: {client.Client.RemoteEndPoint}");
+            _ = HandleClientAsync(sessionId, client);
         }
     }
 
-    private async Task HandleClientAsync(TcpClient client)
+    private async Task HandleClientAsync(uint sessionId, TcpClient client)
     {
+        var buffer = new byte[1024 * 64]; // 64KB buffer
         var stream = client.GetStream();
-        var buffer = new byte[4096];
-        Logger.Info("Gateway", $"Client connected: {client.Client.RemoteEndPoint}");
 
         try
         {
             while (client.Connected)
             {
-                var read = await stream.ReadAsync(buffer);
-                if (read == 0) break;
+                var read = await stream.ReadAsync(buffer, 0, 4); // 先读4字节长度
+                if (read < 4) break;
 
-                var packet = MessagePacket.Decode(buffer[..read]);
+                var bodyLen = BitConverter.ToUInt32(buffer, 0);
+                if (bodyLen == 0 || bodyLen > 65536) break;
+
+                var totalRead = 4;
+                while (totalRead < bodyLen + 4)
+                {
+                    read = await stream.ReadAsync(buffer, totalRead, (int)(bodyLen + 4 - totalRead));
+                    if (read == 0) break;
+                    totalRead += read;
+                }
+                if (totalRead < bodyLen + 4) break;
+
+                var packet = MessagePacket.Decode(buffer[..(int)(bodyLen + 4)]);
                 if (packet == null) continue;
 
-                // 路由到对应微服务
-                await RouteMessageAsync(packet, stream);
+                // 通过服务注册中心路由
+                var response = await ServiceRegistry.RouteAsync(packet.MsgId, packet.Body);
+                if (response != null)
+                {
+                    var responsePacket = new MessagePacket
+                    {
+                        MsgId = packet.MsgId + 1, // 响应ID = 请求ID+1
+                        Seq = packet.Seq,
+                        Body = response
+                    };
+                    var respData = responsePacket.Encode();
+                    var lenBytes = BitConverter.GetBytes((uint)respData.Length);
+                    await stream.WriteAsync(lenBytes);
+                    await stream.WriteAsync(respData);
+                }
             }
         }
         catch (Exception ex)
         {
-            Logger.Error("Gateway", $"Client error: {ex.Message}");
+            Logger.Error("Gateway", $"Session[{sessionId}] error: {ex.Message}");
         }
         finally
         {
+            _sessions.TryRemove(sessionId, out _);
             client.Close();
+            Logger.Info("Gateway", $"Session[{sessionId}] disconnected");
         }
-    }
-
-    private async Task RouteMessageAsync(MessagePacket packet, NetworkStream stream)
-    {
-        // 根据MsgID路由到对应服务
-        switch (packet.MsgId / 1000)
-        {
-            case 1: // 登录模块 1000-1999
-                await ForwardToServiceAsync("Login", packet, stream);
-                break;
-            case 2: // 副本模块 2000-2999
-                await ForwardToServiceAsync("Dungeon", packet, stream);
-                break;
-            case 3: // 交易模块 3000-3999
-                await ForwardToServiceAsync("Trade", packet, stream);
-                break;
-            case 4: // 战斗模块 4000-4999
-                await ForwardToServiceAsync("Battle", packet, stream);
-                break;
-            case 5: // 聊天模块 5000-5999
-                await ForwardToServiceAsync("Chat", packet, stream);
-                break;
-            default:
-                Logger.Warn("Gateway", $"Unknown MsgID: {packet.MsgId}");
-                break;
-        }
-    }
-
-    private Task ForwardToServiceAsync(string service, MessagePacket packet, NetworkStream stream)
-    {
-        // TODO: 通过gRPC/HTTP转发到对应微服务
-        Logger.Info("Gateway", $"Forward {packet.MsgId} -> {service}");
-        return Task.CompletedTask;
     }
 }
 
