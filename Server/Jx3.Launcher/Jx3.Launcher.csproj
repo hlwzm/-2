@@ -13,6 +13,5 @@
     <ProjectReference Include="..\Jx3.PVP\Jx3.PVP.csproj" />
     <ProjectReference Include="..\Jx3.Shop\Jx3.Shop.csproj" />
     <ProjectReference Include="..\Jx3.Quest\Jx3.Quest.csproj" />
-    <ProjectReference Include="..\Jx3.Admin\Jx3.Admin.csproj" />
   </ItemGroup>
 </Project>
