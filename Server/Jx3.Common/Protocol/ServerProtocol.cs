@@ -176,5 +176,15 @@ public enum MsgId : uint
     SCQuestComplete = 9008,
     SCQuestDailyReset = 9009,
     CSQuestAchievementList = 9010,
-    SCQuestAchievement = 9011,
+    SCQuestAchievement = 9011,    // PVP (10001-10099)
+    CSPVPMatchStart = 10001,
+    SCPVPMatchResult = 10002,
+    CSPVPMatchCancel = 10003,
+    CSPVPRankInfo = 10004,
+    SCPVPRankInfo = 10005,
+    CSPVPDuelChallenge = 10006,
+    SCPVPDuelRequest = 10007,
+    CSPVPDuelAccept = 10008,
+    SCPVPDuelResult = 10009,
+    SCPVPMatchQueue = 10010,
 }

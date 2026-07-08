@@ -4,6 +4,7 @@ using Jx3.Common.Database;
 using Jx3.Common.Protocol;
 using Jx3.Common.Service;
 using Jx3.Common.Utils;
+using Jx3.Social;
 using System.Text.Json;
 
 namespace Jx3.Social;
@@ -483,5 +484,34 @@ public class Program
     {
         GameConfigLoader.Load();
         await new SocialServer().StartAsync();
+    }
+
+    private Task<byte[]> HandleGuildCreate(byte[] body)
+    {
+        using var r = new BinaryReader(new MemoryStream(body));
+        var pid = r.ReadUInt64(); var name = r.ReadString(); var guildName = r.ReadString();
+        var code = GuildService.CreateGuild(pid, name, guildName);
+        return Task.FromResult(BitConverter.GetBytes(code));
+    }
+    private Task<byte[]> HandleGuildApply(byte[] body)
+    {
+        using var r = new BinaryReader(new MemoryStream(body));
+        var pid = r.ReadUInt64(); var name = r.ReadString(); var gid = r.ReadUInt64();
+        var code = GuildService.JoinGuild(gid, pid, name);
+        return Task.FromResult(BitConverter.GetBytes(code));
+    }
+    private Task<byte[]> HandleGuildLeave(byte[] body)
+    {
+        using var r = new BinaryReader(new MemoryStream(body));
+        var pid = r.ReadUInt64();
+        var ok = GuildService.LeaveGuild(pid);
+        return Task.FromResult(new[] { ok ? (byte)1 : (byte)0 });
+    }
+    private Task<byte[]> HandleGuildKick(byte[] body)
+    {
+        using var r = new BinaryReader(new MemoryStream(body));
+        var gid = r.ReadUInt64(); var target = r.ReadUInt64(); var op = r.ReadUInt64();
+        var ok = GuildService.KickMember(gid, target, op);
+        return Task.FromResult(new[] { ok ? (byte)1 : (byte)0 });
     }
 }
