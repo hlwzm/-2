@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net9.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Jx3.Common\Jx3.Common.csproj" />
+    <ProjectReference Include="..\Jx3.Gateway\Jx3.Gateway.csproj" />
+    <ProjectReference Include="..\Jx3.Login\Jx3.Login.csproj" />
+    <ProjectReference Include="..\Jx3.Hero\Jx3.Hero.csproj" />
+    <ProjectReference Include="..\Jx3.Trade\Jx3.Trade.csproj" />
+    <ProjectReference Include="..\Jx3.Battle\Jx3.Battle.csproj" />
+    <ProjectReference Include="..\Jx3.Dungeon\Jx3.Dungeon.csproj" />
+    <ProjectReference Include="..\Jx3.Chat\Jx3.Chat.csproj" />
+    <ProjectReference Include="..\Jx3.Social\Jx3.Social.csproj" />
+    <ProjectReference Include="..\Jx3.PVP\Jx3.PVP.csproj" />
+    <ProjectReference Include="..\Jx3.Shop\Jx3.Shop.csproj" />
+    <ProjectReference Include="..\Jx3.Quest\Jx3.Quest.csproj" />
+    <ProjectReference Include="..\Jx3.Admin\Jx3.Admin.csproj" />
+  </ItemGroup>
+</Project>

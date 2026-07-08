@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jx3.PVP", "Jx3.PVP\Jx3.PVP.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jx3.Quest", "Jx3.Quest\Jx3.Quest.csproj", "{6C3047A3-007F-406E-A541-C52C086AFF16}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jx3.Launcher", "Jx3.Launcher\Jx3.Launcher.csproj", "{789A507E-871D-4520-B0EE-DE7FB35AA116}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -195,6 +197,18 @@ Global
 		{6C3047A3-007F-406E-A541-C52C086AFF16}.Release|x64.Build.0 = Release|Any CPU
 		{6C3047A3-007F-406E-A541-C52C086AFF16}.Release|x86.ActiveCfg = Release|Any CPU
 		{6C3047A3-007F-406E-A541-C52C086AFF16}.Release|x86.Build.0 = Release|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Debug|x64.Build.0 = Debug|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Debug|x86.Build.0 = Debug|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Release|Any CPU.Build.0 = Release|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Release|x64.ActiveCfg = Release|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Release|x64.Build.0 = Release|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Release|x86.ActiveCfg = Release|Any CPU
+		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
