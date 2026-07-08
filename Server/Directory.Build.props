@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <NoWarn>CS8600;CS8602;CS8603;CS8604;CS8618;CS8625;CS8632;CS1998;CS0169;CS8619</NoWarn>
+  </PropertyGroup>
+</Project>

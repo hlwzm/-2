@@ -1,3 +1,4 @@
+#nullable disable
 using System.Text.Json;
 using Jx3.Common;
 using Jx3.Common.Config;

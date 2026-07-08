@@ -1,36 +1,22 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
-
+using Jx3.Core;
 namespace Jx3.UI.Panels
 {
     public class TradePanel : BasePanel
     {
-        public InputField? searchInput;
-        public Button? searchBtn;
-        public Dropdown? categoryDropdown;
-        public Transform? itemContainer;
-        public GameObject? itemPrefab;
-        public Button? sellBtn;
-        public Button? myListingsBtn;
-        public Text? feeInfoText;
-
-        void Start()
+        protected override void Awake()
         {
-            searchBtn?.onClick.AddListener(OnSearch);
-            sellBtn?.onClick.AddListener(() => Debug.Log("Open Sell UI"));
-            myListingsBtn?.onClick.AddListener(() => Debug.Log("Show My Listings"));
-            if (feeInfoText != null)
-                feeInfoText.text = "交易手续费: 5%";
+            base.Awake();
+            var bg = CreateImage(transform as RectTransform, "Bg", new Color(0, 0, 0, 0.85f));
+            bg.rectTransform.anchorMin = Vector2.zero; bg.rectTransform.anchorMax = Vector2.one;
+            bg.rectTransform.sizeDelta = Vector2.zero;
+            CreateText(transform as RectTransform, "Title", "交 易 行", 32);
+            ((RectTransform)transform.Find("Title")).anchoredPosition = new Vector2(0, 300);
+            CreateText(transform as RectTransform, "Info", "交易行\n- 搜索物品\n- 分类浏览\n- 上架物品(5%手续费)\n- 我的上架\n- 领取金币/物品", 20);
+            ((RectTransform)transform.Find("Info")).anchoredPosition = new Vector2(0, 0);
+            var closeBtn = CreateButton(transform as RectTransform, "CloseBtn", "关闭", () => Hide());
+            ((RectTransform)closeBtn.transform).anchoredPosition = new Vector2(700, 300);
         }
-
-        void OnSearch()
-        {
-            var keyword = searchInput?.text ?? "";
-            var category = categoryDropdown != null ? categoryDropdown.value : 0;
-            Debug.Log($"[Trade] Search: {keyword} (cat={category})");
-        }
-
-        public override void OnOpen(object data = null) => gameObject.SetActive(true);
-        public override void OnClose() => gameObject.SetActive(false);
     }
 }

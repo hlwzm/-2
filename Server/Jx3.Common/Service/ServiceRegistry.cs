@@ -2,13 +2,12 @@ using Jx3.Common.Utils;
 
 namespace Jx3.Common.Service;
 
-/// <summary>服务注册中心（进程内routing）</summary>
 public static class ServiceRegistry
 {
-    private static readonly Dictionary<uint, Func<byte[], Task<byte[]?>>> _handlers = new();
+    private static readonly Dictionary<uint, Func<byte[], Task<byte[]>>> _handlers = new();
     private static readonly Dictionary<string, object> _services = new();
 
-    public static void RegisterHandler(uint msgId, Func<byte[], Task<byte[]?>> handler)
+    public static void RegisterHandler(uint msgId, Func<byte[], Task<byte[]>> handler)
     {
         _handlers[msgId] = handler;
     }

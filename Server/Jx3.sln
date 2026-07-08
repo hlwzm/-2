@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jx3.Quest", "Jx3.Quest\Jx3.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jx3.Launcher", "Jx3.Launcher\Jx3.Launcher.csproj", "{789A507E-871D-4520-B0EE-DE7FB35AA116}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jx3.Tests", "Jx3.Tests\Jx3.Tests.csproj", "{F1F9F263-5071-4B16-A1D1-533623E31FFA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -209,6 +211,18 @@ Global
 		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Release|x64.Build.0 = Release|Any CPU
 		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Release|x86.ActiveCfg = Release|Any CPU
 		{789A507E-871D-4520-B0EE-DE7FB35AA116}.Release|x86.Build.0 = Release|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Debug|x64.Build.0 = Debug|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Debug|x86.Build.0 = Debug|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Release|x64.ActiveCfg = Release|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Release|x64.Build.0 = Release|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Release|x86.ActiveCfg = Release|Any CPU
+		{F1F9F263-5071-4B16-A1D1-533623E31FFA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

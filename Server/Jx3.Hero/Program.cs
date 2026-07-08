@@ -1,3 +1,4 @@
+#nullable disable
 ﻿using Jx3.Common;
 using Jx3.Common.Config;
 using Jx3.Common.Database;

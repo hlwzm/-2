@@ -16,7 +16,10 @@ b.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 b.Services.AddAuthorization(); b.Services.AddControllers();
 b.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 b.Services.AddSingleton<AdminService>();
-var app = b.Build(); app.UseCors(); app.UseAuthentication(); app.UseAuthorization(); app.MapControllers();
-app.MapGet("/", async (ctx) => { ctx.Response.ContentType = "text/html;charset=utf-8"; await ctx.Response.WriteAsync("<h1>JX3 Admin</h1><p>OK</p>"); });
+var app = b.Build();
+app.UseCors(); app.UseAuthentication(); app.UseAuthorization();
+app.UseDefaultFiles(); app.UseStaticFiles();
+app.MapControllers();
+app.MapFallbackToFile("index.html");
 Logger.Info("Admin", "Starting on port " + GameConfig.AdminPort);
 app.Run("http://0.0.0.0:" + GameConfig.AdminPort);

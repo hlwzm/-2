@@ -1,5 +1,8 @@
+#nullable disable
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using Jx3.Core;
+using Jx3.Core.Scene;
 
 namespace Jx3.UI.Panels
 {
@@ -22,7 +25,7 @@ namespace Jx3.UI.Panels
 
         private bool _autoMode;
 
-        void Start()
+        protected override void Start()
         {
             skill1Btn?.onClick.AddListener(() => CastSkill(0));
             skill2Btn?.onClick.AddListener(() => CastSkill(1));
@@ -67,7 +70,7 @@ namespace Jx3.UI.Panels
             Debug.Log($"[Battle] Switch to hero {idx}");
         }
 
-        public override void OnOpen(object data = null) => gameObject.SetActive(true);
-        public override void OnClose() => gameObject.SetActive(false);
+        protected override void OnShow() { Debug.Log("[Battle] Panel shown"); }
+        protected override void OnHide() { }
     }
 }

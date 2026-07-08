@@ -1,7 +1,8 @@
-﻿using System;
+#nullable disable
+using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Jx3.Core.Network;
 
 namespace Jx3.Core
@@ -9,11 +10,9 @@ namespace Jx3.Core
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; } = null!;
-
         public NetworkClient Network { get; private set; } = new();
         public PlayerData Player { get; private set; } = new();
         public List<HeroData> Heroes { get; private set; } = new();
-
         public string ServerHost = "127.0.0.1";
         public int ServerPort = 9000;
 
@@ -22,87 +21,58 @@ namespace Jx3.Core
         public event Action<string>? OnSystemNotice;
         public event Action<uint, ulong>? OnCurrencyChanged;
 
-        [Serializable]
-        public class PlayerData
-        {
+        [Serializable] public class PlayerData {
             public ulong PlayerId;
             public string Name = "";
             public int Level = 1;
-            public ulong Gold;
-            public ulong BindGold;
-            public ulong Tongbao;
+            public ulong Gold, BindGold, Tongbao;
             public int MapId = 1001;
             public string Token = "";
         }
 
-        [Serializable]
-        public class HeroData
-        {
+        [Serializable] public class HeroData {
             public ulong HeroUid;
             public uint TemplateId;
             public string Name = "";
-            public int Level = 1;
-            public int Star = 1;
-            public int Quality = 4;
+            public int Level = 1, Star = 1, Quality = 4;
             public bool InTeam;
         }
 
-        void Awake()
-        {
+        void Awake() {
             if (Instance != null) { Destroy(gameObject); return; }
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
+            Instance = this; DontDestroyOnLoad(gameObject);
             Network.OnMessage += HandleMessage;
         }
 
         void Update() => Network.Update();
-
         void OnDestroy() => Network.Dispose();
 
-        void HandleMessage(uint msgId, byte[] body)
-        {
-            try
-            {
-                // 分发到各Manager
-                LoginManager.Instance?.HandleMessage(msgId, body);
-                HeroScreenManager.Instance?.HandleMessage(msgId, body);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[GameManager] HandleMessage error: {ex.Message}");
+        void HandleMessage(uint msgId, byte[] body) {
+            try {
+                var range = msgId / 1000;
+                switch (range) {
+                    case 1: LoginManager.Instance?.HandleMessage(msgId, body); break;      // 1001-1999 Login+Hero+Recruit
+                    case 2: BattleManager.Instance?.HandleMessage(msgId, body); break;     // 2001-2999 Combat
+                    case 3: DungeonManager.Instance?.HandleMessage(msgId, body); break;    // 3001-3999 Dungeon
+                    case 4: TradeManager.Instance?.HandleMessage(msgId, body); break;      // 4001-4999 Trade
+                    case 5: ChatManager.Instance?.HandleMessage(msgId, body); break;       // 5001-5999 Chat
+                    case 6: TeamManager.Instance?.HandleMessage(msgId, body); break;       // 6001-6999 Team
+                    case 7: FriendManager.Instance?.HandleMessage(msgId, body); break;     // 7001-7999 Friend+Guild
+                    case 8: ShopManager.Instance?.HandleMessage(msgId, body); break;       // 8001-8999 Shop
+                    case 9: QuestManager.Instance?.HandleMessage(msgId, body); break;      // 9001-9999 Quest
+                    case 10: PvpManager.Instance?.HandleMessage(msgId, body); break;       // 10001-10999 PVP
+                }
+            } catch (Exception ex) {
+                Debug.LogError($"[GameManager] HandleMessage({msgId}) error: {ex.Message}");
             }
         }
 
-        public async void ConnectToServer()
-        {
+        public async void ConnectToServer() {
             Debug.Log("[GameManager] Connecting to server...");
             await Network.ConnectAsync(ServerHost, ServerPort);
         }
 
         public void ShowNotice(string msg) => OnSystemNotice?.Invoke(msg);
-    }
-
-    // 消息ID枚举 (与服务端一致)
-    public enum MsgId : uint
-    {
-        None = 0,
-        CSLoginAuth = 1001, SCLoginAuthResult = 1002,
-        CSLoginRegister = 1003, SCLoginRegisterResult = 1004,
-        CSLoginCreateRole = 1005, SCLoginRoleList = 1006,
-        CSLoginEnterGame = 1007, SCLoginEnterGame = 1008,
-        CSHeroList = 1101, SCHeroList = 1102,
-        CSHeroLevelUp = 1103, CSHeroStarUp = 1105,
-        CSRecruitDraw = 1201, CSRecruitPoolList = 1203,
-        CSCombatMove = 2001, CSCombatCastSkill = 2002,
-        SCCombatDamage = 2003, SCCombatHPChange = 2004,
-        SCCombatStateInit = 2005, SCCombatEnd = 2006,
-        CSDungeonEnter = 3003, SCDungeonBossHP = 3005,
-        CSTradeSell = 4003, CSTradeBuy = 4005,
-        CSChatSend = 5001, SCChatMessage = 5002,
-        CSChatPrivate = 5003,
-        CSTeamCreate = 6001, CSTeamInvite = 6003,
-        CSGuildCreate = 7010,
-        CSShopBuy = 8003, CSShopRecharge = 8005,
-        CSQuestList = 9001, CSQuestAccept = 9003,
+        public void FireLoginSuccess() => OnLoginSuccess?.Invoke();
     }
 }

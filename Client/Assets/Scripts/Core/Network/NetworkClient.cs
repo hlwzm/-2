@@ -1,9 +1,11 @@
-﻿using System;
+#nullable disable
+using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using System.IO;
 
 namespace Jx3.Core.Network
 {
@@ -20,7 +22,7 @@ namespace Jx3.Core.Network
         public event Action? OnDisconnected;
         public event Action<uint, byte[]>? OnMessage;
 
-        public async Task ConnectAsync(string host, int port)
+        public async Task<bool> ConnectAsync(string host, int port, int timeoutMs = 5000)
         {
             try
             {
@@ -30,13 +32,10 @@ namespace Jx3.Core.Network
                 _connected = true;
                 _cts = new CancellationTokenSource();
                 _ = ReceiveLoopAsync(_cts.Token);
-                Debug.Log($"[Network] Connected to {host}:{port}");
-                OnConnected?.Invoke();
-            }
+                Debug.Log($"[Network] Connected to {host}:{port}"); OnConnected?.Invoke(); return true; }
             catch (Exception ex)
             {
-                Debug.LogError($"[Network] Connect failed: {ex.Message}");
-            }
+                Debug.LogError($"[Network] Connect failed: {ex.Message}"); return false; }
         }
 
         public async Task SendAsync(uint msgId, byte[] body)
@@ -154,11 +153,15 @@ namespace Jx3.Core.Network
             using var ms = new MemoryStream(data);
             using var r = new BinaryReader(ms);
             if (r.ReadUInt16() != Magic) return null;
+            var msgId = r.ReadUInt32();
+            var seq = r.ReadUInt32();
+            var bodyLen = r.ReadInt32();
+            r.ReadUInt16(); // skip flag
             return new MessagePacket
             {
-                MsgId = r.ReadUInt32(),
-                Seq = r.ReadUInt32(),
-                Body = r.ReadBytes(data.Length - 16)
+                MsgId = msgId,
+                Seq = seq,
+                Body = bodyLen > 0 ? r.ReadBytes(bodyLen) : Array.Empty<byte>()
             };
         }
     }

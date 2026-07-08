@@ -1,5 +1,8 @@
+#nullable disable
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using Jx3.Core;
+using Jx3.Core.Scene;
 
 namespace Jx3.UI.Panels
 {
@@ -18,7 +21,7 @@ namespace Jx3.UI.Panels
             "推荐Lv.65-75 | 8人\nBoss: 牡丹→大蛇→沙利亚→阿萨辛\n限时: 前3Boss≤15分钟"
         };
 
-        void Start()
+        protected override void Start()
         {
             for (int i = 0; i < 4; i++)
             {
@@ -35,7 +38,7 @@ namespace Jx3.UI.Panels
             Debug.Log($"[Dungeon] Enter dungeon {dungeonId}");
         }
 
-        public override void OnOpen(object data = null) => gameObject.SetActive(true);
-        public override void OnClose() => gameObject.SetActive(false);
+        protected override void OnShow() { Debug.Log("[Dungeon] Panel shown"); }
+        protected override void OnHide() { }
     }
 }

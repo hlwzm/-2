@@ -1,25 +1,39 @@
-# .NET
+# ========== Unity ==========
+[Ll]ibrary/
+[Tt]emp/
+[Ll]ogs/
+[Uu]ser[S]ettings/
+*.csproj
+*.sln
+*.userprefs
+*.unitypackage
+*.booproj
+*.pidb
+*.suo
+*.user
+
+# ========== Build Output ==========
 bin/
 obj/
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
+[Bb]uild/
+[Dd]eploy/
+*.exe
 
-# Unity
-Client/Library/
-Client/Temp/
-Client/obj/
-Client/Build/
-Client/*.csproj
-Client/*.sln
+# ========== Server ==========
+Server/**/bin/
+Server/**/obj/
+Server/Jx3.MockServer/bin/
+Server/Jx3.MockServer/obj/
 
-# IDE
+# ========== IDE ==========
 .vs/
 .vscode/
 .idea/
-*.swp
 
-# OS
-Thumbs.db
+# ========== OS ==========
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# ========== Generated ==========
+*.dotCover*
