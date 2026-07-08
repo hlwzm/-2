@@ -15,6 +15,9 @@ namespace Jx3.Core
         public List<HeroData> Heroes { get; private set; } = new();
         public string ServerHost = "127.0.0.1";
         public int ServerPort = 9000;
+        public int CurrentDungeonIndex = -1;
+        public string CurrentDungeonName = "";
+        public string CurrentDungeonBoss = "";
 
         public event Action? OnLoginSuccess;
         public event Action? OnEnterGame;

@@ -1,5 +1,7 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
+using Jx3.Core;
+using Jx3.Core.Scene;
 
 namespace Jx3.UI.Panels
 {
@@ -170,8 +172,12 @@ namespace Jx3.UI.Panels
 
         private void OnEnterDungeon(int index)
         {
-            Debug.Log($"[DungeonSelect] 玩家选择进入副本: {_names[index]} (ID={index + 1})");
-            Debug.Log($"[DungeonSelect] 详情: {_levels[index]} | {_sizes[index]} | {_timeLimits[index]} | 难度 {_stars[index]}/5星");
+            var gm = GameManager.Instance;
+            gm.CurrentDungeonIndex = index;
+            gm.CurrentDungeonName = _names[index];
+            gm.CurrentDungeonBoss = _bosses[index];
+            Debug.Log($"[DungeonSelect] 进入副本: {_names[index]} | Boss: {_bosses[index]}");
+            SceneManager.Instance.LoadScene(GameScene.Battle);
         }
 
         private void BuildBackButton()
@@ -179,9 +185,9 @@ namespace Jx3.UI.Panels
             var backBtn = CreateButton(transform as RectTransform, "BackBtn", "返回主城", () =>
             {
                 Debug.Log("[DungeonSelect] 返回主城");
-                var sceneMgr = Jx3.Core.Scene.SceneManager.Instance;
+                var sceneMgr = SceneManager.Instance;
                 if (sceneMgr != null)
-                    sceneMgr.LoadScene(Jx3.Core.Scene.GameScene.MainCity);
+                    sceneMgr.LoadScene(GameScene.MainCity);
             });
             var rt = backBtn.GetComponent<RectTransform>();
             rt.anchorMin = new Vector2(0.5f, 0);

@@ -8,20 +8,20 @@ namespace Jx3.UI.Panels
 {
     public class BattlePanel : BasePanel
     {
-        public Slider? hpSlider;
-        public Text? hpText;
-        public Text? skill1CD;
-        public Text? skill2CD;
-        public Text? skill3CD;
-        public Button? skill1Btn;
-        public Button? skill2Btn;
-        public Button? skill3Btn;
-        public Button? ultimateBtn;
-        public Button? dodgeBtn;
-        public Button[]? switchHeroBtns;
-        public Button? autoBtn;
-        public Text? comboText;
-        public Text? timerText;
+        public Slider hpSlider;
+        public Text hpText;
+        public Text skill1CD;
+        public Text skill2CD;
+        public Text skill3CD;
+        public Button skill1Btn;
+        public Button skill2Btn;
+        public Button skill3Btn;
+        public Button ultimateBtn;
+        public Button dodgeBtn;
+        public Button[] switchHeroBtns;
+        public Button autoBtn;
+        public Text comboText;
+        public Text timerText;
 
         private bool _autoMode;
 
