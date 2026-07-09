@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using Jx3.Core;
+using Jx3.UI;
+using Jx3.UI.Panels;
 
 namespace Jx3.UI.Panels
 {
@@ -34,6 +36,18 @@ namespace Jx3.UI.Panels
 
             var closeBtn = CreateButton(transform as RectTransform, "CloseBtn", "关闭", () => Hide());
             ((RectTransform)closeBtn.transform).anchoredPosition = new Vector2(700, 350);
+
+            // 返回主城按钮
+            var backBtn = CreateButton(transform as RectTransform, "BackToMainCityBtn", "返回主城", () =>
+            {
+                UIManager.Instance.Hide<HeroListPanel>();
+                UIManager.Instance.Show<MainCityPanel>();
+            });
+            var backRt = (RectTransform)backBtn.transform;
+            backRt.anchorMin = new Vector2(1, 1);
+            backRt.anchorMax = new Vector2(1, 1);
+            backRt.sizeDelta = new Vector2(100, 40);
+            backRt.anchoredPosition = new Vector2(-60, -25);
         }
 
         protected override void OnShow()

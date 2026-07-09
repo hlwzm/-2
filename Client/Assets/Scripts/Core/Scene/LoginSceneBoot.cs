@@ -8,6 +8,7 @@ namespace Jx3.Core.Scene
         protected override void SetupScene()
         {
             SetupEnvironment();
+            UIManager.Instance.HideAll();
             UIManager.Instance.Show<LoginPanel>();
         }
     }

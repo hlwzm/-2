@@ -1,270 +1,229 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
-using System.Linq;
-using Jx3.Core;
+using Jx3.UI;
 
 namespace Jx3.UI.Panels
 {
     public class QuestPanel : BasePanel
     {
-        private static readonly Color ColorTabNormal = new Color(0.15f, 0.15f, 0.28f, 0.8f);
-        private static readonly Color ColorTabActive = new Color(0.5f, 0.3f, 0.9f, 0.8f);
-        private static readonly Color ColorAccent = new Color(0.5f, 0.3f, 0.9f, 0.8f);
-        private static readonly Color ColorDimText = new Color(0.6f, 0.6f, 0.7f);
-        private static readonly Color ColorGold = new Color(1f, 0.8f, 0.2f);
-        private static readonly Color ColorComplete = new Color(0.4f, 0.9f, 0.4f);
-        private static readonly Color ColorRed = new Color(0.9f, 0.3f, 0.3f);
-        private static readonly Color ColorInProgress = new Color(0.4f, 0.7f, 1f);
-        private static readonly Color ColorItemBg = new Color(0.1f, 0.1f, 0.2f, 0.7f);
-
-        private static readonly QuestType[] TabTypes = { QuestType.Main, QuestType.Sub, QuestType.Daily, QuestType.Weekly };
-        private static readonly string[] TabNames = { "主线", "支线", "日常", "周常" };
-
         private int _currentTab = 0;
-        private List<GameObject> _questItems = new();
-        private List<GameObject> _tabButtons = new();
         private RectTransform _listContent;
         private Text _rewardPreview;
+
+        private static readonly string[] TabNames = { "主线", "日常", "副本", "成就" };
+
+        // Demo quest data
+        private static readonly (string name, int level, string desc, string progress, bool done, string reward)[] MainQuests = {
+            ("初入江湖", 1, "与稻香村掌门对话", "1/1", true, "经验+500 · 金币+200"),
+            ("第一件武器", 2, "领取新手武器", "1/1", true, "经验+300 · 青铜剑×1"),
+            ("稻香村危机", 5, "消灭10只山贼", "3/10", false, "经验+1000 · 金币+500"),
+            ("英雄初现", 8, "通过招募获得一名英雄", "0/1", false, "经验+800 · 招募券×1"),
+        };
+        private static readonly (string name, int level, string desc, string progress, bool done, string reward)[] DailyQuests = {
+            ("茶馆听书", 1, "前往茶馆听书", "0/1", false, "经验+200 · 金币+100"),
+            ("门派日常", 10, "完成3次门派任务", "1/3", false, "经验+600 · 贡献+50"),
+            ("每日副本", 20, "完成一次副本", "0/1", false, "经验+800 · 金币+300"),
+        };
+        private static readonly (string name, int level, string desc, string progress, bool done, string reward)[] DungeonQuests = {
+            ("风雨稻香村", 20, "通关风雨稻香村", "0/1", false, "经验+1500 · 紫晶石×1"),
+            ("天子峰挑战", 35, "击败天子峰最终Boss", "0/1", false, "经验+2000 · 破军刀×1"),
+        };
+        private static readonly (string name, int level, string desc, string progress, bool done, string reward)[] AchievementQuests = {
+            ("英雄收集者", 1, "收集5名不同的英雄", "2/5", false, "钻石×100"),
+            ("百战勇士", 1, "累计击败100个敌人", "47/100", false, "金币+5000"),
+        };
 
         protected override void Awake()
         {
             base.Awake();
-            BuildBackground();
-            BuildTopBar();
-            BuildTabs();
-            BuildQuestList();
-            BuildRewardPreview();
-            FilterByTab(0);
-            QuestManager.Instance.OnQuestProgress += OnQuestUpdated;
-            QuestManager.Instance.OnQuestCompleted += OnQuestUpdated;
-        }
-        void OnDestroy()
-        {
-            if (QuestManager.Instance != null) {
-                QuestManager.Instance.OnQuestProgress -= OnQuestUpdated;
-                QuestManager.Instance.OnQuestCompleted -= OnQuestUpdated;
-            }
-        }
-        private void OnQuestUpdated(QuestInfo q)
-        {
-            if (gameObject.activeInHierarchy) FilterByTab(_currentTab);
-        }
-        private void BuildBackground()
-        {
-            var bg = CreateImage(transform as RectTransform, "Bg", new Color(0.04f, 0.04f, 0.1f, 0.92f));
-            bg.rectTransform.anchorMin = Vector2.zero; bg.rectTransform.anchorMax = Vector2.one;
-            bg.rectTransform.sizeDelta = Vector2.zero;
-        }
-        private void BuildTopBar()
-        {
-            var title = CreateText(transform as RectTransform, "Title", "任务", 32);
-            var titleRt = (RectTransform)title.transform;
-            titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(0, 1);
-            titleRt.sizeDelta = new Vector2(100, 40); titleRt.anchoredPosition = new Vector2(40, -40);
-            var line = new GameObject("TitleLine", typeof(RectTransform), typeof(Image));
-            line.transform.SetParent(transform, false); var lineRt = line.GetComponent<RectTransform>();
-            lineRt.anchorMin = new Vector2(0, 1); lineRt.anchorMax = new Vector2(1, 1);
-            lineRt.sizeDelta = new Vector2(0, 2); lineRt.anchoredPosition = new Vector2(0, -70);
-            line.GetComponent<Image>().color = ColorAccent;
-        }
-        private void BuildTabs()
-        {
-            float x = 40;
-            for (int i = 0; i < TabNames.Length; i++) {
-                var idx = i;
-                var btn = CreateButton(transform as RectTransform, "Tab" + i, TabNames[i], () => FilterByTab(idx));
-                var btnRt = (RectTransform)btn.transform;
-                btnRt.anchorMin = new Vector2(0, 1); btnRt.anchorMax = new Vector2(0, 1);
-                btnRt.sizeDelta = new Vector2(100, 36); btnRt.anchoredPosition = new Vector2(x, -110);
-                _tabButtons.Add(btn.gameObject); x += 110;
-            }
-        }
-        private void BuildQuestList()
-        {
-            var scroll = new GameObject("QuestScroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
-            scroll.transform.SetParent(transform, false);
-            var scRt = scroll.GetComponent<RectTransform>();
-            scRt.anchorMin = new Vector2(0.02f, 0.14f); scRt.anchorMax = new Vector2(0.98f, 0.88f);
-            scRt.sizeDelta = Vector2.zero; scRt.anchoredPosition = Vector2.zero;
-            scroll.GetComponent<Image>().color = new Color(0.05f, 0.05f, 0.1f, 0.5f);
-            var sr = scroll.GetComponent<ScrollRect>(); sr.horizontal = false; sr.vertical = true;
+            var root = transform as RectTransform;
 
-            var vp = new GameObject("Viewport", typeof(RectTransform), typeof(Mask), typeof(Image));
-            vp.transform.SetParent(scroll.transform, false); var vpRt = vp.GetComponent<RectTransform>();
-            vpRt.anchorMin = Vector2.zero; vpRt.anchorMax = Vector2.one;
-            vpRt.sizeDelta = Vector2.zero; vp.GetComponent<Image>().color = Color.clear; sr.viewport = vpRt;
+            UIComponentFactory.CreateBackground(root);
 
-            _listContent = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
-            _listContent.SetParent(vp.transform, false);
-            _listContent.anchorMin = new Vector2(0, 1); _listContent.anchorMax = new Vector2(1, 1);
-            _listContent.sizeDelta = new Vector2(0, 0); _listContent.anchoredPosition = Vector2.zero; sr.content = _listContent;
-        }
-        private void FilterByTab(int tabIndex)
-        {
-            _currentTab = tabIndex;
-            for (int i = 0; i < _tabButtons.Count; i++) {
-                var img = _tabButtons[i].GetComponent<Image>();
-                if (img != null) img.color = i == tabIndex ? ColorTabActive : ColorTabNormal;
-            }
-            foreach (var item in _questItems) Destroy(item);
-            _questItems.Clear();
+            // TitleBar
+            UIComponentFactory.CreateTitleBar(root, "任务", () =>
+            {
+                UIManager.Instance.Hide<QuestPanel>();
+                UIManager.Instance.Show<MainCityPanel>();
+            });
 
-            var quests = QuestManager.Instance.GetQuestsByType(TabTypes[tabIndex]);
-            float y = -10;
-            foreach (var q in quests) {
-                var item = BuildQuestItem(q, y);
-                _questItems.Add(item); y -= 100;
-            }
-            _listContent.sizeDelta = new Vector2(0, Mathf.Abs(y) + 10);
-            UpdateRewardPreview(quests);
+            // Achievement button on the right of title bar
+            var achBtn = UIComponentFactory.CreateSecondaryButton(root, "AchBtn", "成就", () =>
+            {
+                _currentTab = 3;
+                RefreshTabHighlight();
+                ShowQuestList();
+            });
+            var art = achBtn.GetComponent<RectTransform>();
+            art.anchorMin = new Vector2(1, 1); art.anchorMax = new Vector2(1, 1);
+            art.sizeDelta = new Vector2(80, 36); art.anchoredPosition = new Vector2(-100, -18);
+
+            BuildTabs(root);
+            _listContent = UIComponentFactory.CreateScrollView(root, "QuestList",
+                new Vector2(1800, 780), new Vector2(0, -60));
+            BuildRewardPreview(root);
+
+            ShowQuestList();
         }
-        private GameObject BuildQuestItem(QuestInfo q, float y)
+
+        private void BuildTabs(RectTransform root)
         {
-            var item = new GameObject("QuestItem", typeof(RectTransform), typeof(Image));
-            item.transform.SetParent(_listContent, false);
-            var itemRt = item.GetComponent<RectTransform>();
-            itemRt.anchorMin = new Vector2(0, 1); itemRt.anchorMax = new Vector2(1, 1);
-            itemRt.sizeDelta = new Vector2(0, 90); itemRt.anchoredPosition = new Vector2(0, y);
-            item.GetComponent<Image>().color = ColorItemBg;
+            var bar = new GameObject("TabBar", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            bar.transform.SetParent(root, false);
+            var rt = bar.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 1); rt.anchorMax = new Vector2(0.5f, 1);
+            rt.sizeDelta = new Vector2(800, 44); rt.anchoredPosition = new Vector2(0, -68);
+
+            var hlg = bar.GetComponent<HorizontalLayoutGroup>();
+            hlg.spacing = ThemeColors.SpacingSmall;
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.childForceExpandWidth = true;
+            hlg.childForceExpandHeight = true;
+
+            for (int i = 0; i < TabNames.Length; i++)
+            {
+                int idx = i;
+                var btn = UIComponentFactory.CreateTabButton(rt, "Tab" + i, TabNames[i], i == 0, () =>
+                {
+                    _currentTab = idx;
+                    RefreshTabHighlight();
+                    ShowQuestList();
+                });
+            }
+        }
+
+        private void RefreshTabHighlight()
+        {
+            var bar = transform.Find("TabBar");
+            if (bar == null) return;
+            for (int i = 0; i < bar.childCount; i++)
+            {
+                var child = bar.GetChild(i);
+                var img = child.GetComponent<Image>();
+                var txt = child.GetComponent<Text>();
+                if (img != null) img.color = i == _currentTab ? ThemeColors.TabActive : ThemeColors.TabInactive;
+                if (txt != null) txt.color = i == _currentTab ? ThemeColors.TextWhite : ThemeColors.TextNormal;
+            }
+        }
+
+        private void ShowQuestList()
+        {
+            // Clear
+            for (int i = _listContent.childCount - 1; i >= 0; i--)
+                DestroyImmediate(_listContent.GetChild(i).gameObject);
+
+            var quests = _currentTab switch
+            {
+                0 => MainQuests, 1 => DailyQuests, 2 => DungeonQuests, _ => AchievementQuests
+            };
+            string sectionTitle = _currentTab switch
+            {
+                0 => "── 主线任务 ──", 1 => "── 日常任务 ──",
+                2 => "── 副本任务 ──", _ => "── 成就 ──"
+            };
+
+            // Section header
+            var header = UIComponentFactory.CreateText(_listContent, "Header", sectionTitle,
+                ThemeColors.FontBody, ThemeColors.Accent);
+            header.fontStyle = FontStyle.Bold;
+            var hrt = header.rectTransform;
+            hrt.sizeDelta = new Vector2(0, 40);
+
+            // Quest rows
+            foreach (var q in quests)
+            {
+                CreateQuestRow(q.name, q.level, q.desc, q.progress, q.done, q.reward);
+            }
+        }
+
+        private void CreateQuestRow(string name, int level, string desc, string progress, bool done, string reward)
+        {
+            var card = new GameObject("QuestRow", typeof(RectTransform), typeof(Image));
+            card.transform.SetParent(_listContent, false);
+            var rt = card.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(0, 72);
+            card.GetComponent<Image>().color = ThemeColors.BgListItem;
+
+            // Checkbox
+            var check = UIComponentFactory.CreateText(rt, "Check", done ? "☑" : "☐",
+                ThemeColors.FontBody, done ? ThemeColors.QualityGood : ThemeColors.TextNormal);
+            check.raycastTarget = false;
+            var crt = check.rectTransform;
+            crt.anchorMin = new Vector2(0, 0.5f); crt.anchorMax = new Vector2(0, 0.5f);
+            crt.sizeDelta = new Vector2(30, 30); crt.anchoredPosition = new Vector2(20, 0);
 
             // Name
-            var nameText = CreateText(itemRt, "Name", q.Name, 20);
-            var nRt = (RectTransform)nameText.transform;
-            nRt.anchorMin = new Vector2(0, 0.5f); nRt.anchorMax = new Vector2(0, 0.5f);
-            nRt.sizeDelta = new Vector2(160, 28); nRt.anchoredPosition = new Vector2(20, 22);
-            nameText.alignment = TextAnchor.MiddleLeft;
-
-            // Level requirement
-            var lvText = CreateText(itemRt, "Lv", "Lv." + q.MinLevel, 14);
-            var lRt = (RectTransform)lvText.transform;
-            lRt.anchorMin = new Vector2(0, 0.5f); lRt.anchorMax = new Vector2(0, 0.5f);
-            lRt.sizeDelta = new Vector2(60, 22); lRt.anchoredPosition = new Vector2(20, -6);
-            lvText.alignment = TextAnchor.MiddleLeft; lvText.color = ColorDimText;
+            var nameTxt = UIComponentFactory.CreateText(rt, "Name", $"Lv.{level} {name}",
+                ThemeColors.FontBody, ThemeColors.TextBright);
+            nameTxt.fontStyle = FontStyle.Bold;
+            nameTxt.alignment = TextAnchor.MiddleLeft;
+            nameTxt.raycastTarget = false;
+            var nrt = nameTxt.rectTransform;
+            nrt.anchorMin = new Vector2(0, 0.5f); nrt.anchorMax = new Vector2(0, 0.5f);
+            nrt.sizeDelta = new Vector2(300, 30); nrt.anchoredPosition = new Vector2(60, 8);
 
             // Description
-            var descText = CreateText(itemRt, "Desc", q.Description, 16);
-            var dRt = (RectTransform)descText.transform;
-            dRt.anchorMin = new Vector2(0, 0.5f); dRt.anchorMax = new Vector2(0, 0.5f);
-            dRt.sizeDelta = new Vector2(400, 24); dRt.anchoredPosition = new Vector2(20, -30);
-            descText.alignment = TextAnchor.MiddleLeft; descText.color = ColorDimText;
-
-            // Status badge
-            string statusStr = "";
-            Color statusColor = Color.white;
-            switch (q.Status) {
-                case QuestStatus.NotAccepted: statusStr = "可接取"; statusColor = ColorInProgress; break;
-                case QuestStatus.InProgress: statusStr = "进行中"; statusColor = ColorDimText; break;
-                case QuestStatus.CanSubmit: statusStr = "可提交"; statusColor = ColorGold; break;
-                case QuestStatus.Completed: statusStr = "已完成"; statusColor = ColorComplete; break;
-                case QuestStatus.Locked: statusStr = "未解锁"; statusColor = ColorRed; break;
-            }
-            var statusText = CreateText(itemRt, "Status", statusStr, 16);
-            var sRt1 = (RectTransform)statusText.transform;
-            sRt1.anchorMin = new Vector2(0, 0.5f); sRt1.anchorMax = new Vector2(0, 0.5f);
-            sRt1.sizeDelta = new Vector2(80, 24); sRt1.anchoredPosition = new Vector2(190, 22);
-            statusText.alignment = TextAnchor.MiddleLeft; statusText.color = statusColor;
+            var descTxt = UIComponentFactory.CreateText(rt, "Desc", desc,
+                ThemeColors.FontTiny, ThemeColors.TextNormal);
+            descTxt.alignment = TextAnchor.MiddleLeft;
+            descTxt.raycastTarget = false;
+            var drt = descTxt.rectTransform;
+            drt.anchorMin = new Vector2(0, 0.5f); drt.anchorMax = new Vector2(0, 0.5f);
+            drt.sizeDelta = new Vector2(300, 20); drt.anchoredPosition = new Vector2(60, -12);
 
             // Progress
-            if (q.Objectives.Count > 0) {
-                var obj = q.Objectives[0];
-                var progText = CreateText(itemRt, "Progress", obj.ProgressText, 14);
-                var pRt = (RectTransform)progText.transform;
-                pRt.anchorMin = new Vector2(0, 0.5f); pRt.anchorMax = new Vector2(0, 0.5f);
-                pRt.sizeDelta = new Vector2(80, 22); pRt.anchoredPosition = new Vector2(190, -6);
-                progText.alignment = TextAnchor.MiddleLeft; progText.color = ColorDimText;
+            var progTxt = UIComponentFactory.CreateText(rt, "Progress", progress,
+                ThemeColors.FontBody, done ? ThemeColors.QualityGood : ThemeColors.Gold);
+            progTxt.fontStyle = FontStyle.Bold;
+            progTxt.raycastTarget = false;
+            var prt = progTxt.rectTransform;
+            prt.anchorMin = new Vector2(0.6f, 0.5f); prt.anchorMax = new Vector2(0.6f, 0.5f);
+            prt.sizeDelta = new Vector2(80, 30); prt.anchoredPosition = new Vector2(0, 0);
 
-                var pbBg = new GameObject("ProgressBg", typeof(RectTransform), typeof(Image));
-                pbBg.transform.SetParent(itemRt, false);
-                var pbRt = pbBg.GetComponent<RectTransform>();
-                pbRt.anchorMin = new Vector2(0, 0.5f); pbRt.anchorMax = new Vector2(0, 0.5f);
-                pbRt.sizeDelta = new Vector2(120, 14); pbRt.anchoredPosition = new Vector2(60, -38);
-                pbBg.GetComponent<Image>().color = new Color(0.2f, 0.2f, 0.3f, 0.8f);
+            // Reward text
+            var rewTxt = UIComponentFactory.CreateText(rt, "Reward", reward,
+                ThemeColors.FontTiny, ThemeColors.TextDim);
+            rewTxt.alignment = TextAnchor.MiddleLeft;
+            rewTxt.raycastTarget = false;
+            var rrt = rewTxt.rectTransform;
+            rrt.anchorMin = new Vector2(0.7f, 0.5f); rrt.anchorMax = new Vector2(0.95f, 0.5f);
+            rrt.sizeDelta = new Vector2(0, 30); rrt.anchoredPosition = new Vector2(0, 0);
 
-                var pf = new GameObject("ProgressFill", typeof(RectTransform), typeof(Image));
-                pf.transform.SetParent(pbBg.transform, false);
-                var pfRt = pf.GetComponent<RectTransform>();
-                pfRt.anchorMin = new Vector2(0, 0); pfRt.anchorMax = new Vector2(obj.Progress01, 1);
-                pfRt.sizeDelta = Vector2.zero;
-                pf.GetComponent<Image>().color = q.Status == QuestStatus.CanSubmit ? ColorGold : ColorAccent;
-            }
             // Action button
-            var pid = GameManager.Instance.Player.PlayerId;
-            if (q.Status == QuestStatus.NotAccepted) {
-                var acceptBtn = CreateButton(itemRt, "ActionBtn", "接取", () => {
-                    if (QuestManager.Instance.AcceptQuest(q.QuestId)) {
-                        GameManager.Instance.ShowNotice("已接取: " + q.Name); FilterByTab(_currentTab);
-                    } else GameManager.Instance.ShowNotice("接取失败（等级不足或已达上限）");
-                });
-                var aRt = (RectTransform)acceptBtn.transform;
-                aRt.anchorMin = new Vector2(1, 0.5f); aRt.anchorMax = new Vector2(1, 0.5f);
-                aRt.sizeDelta = new Vector2(80, 36); aRt.anchoredPosition = new Vector2(-20, 22);
-                acceptBtn.GetComponent<Image>().color = ColorAccent;
-            } else if (q.Status == QuestStatus.CanSubmit) {
-                var submitBtn = CreateButton(itemRt, "ActionBtn", "提交", () => {
-                    if (QuestManager.Instance.SubmitQuest(q.QuestId)) {
-                        GameManager.Instance.ShowNotice("完成任务: " + q.Name + " 获得奖励！"); FilterByTab(_currentTab);
-                    }
-                });
-                var sRt2 = (RectTransform)submitBtn.transform;
-                sRt1.anchorMin = new Vector2(1, 0.5f); sRt1.anchorMax = new Vector2(1, 0.5f);
-                sRt1.sizeDelta = new Vector2(80, 36); sRt1.anchoredPosition = new Vector2(-20, 22);
-                submitBtn.GetComponent<Image>().color = new Color(0.3f, 0.6f, 0.3f, 0.8f);
-            } else if (q.Status == QuestStatus.InProgress) {
-                var guideBtn = CreateButton(itemRt, "ActionBtn", "前往", () => {
-                    if (QuestManager.Instance.TryGetGuide(q.QuestId, out uint mapId, out Vector3 pos, out string npc)) {
-                        GameManager.Instance.ShowNotice("引导至 " + (npc != "" ? npc : "坐标 " + pos));
-                    }
-                });
-                var gRt = (RectTransform)guideBtn.transform;
-                gRt.anchorMin = new Vector2(1, 0.5f); gRt.anchorMax = new Vector2(1, 0.5f);
-                gRt.sizeDelta = new Vector2(80, 36); gRt.anchoredPosition = new Vector2(-20, 22);
-                guideBtn.GetComponent<Image>().color = ColorAccent;
+            if (done)
+            {
+                var btn = UIComponentFactory.CreateSecondaryButton(rt, "Action", "已完", () => { });
+                var brt = btn.GetComponent<RectTransform>();
+                brt.anchorMin = new Vector2(1, 0.5f); brt.anchorMax = new Vector2(1, 0.5f);
+                brt.sizeDelta = new Vector2(80, 36); brt.anchoredPosition = new Vector2(-10, 0);
             }
-            // Reward info
-            if (q.Reward != null) {
-                var rewardText = CreateText(itemRt, "Reward", "奖励: 经验+" + q.Reward.Exp + " 金币+" + q.Reward.Gold, 14);
-                var rRt = (RectTransform)rewardText.transform;
-                rRt.anchorMin = new Vector2(1, 0.5f); rRt.anchorMax = new Vector2(1, 0.5f);
-                rRt.sizeDelta = new Vector2(240, 22); rRt.anchoredPosition = new Vector2(-120, -6);
-                rewardText.alignment = TextAnchor.MiddleRight; rewardText.color = ColorGold;
+            else
+            {
+                var btn = UIComponentFactory.CreatePrimaryButton(rt, "Action", "前往", () =>
+                {
+                    _rewardPreview.text = $"奖励预览: {reward}";
+                });
+                var brt = btn.GetComponent<RectTransform>();
+                brt.anchorMin = new Vector2(1, 0.5f); brt.anchorMax = new Vector2(1, 0.5f);
+                brt.sizeDelta = new Vector2(80, 36); brt.anchoredPosition = new Vector2(-10, 0);
             }
-            return item;
         }
-        private void BuildRewardPreview()
+
+        private void BuildRewardPreview(RectTransform root)
         {
             var bar = new GameObject("RewardBar", typeof(RectTransform), typeof(Image));
-            bar.transform.SetParent(transform, false);
-            var barRt = bar.GetComponent<RectTransform>();
-            barRt.anchorMin = new Vector2(0.02f, 0); barRt.anchorMax = new Vector2(0.98f, 0.12f);
-            barRt.sizeDelta = Vector2.zero; barRt.anchoredPosition = Vector2.zero;
-            bar.GetComponent<Image>().color = new Color(0.06f, 0.06f, 0.12f, 0.85f);
+            bar.transform.SetParent(root, false);
+            var rt = bar.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0, 0); rt.anchorMax = Vector2.right;
+            rt.sizeDelta = new Vector2(0, 50); rt.anchoredPosition = new Vector2(0, 25);
+            bar.GetComponent<Image>().color = ThemeColors.BgCard;
 
-            var label = CreateText(barRt, "Label", "概览:", 18);
-            var labelRt = (RectTransform)label.transform;
-            labelRt.anchorMin = new Vector2(0, 0.5f); labelRt.anchorMax = new Vector2(0, 0.5f);
-            labelRt.sizeDelta = new Vector2(60, 28); labelRt.anchoredPosition = new Vector2(20, 0);
-            label.color = ColorGold; label.alignment = TextAnchor.MiddleLeft;
-
-            _rewardPreview = CreateText(barRt, "Content", "选择分类查看任务", 16);
-            var rewardRt = (RectTransform)_rewardPreview.transform;
-            rewardRt.anchorMin = new Vector2(0, 0.5f); rewardRt.anchorMax = new Vector2(0, 0.5f);
-            rewardRt.sizeDelta = new Vector2(800, 28); rewardRt.anchoredPosition = new Vector2(90, 0);
-            _rewardPreview.alignment = TextAnchor.MiddleLeft; _rewardPreview.color = ColorDimText;
-        }
-        private void UpdateRewardPreview(List<QuestInfo> quests)
-        {
-            int total = quests.Count;
-            int completed = quests.Count(q => q.Status == QuestStatus.Completed || q.Status == QuestStatus.CanSubmit);
-            int active = quests.Count(q => q.Status == QuestStatus.InProgress);
-            ulong totalGold = 0;
-            foreach (var q in quests) if (q.Reward != null) totalGold += q.Reward.Gold;
-            if (_rewardPreview != null)
-                _rewardPreview.text = "分类: " + TabNames[_currentTab] + "  |  共 " + total + " 个  |  已完成 " + completed + "  |  进行中 " + active + "  |  金币总计 " + totalGold;
-        }
-        public override void Refresh()
-        {
-            base.Refresh(); FilterByTab(_currentTab);
+            _rewardPreview = UIComponentFactory.CreateText(rt, "RewardText", "奖励预览: 点击任务查看奖励",
+                ThemeColors.FontSmall, ThemeColors.Gold);
+            _rewardPreview.alignment = TextAnchor.MiddleCenter;
+            var trt = _rewardPreview.rectTransform;
+            trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
+            trt.sizeDelta = Vector2.zero;
         }
     }
 }

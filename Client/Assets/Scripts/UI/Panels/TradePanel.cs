@@ -1,365 +1,332 @@
 using UnityEngine;
 using UnityEngine.UI;
-using Jx3.Core;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Jx3.UI.Panels
 {
+    /// <summary>
+    /// 交易行面板 - 浏览物品 / 搜索 / 分类筛选 / 购买 / 我的上架
+    /// 全程序化生成 · UIComponentFactory + ThemeColors
+    /// </summary>
     public class TradePanel : BasePanel
     {
-        // ===== 模拟商品数据 =====
-        private class TradeItemData
+        // ============================================================
+        // 数据模型
+        // ============================================================
+        private class TradeItem
         {
             public string Name;
-            public int Quality; // 1-5
-            public ulong Price;
-            public uint Remaining;
-            public string Category;
-            public ulong SellerId;
+            public int Quality;       // 1-5
+            public ulong Price;       // 金币
+            public uint RemainingHours;
+            public string Category;   // "武器" "防具" "饰品" "材料" "秘籍"
         }
 
-        private readonly List<TradeItemData> _mockItems = new()
+        // ============================================================
+        // 模拟数据
+        // ============================================================
+        private readonly List<TradeItem> _demoItems = new()
         {
-            new TradeItemData { Name = "太极·玄铁重剑", Quality = 5, Price = 88000, Remaining = 1, Category = "武器", SellerId = 1001 },
-            new TradeItemData { Name = "天玄·碧落笛", Quality = 4, Price = 35000, Remaining = 2, Category = "武器", SellerId = 1002 },
-            new TradeItemData { Name = "紫宸·明光铠", Quality = 4, Price = 42000, Remaining = 1, Category = "防具", SellerId = 1003 },
-            new TradeItemData { Name = "云锦·流仙裙", Quality = 5, Price = 65000, Remaining = 1, Category = "防具", SellerId = 1004 },
-            new TradeItemData { Name = "青冥·碧玉簪", Quality = 3, Price = 12000, Remaining = 3, Category = "饰品", SellerId = 1005 },
-            new TradeItemData { Name = "赤血·龙纹佩", Quality = 4, Price = 28000, Remaining = 2, Category = "饰品", SellerId = 1006 },
-            new TradeItemData { Name = "玄铁石·极品", Quality = 4, Price = 15000, Remaining = 10, Category = "材料", SellerId = 1007 },
-            new TradeItemData { Name = "浣纱丝·稀世", Quality = 3, Price = 5500, Remaining = 25, Category = "材料", SellerId = 1008 },
-            new TradeItemData { Name = "《太虚剑意·上》", Quality = 5, Price = 120000, Remaining = 1, Category = "秘籍", SellerId = 1009 },
-            new TradeItemData { Name = "《冰心诀·残篇》", Quality = 4, Price = 46000, Remaining = 1, Category = "秘籍", SellerId = 1010 },
-            new TradeItemData { Name = "破天·碎星刀", Quality = 3, Price = 8800, Remaining = 5, Category = "武器", SellerId = 1011 },
-            new TradeItemData { Name = "凝霜·寒玉镯", Quality = 4, Price = 22000, Remaining = 3, Category = "饰品", SellerId = 1012 },
-            new TradeItemData { Name = "千年寒铁", Quality = 5, Price = 45000, Remaining = 5, Category = "材料", SellerId = 1013 },
-            new TradeItemData { Name = "《万花千机》", Quality = 4, Price = 38000, Remaining = 2, Category = "秘籍", SellerId = 1014 },
-            new TradeItemData { Name = "凤羽·流火冠", Quality = 3, Price = 9600, Remaining = 4, Category = "防具", SellerId = 1015 },
+            new TradeItem { Name = "太极·玄铁重剑", Quality = 5, Price = 88000,  RemainingHours = 23, Category = "武器" },
+            new TradeItem { Name = "紫宸·明光铠",   Quality = 4, Price = 42000,  RemainingHours = 18, Category = "防具" },
+            new TradeItem { Name = "青冥·碧玉簪",   Quality = 3, Price = 12000,  RemainingHours = 47, Category = "饰品" },
+            new TradeItem { Name = "玄铁石·极品",   Quality = 4, Price = 15000,  RemainingHours = 36, Category = "材料" },
+            new TradeItem { Name = "《太虚剑意·上》", Quality = 5, Price = 120000, RemainingHours = 6,  Category = "秘籍" },
+            new TradeItem { Name = "云锦·流仙裙",   Quality = 5, Price = 65000,  RemainingHours = 12, Category = "防具" },
+            new TradeItem { Name = "赤血·龙纹佩",   Quality = 4, Price = 28000,  RemainingHours = 29, Category = "饰品" },
+            new TradeItem { Name = "浣纱丝·稀世",   Quality = 3, Price = 5500,   RemainingHours = 51, Category = "材料" },
         };
 
-        // ===== 颜色常量 =====
-        private static readonly Color ColorBg = new Color(0.06f, 0.06f, 0.12f);
-        private static readonly Color ColorPanelBg = new Color(0.08f, 0.08f, 0.16f, 0.95f);
-        private static readonly Color ColorTabNormal = new Color(0.15f, 0.15f, 0.25f);
-        private static readonly Color ColorTabActive = new Color(0.5f, 0.3f, 0.9f, 0.85f);
-        private static readonly Color ColorAccent = new Color(0.5f, 0.3f, 0.9f, 0.8f);
-        private static readonly Color ColorRowBg = new Color(0.1f, 0.1f, 0.2f, 0.7f);
-        private static readonly Color ColorRowAlt = new Color(0.08f, 0.08f, 0.16f, 0.7f);
-        private static readonly Color ColorGold = new Color(1f, 0.75f, 0.2f);
-        private static readonly Color ColorBtnBuy = new Color(0.3f, 0.25f, 0.55f);
-        private static readonly Color ColorBtnAction = new Color(0.2f, 0.2f, 0.35f);
-        private static readonly Color ColorTextDim = new Color(0.6f, 0.6f, 0.7f);
-        private static readonly Color ColorHeaderBg = new Color(0.12f, 0.1f, 0.22f);
-        private static readonly Color ColorSearchBg = new Color(0.1f, 0.1f, 0.18f);
+        private readonly List<TradeItem> _myListings = new()
+        {
+            new TradeItem { Name = "破天·碎星刀", Quality = 3, Price = 8800,  RemainingHours = 8,  Category = "武器" },
+            new TradeItem { Name = "千年寒铁",     Quality = 5, Price = 45000, RemainingHours = 3,  Category = "材料" },
+            new TradeItem { Name = "凝霜·寒玉镯", Quality = 4, Price = 22000, RemainingHours = 20, Category = "饰品" },
+        };
 
-        // ===== UI引用 =====
+        // ============================================================
+        // UI 状态
+        // ============================================================
         private int _currentTab;
-        private InputField _searchInput;
-        private RectTransform _listContainer;
-        private readonly List<GameObject> _listItems = new();
         private string _searchKeyword = "";
 
+        private InputField _searchInput;
+
+        private RectTransform _listContent;
+        private readonly List<GameObject> _listRows = new();
+
+        private RectTransform _myListingContent;
+        private readonly List<GameObject> _myListingRows = new();
+
+        private GameObject _mainView;
+        private GameObject _myListingView;
+
+        private readonly Button[] _tabButtons = new Button[6];
+        private readonly Text[] _tabTexts = new Text[6];
+
+        private static readonly string[] Categories = { "全部", "武器", "防具", "饰品", "材料", "秘籍" };
+
+        // ============================================================
+        // 生命周期
+        // ============================================================
         protected override void Awake()
         {
             base.Awake();
-            BuildBackground();
-            BuildTitle();
-            BuildTopActionBar();
-            BuildSearchBar();
-            BuildCategoryTabs();
-            BuildTableHeader();
-            BuildScrollList();
-            BuildCloseButton();
+            var root = transform as RectTransform;
+
+            UIComponentFactory.CreateBackground(root);
+
+            BuildMainView(root);
+            BuildMyListingView(root);
+
+            ShowMainView();
+        }
+
+        // ============================================================
+        // 主视图
+        // ============================================================
+        private void BuildMainView(RectTransform root)
+        {
+            _mainView = new GameObject("MainView", typeof(RectTransform));
+            _mainView.transform.SetParent(root, false);
+            var mv = _mainView.GetComponent<RectTransform>();
+            mv.anchorMin = Vector2.zero; mv.anchorMax = Vector2.one;
+            mv.sizeDelta = Vector2.zero;
+
+            BuildTitleBar(mv);
+            BuildSearchBar(mv);
+            BuildCategoryTabs(mv);
+            BuildTableHeader(mv);
+            BuildScrollList(mv);
+            BuildBottomBar(mv);
+
             ShowCategory(0);
         }
 
-        // ===== 1. 背景 =====
-        private void BuildBackground()
+        // ── 标题栏 ──
+        private void BuildTitleBar(RectTransform parent)
         {
-            var bg = new GameObject("Bg", typeof(RectTransform), typeof(Image));
-            bg.transform.SetParent(transform, false);
-            var bgRt = bg.GetComponent<RectTransform>();
-            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
-            bgRt.sizeDelta = Vector2.zero;
-            bg.GetComponent<Image>().color = ColorBg;
-        }
-
-        // ===== 2. 标题 =====
-        private void BuildTitle()
-        {
-            var title = CreateText(transform as RectTransform, "Title", "交易行", 28);
-            title.fontStyle = FontStyle.Bold;
-            var rt = (RectTransform)title.transform;
-            rt.anchorMin = new Vector2(0.5f, 1);
-            rt.anchorMax = new Vector2(0.5f, 1);
-            rt.sizeDelta = new Vector2(120, 40);
-            rt.anchoredPosition = new Vector2(0, -40);
-
-            // 标题下装饰线
-            var line = new GameObject("TitleLine", typeof(RectTransform), typeof(Image));
-            line.transform.SetParent(transform, false);
-            var lineRt = line.GetComponent<RectTransform>();
-            lineRt.anchorMin = new Vector2(0.5f, 1);
-            lineRt.anchorMax = new Vector2(0.5f, 1);
-            lineRt.sizeDelta = new Vector2(60, 2);
-            lineRt.anchoredPosition = new Vector2(0, -62);
-            line.GetComponent<Image>().color = ColorAccent;
-        }
-
-        // ===== 3. 顶部操作栏 =====
-        private void BuildTopActionBar()
-        {
-            var bar = new GameObject("TopActionBar", typeof(RectTransform), typeof(Image));
-            bar.transform.SetParent(transform, false);
-            var barRt = bar.GetComponent<RectTransform>();
-            barRt.anchorMin = new Vector2(0.5f, 1);
-            barRt.anchorMax = new Vector2(0.5f, 1);
-            barRt.sizeDelta = new Vector2(700, 50);
-            barRt.anchoredPosition = new Vector2(0, -85);
-            bar.GetComponent<Image>().color = new Color(0.1f, 0.08f, 0.18f, 0.7f);
-
-            // 我的上架
-            var myListingBtn = CreateButton(barRt, "MyListingBtn", "我的上架", () =>
+            var barRt = UIComponentFactory.CreateTitleBar(parent, "交易行", () =>
             {
-                Debug.Log("[Trade] 打开我的上架");
-                TradeManager.Instance?.SellItem(0, 0, 24, Jx3.Core.ItemCategory.Weapon);
+                // ✕ 关闭 → 返回主城
+                UIManager.Instance.Hide<TradePanel>();
+                UIManager.Instance.Show<MainCityPanel>();
             });
-            var myRt = (RectTransform)myListingBtn.transform;
-            myRt.anchorMin = new Vector2(0, 0.5f);
-            myRt.anchorMax = new Vector2(0, 0.5f);
-            myRt.sizeDelta = new Vector2(130, 36);
-            myRt.anchoredPosition = new Vector2(15, 0);
 
-            // 上架物品
-            var sellBtn = CreateButton(barRt, "SellItemBtn", "上架物品", () =>
-            {
-                Debug.Log("[Trade] 打开上架物品界面 (5%手续费)");
-            });
-            var sellRt = (RectTransform)sellBtn.transform;
-            sellRt.anchorMin = new Vector2(0, 0.5f);
-            sellRt.anchorMax = new Vector2(0, 0.5f);
-            sellRt.sizeDelta = new Vector2(130, 36);
-            sellRt.anchoredPosition = new Vector2(160, 0);
-
-            // 货币展示
-            var p = GameManager.Instance.Player;
-            var goldText = CreateTextWithParent(barRt, "GoldText", string.Format("金币: {0:N0}", p.Gold), 16, FontStyle.Bold, ColorGold);
-            var goldRt = (RectTransform)goldText.transform;
-            goldRt.anchorMin = new Vector2(1, 0.5f);
-            goldRt.anchorMax = new Vector2(1, 0.5f);
-            goldRt.sizeDelta = new Vector2(200, 30);
-            goldRt.anchoredPosition = new Vector2(-15, 0);
-            goldText.alignment = TextAnchor.MiddleRight;
+            // [我的上架] 按钮 — 放在标题栏右侧，关闭按钮左边
+            var myListingBtn = UIComponentFactory.CreateSecondaryButton(
+                barRt, "MyListingBtn", "我的上架", () => ShowMyListingView());
+            var mlRt = myListingBtn.GetComponent<RectTransform>();
+            mlRt.anchorMin = new Vector2(1, 0.5f);
+            mlRt.anchorMax = new Vector2(1, 0.5f);
+            mlRt.sizeDelta = new Vector2(110, 34);
+            mlRt.anchoredPosition = new Vector2(-80, 0);
         }
 
-        // ===== 4. 搜索栏 =====
-        private void BuildSearchBar()
+        // ── 搜索栏 ──
+        private void BuildSearchBar(RectTransform parent)
         {
-            var searchBar = new GameObject("SearchBar", typeof(RectTransform), typeof(Image));
-            searchBar.transform.SetParent(transform, false);
-            var searchRt = searchBar.GetComponent<RectTransform>();
-            searchRt.anchorMin = new Vector2(0.5f, 1);
-            searchRt.anchorMax = new Vector2(0.5f, 1);
-            searchRt.sizeDelta = new Vector2(700, 44);
-            searchRt.anchoredPosition = new Vector2(0, -138);
-            searchBar.GetComponent<Image>().color = ColorSearchBg;
+            var barRt = MakeBar(parent, "SearchBar", new Vector2(0, -86), new Vector2(760, 48),
+                new Color(0.08f, 0.08f, 0.14f, 0.7f));
 
-            // 输入框背景
-            var inputBg = new GameObject("InputBg", typeof(RectTransform), typeof(Image));
-            inputBg.transform.SetParent(searchRt, false);
-            var inputBgRt = inputBg.GetComponent<RectTransform>();
-            inputBgRt.anchorMin = new Vector2(0, 0.5f);
-            inputBgRt.anchorMax = new Vector2(0, 0.5f);
-            inputBgRt.sizeDelta = new Vector2(300, 32);
-            inputBgRt.anchoredPosition = new Vector2(80, 0);
-            inputBg.GetComponent<Image>().color = new Color(0.08f, 0.08f, 0.18f);
+            // 搜索图标
+            var icon = UIComponentFactory.CreateText(barRt, "SearchIcon", "🔍",
+                ThemeColors.FontBody, ThemeColors.TextDim, TextAnchor.MiddleCenter);
+            var iconRt = icon.rectTransform;
+            iconRt.anchorMin = new Vector2(0, 0.5f); iconRt.anchorMax = new Vector2(0, 0.5f);
+            iconRt.sizeDelta = new Vector2(36, 36);
+            iconRt.anchoredPosition = new Vector2(22, 0);
 
             // InputField
-            var inputGo = new GameObject("InputField", typeof(RectTransform));
-            inputGo.transform.SetParent(inputBgRt, false);
-            var inputGoRt = inputGo.GetComponent<RectTransform>();
-            inputGoRt.anchorMin = Vector2.zero; inputGoRt.anchorMax = Vector2.one;
-            inputGoRt.sizeDelta = new Vector2(-16, -6);
-            inputGoRt.anchoredPosition = new Vector2(0, 0);
+            _searchInput = UIComponentFactory.CreateInputField(barRt, "Input", "搜索物品...",
+                new Vector2(500, 36), new Vector2(-60, 0));
+            var inRt = _searchInput.GetComponent<RectTransform>();
+            inRt.anchorMin = new Vector2(0, 0.5f); inRt.anchorMax = new Vector2(0, 0.5f);
+            inRt.anchoredPosition = new Vector2(320, 0);
 
-            _searchInput = inputGo.AddComponent<InputField>();
-            var inputText = inputGo.AddComponent<Text>();
-            inputText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            inputText.fontSize = 16;
-            inputText.color = Color.white;
-            inputText.supportRichText = false;
-            inputText.alignment = TextAnchor.MiddleLeft;
-            _searchInput.textComponent = inputText;
-
-            var phGo = new GameObject("Placeholder", typeof(RectTransform));
-            phGo.transform.SetParent(inputGoRt, false);
-            var phRt = phGo.GetComponent<RectTransform>();
-            phRt.anchorMin = Vector2.zero; phRt.anchorMax = Vector2.one;
-            phRt.sizeDelta = Vector2.zero;
-            var phText = phGo.AddComponent<Text>();
-            phText.text = "搜索物品名称...";
-            phText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            phText.fontSize = 16;
-            phText.color = ColorTextDim;
-            phText.alignment = TextAnchor.MiddleLeft;
-            _searchInput.placeholder = phText;
-
-            // 搜索按钮
-            var searchBtn = new GameObject("SearchBtn", typeof(RectTransform), typeof(Image));
-            searchBtn.transform.SetParent(searchRt, false);
-            var searchBtnRt = searchBtn.GetComponent<RectTransform>();
-            searchBtnRt.anchorMin = new Vector2(0, 0.5f);
-            searchBtnRt.anchorMax = new Vector2(0, 0.5f);
-            searchBtnRt.sizeDelta = new Vector2(60, 32);
-            searchBtnRt.anchoredPosition = new Vector2(400, 0);
-            var searchImg = searchBtn.GetComponent<Image>();
-            searchImg.color = ColorAccent;
-            var searchBtnComp = searchBtn.AddComponent<Button>();
-            searchBtnComp.targetGraphic = searchImg;
-            searchBtnComp.onClick.AddListener(() => OnSearch());
-
-            var searchTxtGo = new GameObject("Text", typeof(RectTransform));
-            searchTxtGo.transform.SetParent(searchBtnRt, false);
-            var searchTxtRt = searchTxtGo.GetComponent<RectTransform>();
-            searchTxtRt.anchorMin = Vector2.zero; searchTxtRt.anchorMax = Vector2.one;
-            searchTxtRt.sizeDelta = Vector2.zero;
-            var searchTxt = searchTxtGo.AddComponent<Text>();
-            searchTxt.text = "搜索";
-            searchTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            searchTxt.fontSize = 16;
-            searchTxt.alignment = TextAnchor.MiddleCenter;
-            searchTxt.color = Color.white;
+            // [搜索] 按钮
+            var searchBtn = UIComponentFactory.CreatePrimaryButton(barRt, "SearchBtn", "搜索", () => DoSearch());
+            var sbRt = searchBtn.GetComponent<RectTransform>();
+            sbRt.anchorMin = new Vector2(1, 0.5f); sbRt.anchorMax = new Vector2(1, 0.5f);
+            sbRt.sizeDelta = new Vector2(80, 36);
+            sbRt.anchoredPosition = new Vector2(-14, 0);
         }
 
-        private void OnSearch()
+        private void DoSearch()
         {
             _searchKeyword = _searchInput?.text ?? "";
             Debug.Log($"[Trade] 搜索: {_searchKeyword}");
             RefreshList();
         }
 
-        // ===== 5. 分类Tabs =====
-        private void BuildCategoryTabs()
+        // ── 分类 Tabs ──
+        private void BuildCategoryTabs(RectTransform parent)
         {
-            string[] categories = { "全部", "武器", "防具", "饰品", "材料", "秘籍" };
-            for (int i = 0; i < categories.Length; i++)
+            var tabBar = MakeBar(parent, "TabBar", new Vector2(0, -146), new Vector2(760, 44),
+                new Color(0.06f, 0.06f, 0.1f, 0.5f));
+
+            float totalWidth = Categories.Length * 110f + (Categories.Length - 1) * 6f;
+            float startX = -totalWidth / 2f + 55f;
+
+            for (int i = 0; i < Categories.Length; i++)
             {
-                var idx = i;
-                var tab = new GameObject("CatTab" + i, typeof(RectTransform), typeof(Image));
-                tab.transform.SetParent(transform, false);
-                var tabRt = tab.GetComponent<RectTransform>();
-                tabRt.anchorMin = new Vector2(0.5f, 1);
-                tabRt.anchorMax = new Vector2(0.5f, 1);
-                tabRt.sizeDelta = new Vector2(100, 34);
-                tabRt.anchoredPosition = new Vector2(-300 + i * 110, -188);
+                int idx = i;
+                bool isActive = (i == 0);
+                var btn = UIComponentFactory.CreateTabButton(tabBar, "Tab_" + i, Categories[i], isActive,
+                    () => ShowCategory(idx));
+                var btnRt = btn.GetComponent<RectTransform>();
+                btnRt.anchorMin = new Vector2(0.5f, 0.5f);
+                btnRt.anchorMax = new Vector2(0.5f, 0.5f);
+                btnRt.sizeDelta = new Vector2(108, 32);
+                btnRt.anchoredPosition = new Vector2(startX + i * 116f, 0);
 
-                var tabImg = tab.GetComponent<Image>();
-                tabImg.color = ColorTabNormal;
-
-                var btn = tab.AddComponent<Button>();
-                btn.targetGraphic = tabImg;
-                btn.onClick.AddListener(() => ShowCategory(idx));
-
-                var txtGo = new GameObject("Text", typeof(RectTransform));
-                txtGo.transform.SetParent(tabRt, false);
-                var txtRt = txtGo.GetComponent<RectTransform>();
-                txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
-                txtRt.sizeDelta = Vector2.zero;
-                var txt = txtGo.AddComponent<Text>();
-                txt.text = categories[i];
-                txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                txt.fontSize = 16;
-                txt.alignment = TextAnchor.MiddleCenter;
-                txt.color = ColorTextDim;
-                txt.name = "TabText";
+                _tabButtons[i] = btn;
+                _tabTexts[i] = btn.GetComponent<Text>();
             }
         }
 
-        // ===== 6. 表格表头 =====
-        private void BuildTableHeader()
+        // ── 表头 ──
+        private void BuildTableHeader(RectTransform parent)
         {
-            var header = new GameObject("TableHeader", typeof(RectTransform), typeof(Image));
-            header.transform.SetParent(transform, false);
-            var headerRt = header.GetComponent<RectTransform>();
-            headerRt.anchorMin = new Vector2(0.5f, 1);
-            headerRt.anchorMax = new Vector2(0.5f, 1);
-            headerRt.sizeDelta = new Vector2(760, 32);
-            headerRt.anchoredPosition = new Vector2(0, -225);
-            header.GetComponent<Image>().color = ColorHeaderBg;
+            var header = MakeBar(parent, "TableHeader", new Vector2(0, -188), new Vector2(760, 30),
+                ThemeColors.Border * 0.35f);
 
             string[] cols = { "物品名称", "品质", "价格", "剩余", "操作" };
-            float[] widths = { 260, 80, 160, 100, 100 };
-            float startX = -370;
-            for (int i = 0; i < cols.Length; i++)
+            float[] offsets = { -350, -180, -90, 50, 300 };
+
+            for (int c = 0; c < cols.Length; c++)
             {
-                var colText = CreateTextWithParent(headerRt, "Col" + i, cols[i], 14, FontStyle.Bold, new Color(0.7f, 0.7f, 0.85f));
-                var colRt = (RectTransform)colText.transform;
-                colRt.anchorMin = new Vector2(0, 0.5f);
-                colRt.anchorMax = new Vector2(0, 0.5f);
-                colRt.sizeDelta = new Vector2(widths[i], 26);
-                colRt.anchoredPosition = new Vector2(startX + widths[i] * 0.5f, 0);
-                startX += widths[i];
+                var txt = UIComponentFactory.CreateText(header, "Hdr" + c, cols[c],
+                    ThemeColors.FontSmall, ThemeColors.TextDim, TextAnchor.MiddleLeft);
+                var trt = txt.rectTransform;
+                trt.anchorMin = new Vector2(0, 0.5f);
+                trt.anchorMax = new Vector2(0, 0.5f);
+                trt.sizeDelta = new Vector2(80, 24);
+                trt.anchoredPosition = new Vector2(offsets[c] + 40, 0);
             }
         }
 
-        // ===== 7. 可滚动物品列表 =====
-        private void BuildScrollList()
+        // ── 滚动列表 ──
+        private void BuildScrollList(RectTransform parent)
         {
-            var listBg = new GameObject("ListBg", typeof(RectTransform), typeof(Image));
-            listBg.transform.SetParent(transform, false);
-            var listBgRt = listBg.GetComponent<RectTransform>();
-            listBgRt.anchorMin = new Vector2(0.5f, 0.5f);
-            listBgRt.anchorMax = new Vector2(0.5f, 0.5f);
-            listBgRt.sizeDelta = new Vector2(770, 360);
-            listBgRt.anchoredPosition = new Vector2(0, -50);
-            listBg.GetComponent<Image>().color = new Color(0.06f, 0.06f, 0.12f, 0.5f);
-
-            // ScrollView
-            var scrollGo = new GameObject("ScrollList", typeof(RectTransform));
-            scrollGo.transform.SetParent(listBgRt, false);
-            var scrollRt = scrollGo.GetComponent<RectTransform>();
-            scrollRt.anchorMin = Vector2.zero; scrollRt.anchorMax = Vector2.one;
-            scrollRt.sizeDelta = new Vector2(-4, -4);
-            scrollRt.anchoredPosition = Vector2.zero;
-
-            var scrollRect = scrollGo.AddComponent<ScrollRect>();
-            scrollRect.horizontal = false;
-            scrollRect.vertical = true;
-            scrollRect.movementType = ScrollRect.MovementType.Clamped;
-
-            var viewport = new GameObject("Viewport", typeof(RectTransform), typeof(Image));
-            viewport.transform.SetParent(scrollRt, false);
-            var viewportRt = viewport.GetComponent<RectTransform>();
-            viewportRt.anchorMin = Vector2.zero; viewportRt.anchorMax = Vector2.one;
-            viewportRt.sizeDelta = Vector2.zero;
-            viewport.GetComponent<Image>().color = new Color(0, 0, 0, 0);
-            viewport.AddComponent<Mask>().showMaskGraphic = false;
-            scrollRect.viewport = viewportRt;
-
-            _listContainer = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
-            _listContainer.transform.SetParent(viewportRt, false);
-            _listContainer.anchorMin = new Vector2(0, 1);
-            _listContainer.anchorMax = new Vector2(1, 1);
-            _listContainer.sizeDelta = new Vector2(0, 0);
-            _listContainer.pivot = new Vector2(0.5f, 1);
-            scrollRect.content = _listContainer;
+            _listContent = UIComponentFactory.CreateScrollView(parent, "ScrollList",
+                new Vector2(770, 320), new Vector2(0, -28));
         }
 
+        // ── 底部栏 ──
+        private void BuildBottomBar(RectTransform parent)
+        {
+            var barRt = MakeBar(parent, "BottomBar", new Vector2(0, -210), new Vector2(760, 48),
+                new Color(0.06f, 0.06f, 0.1f, 0.7f));
+
+            // [📦 上架物品] 按钮
+            var sellBtn = UIComponentFactory.CreatePrimaryButton(barRt, "SellBtn", "📦 上架物品", () =>
+                Debug.Log("[Trade] 打开上架界面 (5%手续费)"));
+            var sbRt = sellBtn.GetComponent<RectTransform>();
+            sbRt.anchorMin = new Vector2(0, 0.5f); sbRt.anchorMax = new Vector2(0, 0.5f);
+            sbRt.sizeDelta = new Vector2(140, 36);
+            sbRt.anchoredPosition = new Vector2(14, 0);
+
+            // 手续费提示
+            var feeText = UIComponentFactory.CreateText(barRt, "FeeLabel", "手续费: 5%",
+                ThemeColors.FontSmall, ThemeColors.TextDim, TextAnchor.MiddleLeft);
+            var ftRt = feeText.rectTransform;
+            ftRt.anchorMin = new Vector2(0, 0.5f); ftRt.anchorMax = new Vector2(0, 0.5f);
+            ftRt.sizeDelta = new Vector2(120, 28);
+            ftRt.anchoredPosition = new Vector2(175, 0);
+
+            // [返回主城] 按钮
+            var backBtn = UIComponentFactory.CreateSecondaryButton(barRt, "BackBtn", "返回主城", () =>
+            {
+                UIManager.Instance.Hide<TradePanel>();
+                UIManager.Instance.Show<MainCityPanel>();
+            });
+            var bbRt = backBtn.GetComponent<RectTransform>();
+            bbRt.anchorMin = new Vector2(1, 0.5f); bbRt.anchorMax = new Vector2(1, 0.5f);
+            bbRt.sizeDelta = new Vector2(110, 36);
+            bbRt.anchoredPosition = new Vector2(-14, 0);
+        }
+
+        // ============================================================
+        // 我的上架子视图
+        // ============================================================
+        private void BuildMyListingView(RectTransform root)
+        {
+            _myListingView = new GameObject("MyListingView", typeof(RectTransform));
+            _myListingView.transform.SetParent(root, false);
+            var mv = _myListingView.GetComponent<RectTransform>();
+            mv.anchorMin = Vector2.zero; mv.anchorMax = Vector2.one;
+            mv.sizeDelta = Vector2.zero;
+
+            // 标题栏
+            var titleBar = UIComponentFactory.CreateTitleBar(mv, "我的上架", null);
+
+            // 隐藏 CreateTitleBar 自动生成的关闭按钮，改为自己的返回按钮
+            var autoCloseBtn = titleBar.Find("CloseBtn");
+            if (autoCloseBtn != null) autoCloseBtn.gameObject.SetActive(false);
+
+            // 返回按钮
+            var backBtn = UIComponentFactory.CreateSecondaryButton(titleBar, "BackToListBtn", "← 返回列表", () => ShowMainView());
+            var bbRt = backBtn.GetComponent<RectTransform>();
+            bbRt.anchorMin = new Vector2(1, 0.5f); bbRt.anchorMax = new Vector2(1, 0.5f);
+            bbRt.sizeDelta = new Vector2(120, 34);
+            bbRt.anchoredPosition = new Vector2(-24, 0);
+
+            // 表头
+            var header = MakeBar(mv, "MyHeader", new Vector2(0, -86), new Vector2(760, 30),
+                ThemeColors.Border * 0.35f);
+
+            string[] cols = { "物品名称", "品质", "价格", "剩余", "操作" };
+            float[] offsets = { -350, -180, -90, 50, 300 };
+            for (int c = 0; c < cols.Length; c++)
+            {
+                var txt = UIComponentFactory.CreateText(header, "Mh" + c, cols[c],
+                    ThemeColors.FontSmall, ThemeColors.TextDim, TextAnchor.MiddleLeft);
+                var trt = txt.rectTransform;
+                trt.anchorMin = new Vector2(0, 0.5f); trt.anchorMax = new Vector2(0, 0.5f);
+                trt.sizeDelta = new Vector2(80, 24);
+                trt.anchoredPosition = new Vector2(offsets[c] + 40, 0);
+            }
+
+            // 滚动列表
+            _myListingContent = UIComponentFactory.CreateScrollView(mv, "MyScrollList",
+                new Vector2(770, 380), new Vector2(0, 90));
+
+            _myListingView.SetActive(false);
+        }
+
+        // ============================================================
+        // 视图切换
+        // ============================================================
+        private void ShowMainView()
+        {
+            _myListingView?.SetActive(false);
+            _mainView?.SetActive(true);
+            RefreshList();
+        }
+
+        private void ShowMyListingView()
+        {
+            _mainView?.SetActive(false);
+            _myListingView?.SetActive(true);
+            BuildMyListingRows();
+        }
+
+        // ============================================================
+        // 分类 / 刷新
+        // ============================================================
         private void ShowCategory(int index)
         {
             _currentTab = index;
 
-            // 更新Tab高亮
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < _tabButtons.Length; i++)
             {
-                var tabGo = transform.Find("CatTab" + i);
-                if (tabGo == null) continue;
-                var img = tabGo.GetComponent<Image>();
-                img.color = (i == index) ? ColorTabActive : ColorTabNormal;
-                var txt = tabGo.Find("Text")?.GetComponent<Text>();
-                if (txt != null)
-                    txt.color = (i == index) ? Color.white : ColorTextDim;
+                if (_tabButtons[i] == null) continue;
+                bool active = (i == index);
+                _tabButtons[i].GetComponent<Image>().color = active ? ThemeColors.TabActive : ThemeColors.TabInactive;
+                if (_tabTexts[i] != null)
+                    _tabTexts[i].color = active ? ThemeColors.TextWhite : ThemeColors.TextNormal;
             }
 
             RefreshList();
@@ -367,165 +334,148 @@ namespace Jx3.UI.Panels
 
         private void RefreshList()
         {
-            // 清空旧项
-            foreach (var item in _listItems)
-                Destroy(item);
-            _listItems.Clear();
+            // 清空旧行
+            foreach (var row in _listRows) Destroy(row);
+            _listRows.Clear();
 
-            // 过滤
-            string[] categories = { "全部", "武器", "防具", "饰品", "材料", "秘籍" };
-            string selectedCat = categories[_currentTab];
+            IEnumerable<TradeItem> filtered = _demoItems;
 
-            IEnumerable<TradeItemData> filtered = _mockItems;
             if (_currentTab > 0)
-                filtered = filtered.Where(item => item.Category == selectedCat);
+                filtered = filtered.Where(item => item.Category == Categories[_currentTab]);
 
-            if (!string.IsNullOrEmpty(_searchKeyword))
-                filtered = filtered.Where(item => item.Name.Contains(_searchKeyword));
+            if (!string.IsNullOrWhiteSpace(_searchKeyword))
+                filtered = filtered.Where(item =>
+                    item.Name.Contains(_searchKeyword) || item.Category.Contains(_searchKeyword));
 
-            var list = filtered.ToList();
+            var items = filtered.ToList();
 
-            // 创建行
-            for (int i = 0; i < list.Count; i++)
-                CreateListItem(list[i], i);
+            for (int i = 0; i < items.Count; i++)
+                CreateTableRow(_listContent, _listRows, items[i], i, isMyListing: false);
 
-            float contentHeight = list.Count * 46 + 10;
-            _listContainer.sizeDelta = new Vector2(0, contentHeight);
+            _listContent.sizeDelta = new Vector2(0, Mathf.Max(items.Count * 50 + 10, 10));
         }
 
-        private void CreateListItem(TradeItemData data, int index)
+        // ============================================================
+        // 我的上架行构建
+        // ============================================================
+        private void BuildMyListingRows()
         {
-            var row = new GameObject("Item_" + index, typeof(RectTransform));
-            row.transform.SetParent(_listContainer, false);
+            foreach (var row in _myListingRows) Destroy(row);
+            _myListingRows.Clear();
+
+            var items = _myListings;
+            for (int i = 0; i < items.Count; i++)
+                CreateTableRow(_myListingContent, _myListingRows, items[i], i, isMyListing: true);
+
+            _myListingContent.sizeDelta = new Vector2(0, Mathf.Max(items.Count * 50 + 10, 10));
+        }
+
+        // ============================================================
+        // 通用：创建表格行
+        // ============================================================
+        private void CreateTableRow(RectTransform parent, List<GameObject> rowList,
+            TradeItem item, int index, bool isMyListing)
+        {
+            var row = new GameObject("Row_" + index, typeof(RectTransform), typeof(Image));
+            row.transform.SetParent(parent, false);
             var rowRt = row.GetComponent<RectTransform>();
+            rowRt.sizeDelta = new Vector2(0, 44);
             rowRt.anchorMin = new Vector2(0, 1);
             rowRt.anchorMax = new Vector2(1, 1);
-            rowRt.sizeDelta = new Vector2(0, 44);
-            rowRt.anchoredPosition = new Vector2(0, -(10 + index * 46));
             rowRt.pivot = new Vector2(0.5f, 1);
 
-            // 行背景（交替色）
-            var rowBg = row.AddComponent<Image>();
-            rowBg.color = (index % 2 == 0) ? ColorRowBg : ColorRowAlt;
+            // 交替行背景
+            var rowBg = row.GetComponent<Image>();
+            rowBg.color = (index % 2 == 0)
+                ? ThemeColors.BgListItem
+                : new Color(0.08f, 0.08f, 0.14f, 0.8f);
 
-            // 分割线
-            var line = new GameObject("Divider", typeof(RectTransform), typeof(Image));
-            line.transform.SetParent(rowRt, false);
-            var lineRt = line.GetComponent<RectTransform>();
-            lineRt.anchorMin = new Vector2(0, 0);
-            lineRt.anchorMax = new Vector2(1, 0);
-            lineRt.sizeDelta = new Vector2(0, 1);
-            lineRt.anchoredPosition = new Vector2(0, 0);
-            line.GetComponent<Image>().color = new Color(0.15f, 0.15f, 0.25f, 0.4f);
+            // 底部分割线
+            var divider = new GameObject("Div", typeof(RectTransform), typeof(Image));
+            divider.transform.SetParent(rowRt, false);
+            var drt = divider.GetComponent<RectTransform>();
+            drt.anchorMin = new Vector2(0, 0); drt.anchorMax = new Vector2(1, 0);
+            drt.sizeDelta = new Vector2(0, 1);
+            divider.GetComponent<Image>().color = ThemeColors.DecorLine * 0.6f;
 
-            string[] cols = {
-                data.Name,
-                new string('★', data.Quality).PadRight(5, '☆'),
-                string.Format("{0:N0}", data.Price),
-                data.Remaining.ToString()
-            };
-            float[] widths = { 260, 80, 160, 100 };
-            float startX = -370;
-            float rowHeight = 44;
+            // ── 列数据 ──
+            string name = item.Name;
+            string stars = ThemeColors.GetQualityStars(item.Quality);
+            string price = $"{item.Price:N0}";
+            string remain = isMyListing
+                ? $"{item.RemainingHours}时"
+                : $"剩{item.RemainingHours}时";
 
-            for (int c = 0; c < cols.Length; c++)
+            float[] xPositions = { -350, -180, -90, 50 };
+            Color[] colors =
             {
-                Color textColor = c switch
-                {
-                    0 => Color.white,
-                    1 => new Color(0.8f, 0.6f, 0.2f),
-                    2 => ColorGold,
-                    _ => ColorTextDim,
-                };
-                FontStyle fontStyle = (c == 2) ? FontStyle.Bold : FontStyle.Normal;
+                ThemeColors.TextBright,
+                ThemeColors.GetQualityColor(item.Quality),
+                ThemeColors.Gold,
+                ThemeColors.TextDim,
+            };
+            FontStyle[] styles = { FontStyle.Normal, FontStyle.Normal, FontStyle.Bold, FontStyle.Normal };
+            string[] values = { name, stars, price, remain };
 
-                var cellText = CreateTextWithParent(rowRt, "Col" + c, cols[c], 15, fontStyle, textColor);
-                var cellRt = (RectTransform)cellText.transform;
-                cellRt.anchorMin = new Vector2(0, 0.5f);
-                cellRt.anchorMax = new Vector2(0, 0.5f);
-                cellRt.sizeDelta = new Vector2(widths[c], 30);
-                cellRt.anchoredPosition = new Vector2(startX + widths[c] * 0.5f, 0);
-                cellText.alignment = TextAnchor.MiddleLeft;
-                startX += widths[c];
+            for (int c = 0; c < values.Length; c++)
+            {
+                var cell = UIComponentFactory.CreateText(rowRt, "C" + c, values[c],
+                    ThemeColors.FontSmall, colors[c], TextAnchor.MiddleLeft);
+                var crt = cell.rectTransform;
+                crt.anchorMin = new Vector2(0, 0.5f);
+                crt.anchorMax = new Vector2(0, 0.5f);
+                crt.sizeDelta = new Vector2(150, 30);
+                crt.anchoredPosition = new Vector2(xPositions[c] + 75, 0);
+
+                if (styles[c] == FontStyle.Bold)
+                    cell.fontStyle = FontStyle.Bold;
             }
 
-            // 购买按钮
-            var buyBtn = new GameObject("BuyBtn", typeof(RectTransform), typeof(Image));
-            buyBtn.transform.SetParent(rowRt, false);
-            var buyBtnRt = buyBtn.GetComponent<RectTransform>();
-            buyBtnRt.anchorMin = new Vector2(0, 0.5f);
-            buyBtnRt.anchorMax = new Vector2(0, 0.5f);
-            buyBtnRt.sizeDelta = new Vector2(70, 28);
-            buyBtnRt.anchoredPosition = new Vector2(320, 0);
-            var buyImg = buyBtn.GetComponent<Image>();
-            buyImg.color = ColorBtnBuy;
-            var buyBtnComp = buyBtn.AddComponent<Button>();
-            buyBtnComp.targetGraphic = buyImg;
-            var capturedName = data.Name;
-            buyBtnComp.onClick.AddListener(() =>
+            // ── 操作按钮 ──
+            if (isMyListing)
             {
-                Debug.Log($"[Trade] 购买: {capturedName}, 价格: {data.Price}");
-                TradeManager.Instance?.SellItem(0, data.Price, 24, Jx3.Core.ItemCategory.Weapon);
-            });
+                // [下架] 按钮
+                var cancelBtn = UIComponentFactory.CreateButton(rowRt, "CancelBtn", "下架",
+                    ThemeColors.BtnDanger, () =>
+                    Debug.Log($"[Trade] 下架: {item.Name}"),
+                    ThemeColors.FontTiny);
+                var cbRt = cancelBtn.GetComponent<RectTransform>();
+                cbRt.anchorMin = new Vector2(0, 0.5f); cbRt.anchorMax = new Vector2(0, 0.5f);
+                cbRt.sizeDelta = new Vector2(70, 28);
+                cbRt.anchoredPosition = new Vector2(290, 0);
+            }
+            else
+            {
+                // [购买] 按钮
+                string capturedName = item.Name;
+                ulong capturedPrice = item.Price;
+                var buyBtn = UIComponentFactory.CreatePrimaryButton(rowRt, "BuyBtn", "购买", () =>
+                    Debug.Log($"[Trade] 购买: {capturedName}, 价格: {capturedPrice:N0}"));
+                var bbRt = buyBtn.GetComponent<RectTransform>();
+                bbRt.anchorMin = new Vector2(0, 0.5f); bbRt.anchorMax = new Vector2(0, 0.5f);
+                bbRt.sizeDelta = new Vector2(70, 28);
+                bbRt.anchoredPosition = new Vector2(290, 0);
 
-            var buyText = new GameObject("Text", typeof(RectTransform));
-            buyText.transform.SetParent(buyBtnRt, false);
-            var buyTextRt = buyText.GetComponent<RectTransform>();
-            buyTextRt.anchorMin = Vector2.zero; buyTextRt.anchorMax = Vector2.one;
-            buyTextRt.sizeDelta = Vector2.zero;
-            var buyTxt = buyText.AddComponent<Text>();
-            buyTxt.text = "购买";
-            buyTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            buyTxt.fontSize = 14;
-            buyTxt.alignment = TextAnchor.MiddleCenter;
-            buyTxt.color = Color.white;
+                var buyTxt = buyBtn.GetComponentInChildren<Text>();
+                if (buyTxt != null) buyTxt.fontSize = ThemeColors.FontTiny;
+            }
 
-            _listItems.Add(row);
+            rowList.Add(row);
         }
 
-        // ===== 8. 关闭按钮 =====
-        private void BuildCloseButton()
+        // ============================================================
+        // 辅助方法
+        // ============================================================
+        /// <summary>创建一个居中对齐的半透明 Bar，返回其 RectTransform。</summary>
+        private static RectTransform MakeBar(RectTransform parent, string name, Vector2 pos, Vector2 size, Color bg)
         {
-            var closeBtn = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image));
-            closeBtn.transform.SetParent(transform, false);
-            var closeRt = closeBtn.GetComponent<RectTransform>();
-            closeRt.anchorMin = new Vector2(1, 1);
-            closeRt.anchorMax = new Vector2(1, 1);
-            closeRt.sizeDelta = new Vector2(36, 36);
-            closeRt.anchoredPosition = new Vector2(-10, -10);
-            var closeImg = closeBtn.GetComponent<Image>();
-            closeImg.color = new Color(0.3f, 0.3f, 0.5f, 0.6f);
-            var closeBtnComp = closeBtn.AddComponent<Button>();
-            closeBtnComp.targetGraphic = closeImg;
-            closeBtnComp.onClick.AddListener(() => Hide());
-
-            var closeText = new GameObject("Text", typeof(RectTransform));
-            closeText.transform.SetParent(closeRt, false);
-            var closeTextRt = closeText.GetComponent<RectTransform>();
-            closeTextRt.anchorMin = Vector2.zero; closeTextRt.anchorMax = Vector2.one;
-            closeTextRt.sizeDelta = Vector2.zero;
-            var closeTxt = closeText.AddComponent<Text>();
-            closeTxt.text = "✕";
-            closeTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            closeTxt.fontSize = 20;
-            closeTxt.alignment = TextAnchor.MiddleCenter;
-            closeTxt.color = Color.white;
-        }
-
-        // ===== 辅助方法 =====
-        private static Text CreateTextWithParent(RectTransform parent, string name, string text,
-            int fontSize, FontStyle fontStyle, Color color)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
-            var txt = go.AddComponent<Text>();
-            txt.text = text;
-            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            txt.fontSize = fontSize;
-            txt.fontStyle = fontStyle;
-            txt.alignment = TextAnchor.MiddleCenter;
-            txt.color = color;
-            return txt;
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 1); rt.anchorMax = new Vector2(0.5f, 1);
+            rt.sizeDelta = size; rt.anchoredPosition = pos;
+            go.GetComponent<Image>().color = bg;
+            return rt;
         }
     }
 }

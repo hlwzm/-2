@@ -2,562 +2,339 @@
 using UnityEngine.UI;
 using Jx3.Core;
 using System.Collections.Generic;
-using UnityEngine.EventSystems;
-using Jx3.Core.Network;
-using System.Collections;
 
 namespace Jx3.UI.Panels
 {
+    /// <summary>
+    /// 鑱婂ぉ闈㈡澘 鈥?澶氶閬撹亰澶?涓栫晫/褰撳墠/闃熶紞/鍚岀洘/绯荤粺/绉佽亰) + 璇煶鎸夐挳
+    /// 鏆楅粦姝︿緺椋庢牸 路 鍏?UIComponentFactory + ThemeColors 鏋勫缓
+    /// </summary>
     public class ChatPanel : BasePanel
     {
-        private readonly string[] _channelNames = { "世界", "当前", "队伍", "同盟", "系统" };
-        private readonly Color[] _channelColors =
+        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 棰戦亾鍏冩暟鎹?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        private static readonly string[] ChannelNames = { "涓栫晫", "褰撳墠", "闃熶紞", "鍚岀洘", "绯荤粺", "绉佽亰" };
+        private static readonly Color[] ChannelColors =
         {
-            new Color(0.53f, 0.80f, 1.0f),  // 世界 #88ccff
-            new Color(0.53f, 1.0f, 0.53f),  // 当前 #88ff88
-            new Color(1.0f, 0.80f, 0.27f),  // 队伍 #ffcc44
-            new Color(1.0f, 0.53f, 0.80f),  // 同盟 #ff88cc
-            new Color(1.0f, 0.53f, 0.27f),  // 系统 #ff8844
+            ThemeColors.ChatWorld,   // #88ccff
+            ThemeColors.ChatLocal,   // #88ff88
+            ThemeColors.ChatTeam,    // #ffcc44
+            ThemeColors.ChatGuild,   // #ff88cc
+            ThemeColors.ChatSystem,  // #ff8844
+            ThemeColors.ChatPrivate, // #ff88ff
         };
-        private static readonly Color PrivateColor = new Color(1.0f, 0.53f, 0.53f); // #ff88ff
 
         private int _currentChannel;
-        private readonly List<GameObject> _channelBtns = new();
+        private readonly List<Button> _channelTabs = new();
         private InputField _inputField;
-        private Text _privateBadge;
         private RectTransform _contentRt;
 
-        private static readonly Color ColorTabNormal = new Color(0.15f, 0.15f, 0.25f);
-        private static readonly Color ColorTabActive = new Color(0.33f, 0.2f, 0.5f);
-        private static readonly Color ColorBg = new Color(0.06f, 0.06f, 0.12f, 0.95f);
-        private static readonly Color ColorInputBg = new Color(0.12f, 0.12f, 0.22f);
+        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ Demo 娑堟伅 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        private readonly Dictionary<int, List<DemoMsg>> _demoMessages = new();
 
+        private struct DemoMsg
+        {
+            public string Sender;
+            public string Content;
+        }
+
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        //  Lifecycle
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
         protected override void Awake()
         {
             base.Awake();
+            InitDemoMessages();
             BuildUI();
             RefreshMessages();
-
-            // 创建语音指示器(只创建一次)
-            if (UIRoot.Instance != null && VoiceChatManager.Instance != null)
-            {
-                var indicatorGo = UIRoot.Instance.TopLayer.Find("VoiceIndicator")?.gameObject;
-                if (indicatorGo == null)
-                {
-                    indicatorGo = new GameObject("VoiceIndicator", typeof(RectTransform));
-                    indicatorGo.transform.SetParent(UIRoot.Instance.TopLayer, false);
-                    indicatorGo.AddComponent<VoiceIndicator>();
-                }
-            }
         }
 
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        //  Demo Data
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        private void InitDemoMessages()
+        {
+            _demoMessages[0] = new List<DemoMsg>
+            {
+                new() { Sender = "鍓戜緺瀹?,   Content = "鏈変汉涓€璧风粍闃熸墦鍓湰鍚楋紵缂轰釜寮哄姏杈撳嚭锛? },
+                new() { Sender = "灏忓笀濡?,   Content = "鏂版墜姹傚甫锝炴湁dalao甯﹀甫鎴戝悧锛? },
+                new() { Sender = "绯荤粺鍏憡", Content = "銆愪笘鐣孊oss路琛€榄斻€戝皢鍦?鍒嗛挓鍚庡埛鏂帮紝璇蜂緺澹滑鍋氬ソ鍑嗗锛? },
+                new() { Sender = "椋庢竻鎵?,   Content = "鍑哄敭+12绱銆岄湝鏈堛€嶏紝鏈夋剰鐨勭鑱婏綖" },
+                new() { Sender = "璺汉鐢?,   Content = "浠婂ぉ澶╂皵鐪熷ソ锛岄€傚悎鎸傛満閽撻奔 馃帲" },
+            };
+
+            _demoMessages[1] = new List<DemoMsg>
+            {
+                new() { Sender = "闄勮繎鐨勪汉", Content = "杩欓噷椋庢櫙涓嶉敊锛屾埅鍥剧暀蹇碉紒" },
+                new() { Sender = "鎽嗘憡灏忚穿", Content = "鏂伴矞鍑虹倝鐨勫洖琛€涓硅嵂锛屼究瀹滃崠鍟︼綖" },
+                new() { Sender = "浣?,       Content = "鏈変汉鐪嬪埌閭ｄ釜闅愯棌NPC鍦ㄥ摢鍚楋紵" },
+            };
+
+            _demoMessages[2] = new List<DemoMsg>
+            {
+                new() { Sender = "闃熼暱",     Content = "闆嗙伀BOSS锛屾敞鎰忚翰绾㈠湀锛? },
+                new() { Sender = "濂跺",     Content = "鍧﹀厠琛€閲忓嵄闄╋紝鎴戝紑澶т簡锛? },
+                new() { Sender = "浣?,       Content = "鏀跺埌锛屾鍦ㄨ緭鍑恒€? },
+                new() { Sender = "闃熼暱",     Content = "婕備寒锛丅OSS鍊掍簡锛宺oll瑁呭锛? },
+            };
+
+            _demoMessages[3] = new List<DemoMsg>
+            {
+                new() { Sender = "鐩熶富",     Content = "浠婃櫄8鐐瑰悓鐩熸垬锛屾墍鏈変汉鍑嗘椂鍙傚姞锛? },
+                new() { Sender = "闀胯€?,     Content = "鍚岀洘鍟嗗簵宸插埛鏂帮紝鏈夐渶瑕佺殑鍘荤湅鐪嬨€? },
+                new() { Sender = "鎴愬憳A",    Content = "鏀跺埌锛佹櫄涓婁竴瀹氬埌銆? },
+                new() { Sender = "鎴愬憳B",    Content = "鎴戣础鐚潗鏂欏崌绾у悓鐩熸棗甯滀簡锛? },
+            };
+
+            _demoMessages[4] = new List<DemoMsg>
+            {
+                new() { Sender = "绯荤粺",     Content = "銆愮淮鎶ら鍛娿€戞湇鍔″櫒灏嗕簬浠婃櫄鍑屾櫒2:00-4:00杩涜缁存姢銆? },
+                new() { Sender = "绯荤粺",     Content = "銆愭椿鍔ㄣ€戙€屼竷澶曢箠妗ャ€嶆椿鍔ㄥ凡涓婄嚎锛屽畬鎴愰厤瀵逛换鍔¤耽鍙栭檺閲忕О鍙凤紒" },
+                new() { Sender = "绯荤粺",     Content = "銆愯ˉ鍋裤€戝洜鏄ㄦ棩缃戠粶娉㈠姩锛屽凡涓烘墍鏈変緺澹彂鏀捐ˉ鍋跨ぜ鍖呫€? },
+                new() { Sender = "绯荤粺",     Content = "銆愭垚灏便€戞伃鍠溿€庡墤蹇冦€忚揪鎴愭垚灏便€屼竾浜烘柀銆嶏紒" },
+            };
+
+            _demoMessages[5] = new List<DemoMsg>
+            {
+                new() { Sender = "椋庢竻鎵?,   Content = "鍏勫紵锛岄偅鎶婄传姝︿綘瑕佸悧锛熺粰浣犲弸鎯呬环锝? },
+                new() { Sender = "浣?,       Content = "濂斤紝澶氬皯閾朵袱锛? },
+                new() { Sender = "椋庢竻鎵?,   Content = "5000閲戝氨琛岋紝鑷繁浜轰笉璇翠簩璇濄€? },
+                new() { Sender = "灏忓笀濡?,   Content = "甯堢埗甯堢埗锛佹垜瀛︿細浜嗘柊鎶€鑳斤紒" },
+            };
+        }
+
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        //  UI Construction
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
         private void BuildUI()
         {
-            var rootRt = transform as RectTransform;
+            var root = transform as RectTransform;
 
-            // 背景
-            var bg = new GameObject("Bg", typeof(RectTransform), typeof(Image));
-            bg.transform.SetParent(transform, false);
-            var bgImg = bg.GetComponent<Image>();
-            bgImg.color = ColorBg;
-            var bgRt = bg.GetComponent<RectTransform>();
-            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
-            bgRt.sizeDelta = Vector2.zero;
+            // 鈹€鈹€ 1. 鍏ㄥ睆鑳屾櫙 鈹€鈹€
+            UIComponentFactory.CreateBackground(root);
 
-            // ===== 顶部Tab栏 =====
-            BuildChannelTabs(rootRt);
+            // 鈹€鈹€ 2. 鏍囬鏍忥紙鍏抽棴鈫掕繑鍥炰富鍩庯級 鈹€鈹€
+            UIComponentFactory.CreateTitleBar(root, "鑱婂ぉ", () =>
+            {
+                UIManager.Instance.Hide<ChatPanel>();
+                UIManager.Instance.Show<MainCityPanel>();
+            });
 
-            // ===== 私聊标签（右侧） =====
-            BuildPrivateTab(rootRt);
+            // 鈹€鈹€ 3. 棰戦亾 Tab 鏍?鈹€鈹€
+            BuildChannelTabs(root);
 
-            // ===== 关闭按钮 =====
-            var closeBtn = CreateButton(rootRt, "CloseBtn", "✕", () => Hide());
-            var closeRt = closeBtn.GetComponent<RectTransform>();
-            closeRt.anchorMin = new Vector2(1f, 1f);
-            closeRt.anchorMax = new Vector2(1f, 1f);
-            closeRt.anchoredPosition = new Vector2(-15, -15);
-            closeRt.sizeDelta = new Vector2(36, 36);
-            var closeImg = closeBtn.GetComponent<Image>();
-            closeImg.color = new Color(0.25f, 0.25f, 0.35f);
+            // 鈹€鈹€ 4. 娑堟伅鍒楄〃 (ScrollRect) 鈹€鈹€
+            BuildMessageList(root);
 
-            // ===== 消息列表 (ScrollRect) =====
-            BuildMessageList(rootRt);
+            // 鈹€鈹€ 5. 搴曢儴杈撳叆鍖哄煙 鈹€鈹€
+            BuildInputArea(root);
 
-            // ===== 底部输入区域 =====
-            BuildInputArea(rootRt);
+            // 鈹€鈹€ 6. 杩斿洖涓诲煄鎸夐挳 鈹€鈹€
+            var backBtn = UIComponentFactory.CreateSecondaryButton(
+                root, "BackToMainCity", "杩斿洖涓诲煄", () =>
+                {
+                    UIManager.Instance.Hide<ChatPanel>();
+                    UIManager.Instance.Show<MainCityPanel>();
+                });
+            var backRt = backBtn.GetComponent<RectTransform>();
+            backRt.anchorMin = new Vector2(1, 1);
+            backRt.anchorMax = new Vector2(1, 1);
+            backRt.sizeDelta = new Vector2(100, 36);
+            backRt.anchoredPosition = new Vector2(-65, -70);
         }
 
+        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 棰戦亾 Tab 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
         private void BuildChannelTabs(RectTransform parent)
         {
-            float startX = -450f;
-            for (int i = 0; i < _channelNames.Length; i++)
+            float tabW = 100f, spacing = 8f;
+            float totalW = ChannelNames.Length * tabW + (ChannelNames.Length - 1) * spacing;
+            float startX = -totalW / 2f + tabW / 2f;
+
+            for (int i = 0; i < ChannelNames.Length; i++)
             {
-                var idx = i;
-                var go = new GameObject("ChTab" + i, typeof(RectTransform), typeof(Image));
-                go.transform.SetParent(parent, false);
-                var rt = go.GetComponent<RectTransform>();
+                int idx = i;
+                bool isActive = (i == _currentChannel);
+
+                var tab = UIComponentFactory.CreateTabButton(
+                    parent,
+                    "ChTab_" + ChannelNames[i],
+                    ChannelNames[i],
+                    isActive,
+                    () => SwitchChannel(idx));
+
+                var rt = tab.GetComponent<RectTransform>();
                 rt.anchorMin = new Vector2(0.5f, 1f);
                 rt.anchorMax = new Vector2(0.5f, 1f);
-                rt.sizeDelta = new Vector2(100, 34);
-                rt.anchoredPosition = new Vector2(startX + i * 110, -17);
+                rt.sizeDelta = new Vector2(tabW, 36);
+                rt.anchoredPosition = new Vector2(startX + idx * (tabW + spacing), -62);
 
-                var img = go.GetComponent<Image>();
-                img.color = i == 0 ? ColorTabActive : ColorTabNormal;
-
-                var txtGo = new GameObject("Text", typeof(RectTransform));
-                txtGo.transform.SetParent(go.transform, false);
-                var txtRt = txtGo.GetComponent<RectTransform>();
-                txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
-                txtRt.sizeDelta = Vector2.zero;
-
-                var txt = txtGo.AddComponent<Text>();
-                txt.text = _channelNames[i];
-                txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                txt.fontSize = 16;
-                txt.alignment = TextAnchor.MiddleCenter;
-                txt.color = i == 0 ? Color.white : new Color(0.7f, 0.7f, 0.8f);
-
-                var btn = go.AddComponent<Button>();
-                btn.targetGraphic = img;
-                btn.onClick.AddListener(() => SwitchChannel(idx));
-
-                _channelBtns.Add(go);
+                _channelTabs.Add(tab);
             }
         }
 
-        private void BuildPrivateTab(RectTransform parent)
-        {
-            var go = new GameObject("PrivateTab", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 1f);
-            rt.anchorMax = new Vector2(0.5f, 1f);
-            rt.sizeDelta = new Vector2(100, 34);
-            rt.anchoredPosition = new Vector2(50 + 5 * 110, -17);
-
-            var img = go.GetComponent<Image>();
-            img.color = ColorTabNormal;
-
-            var txtGo = new GameObject("Text", typeof(RectTransform));
-            txtGo.transform.SetParent(go.transform, false);
-            var txtRt = txtGo.GetComponent<RectTransform>();
-            txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
-            txtRt.sizeDelta = new Vector2(-16, 0);
-
-            var txt = txtGo.AddComponent<Text>();
-            txt.text = "🔒私聊";
-            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            txt.fontSize = 16;
-            txt.alignment = TextAnchor.MiddleCenter;
-            txt.color = new Color(0.7f, 0.7f, 0.8f);
-
-            // 未读标记
-            var badgeGo = new GameObject("Badge", typeof(RectTransform), typeof(Image));
-            badgeGo.transform.SetParent(go.transform, false);
-            var badgeRt = badgeGo.GetComponent<RectTransform>();
-            badgeRt.anchorMin = new Vector2(1f, 1f);
-            badgeRt.anchorMax = new Vector2(1f, 1f);
-            badgeRt.sizeDelta = new Vector2(18, 18);
-            badgeRt.anchoredPosition = new Vector2(-4, -4);
-            var badgeImg = badgeGo.GetComponent<Image>();
-            badgeImg.color = new Color(1f, 0.2f, 0.2f);
-            badgeGo.SetActive(false);
-
-            _privateBadge = badgeGo.AddComponent<Text>();
-            _privateBadge.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            _privateBadge.fontSize = 11;
-            _privateBadge.alignment = TextAnchor.MiddleCenter;
-            _privateBadge.color = Color.white;
-            _privateBadge.text = "0";
-
-            Button btn = go.AddComponent<Button>();
-            btn.targetGraphic = img;
-            btn.onClick.AddListener(() => SwitchChannel(5)); // 5 = private
-        }
-
+        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 娑堟伅鍒楄〃 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
         private void BuildMessageList(RectTransform parent)
         {
-            // Viewport
-            var viewportGo = new GameObject("MessageViewport", typeof(RectTransform), typeof(Image));
-            viewportGo.transform.SetParent(parent, false);
-            var vpRt = viewportGo.GetComponent<RectTransform>();
-            vpRt.anchorMin = new Vector2(0.5f, 0.5f);
-            vpRt.anchorMax = new Vector2(0.5f, 0.5f);
-            vpRt.sizeDelta = new Vector2(880, 420);
-            vpRt.anchoredPosition = new Vector2(0, 30);
-            var vpImg = viewportGo.GetComponent<Image>();
-            vpImg.color = new Color(0.08f, 0.08f, 0.16f);
+            // 鑳屾櫙鍗＄墖
+            var cardRt = UIComponentFactory.CreateCard(
+                parent, "MsgBg",
+                new Vector2(880, 430),
+                new Vector2(0, 12));
 
-            // ScrollRect
-            var scrollGo = new GameObject("ScrollRect", typeof(RectTransform));
-            scrollGo.transform.SetParent(vpRt, false);
-            var scrollRt = scrollGo.GetComponent<RectTransform>();
-            scrollRt.anchorMin = Vector2.zero; scrollRt.anchorMax = Vector2.one;
-            scrollRt.sizeDelta = Vector2.zero;
+            // ScrollView
+            _contentRt = UIComponentFactory.CreateScrollView(
+                parent, "MsgScroll",
+                new Vector2(868, 418),
+                new Vector2(0, 12));
 
-            var scrollRect = scrollGo.AddComponent<ScrollRect>();
-            scrollRect.horizontal = false;
-            scrollRect.vertical = true;
-            scrollRect.elasticity = 0.1f;
-            scrollRect.inertia = true;
-            scrollRect.decelerationRate = 0.135f;
+            // 缁?Viewport 鍔犱笂鏆楄壊鑳屾櫙
+            var scrollRoot = _contentRt.parent.parent; // Content 鈫?Viewport 鈫?ScrollViewRoot
+            var viewport = scrollRoot.Find("Viewport");
+            if (viewport != null)
+            {
+                var vpImg = viewport.GetComponent<Image>();
+                if (vpImg != null) vpImg.color = new Color(0.047f, 0.039f, 0.031f, 0.8f);
+            }
 
-            // Content
-            var contentGo = new GameObject("Content", typeof(RectTransform));
-            contentGo.transform.SetParent(scrollRt, false);
-            _contentRt = contentGo.GetComponent<RectTransform>();
-            _contentRt.anchorMin = new Vector2(0, 1);
-            _contentRt.anchorMax = new Vector2(1, 1);
-            _contentRt.pivot = new Vector2(0.5f, 1);
-            _contentRt.sizeDelta = new Vector2(0, 0);
-
-            var contentLayout = contentGo.AddComponent<VerticalLayoutGroup>();
-            contentLayout.spacing = 2;
-            contentLayout.padding = new RectOffset(8, 8, 4, 4);
-            contentLayout.childAlignment = TextAnchor.UpperCenter;
-            contentLayout.childControlWidth = true;
-            contentLayout.childControlHeight = false;
-
-            var contentFitter = contentGo.AddComponent<ContentSizeFitter>();
-            contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            scrollRect.content = _contentRt;
+            // 璋冩暣 Content LayoutGroup 杈硅窛
+            var vlg = _contentRt.GetComponent<VerticalLayoutGroup>();
+            vlg.padding = new RectOffset(12, 12, 8, 8);
+            vlg.spacing = 4f;
         }
 
+        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 搴曢儴杈撳叆鍖?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
         private void BuildInputArea(RectTransform parent)
         {
-            // 输入框背景
-            var inputBg = new GameObject("InputBg", typeof(RectTransform), typeof(Image));
-            inputBg.transform.SetParent(parent, false);
-            var inputBgRt = inputBg.GetComponent<RectTransform>();
-            inputBgRt.anchorMin = new Vector2(0.5f, 0f);
-            inputBgRt.anchorMax = new Vector2(0.5f, 0f);
-            inputBgRt.sizeDelta = new Vector2(700, 44);
-            inputBgRt.anchoredPosition = new Vector2(0, 30);
-            var inputBgImg = inputBg.GetComponent<Image>();
-            inputBgImg.color = ColorInputBg;
+            // 杈撳叆妗?            _inputField = UIComponentFactory.CreateInputField(
+                parent, "ChatInput", "杈撳叆鑱婂ぉ鍐呭鈥?,
+                new Vector2(640, 44),
+                new Vector2(-100, -248));
 
-            // 输入框
-            var inputGo = new GameObject("ChatInput", typeof(RectTransform));
-            inputGo.transform.SetParent(inputBgRt, false);
-            var inputRt = inputGo.GetComponent<RectTransform>();
-            inputRt.anchorMin = Vector2.zero; inputRt.anchorMax = Vector2.one;
-            inputRt.sizeDelta = new Vector2(-10, -8);
-            inputRt.anchoredPosition = new Vector2(0, -2);
-
-            _inputField = inputGo.AddComponent<InputField>();
-            var inputText = inputGo.AddComponent<Text>();
-            inputText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            inputText.fontSize = 16;
-            inputText.color = new Color(0.85f, 0.85f, 0.9f);
-            inputText.supportRichText = false;
-            inputText.alignment = TextAnchor.MiddleLeft;
-            _inputField.textComponent = inputText;
-
-            // 占位文字
-            var phGo = new GameObject("Placeholder", typeof(RectTransform));
-            phGo.transform.SetParent(inputRt, false);
-            var phRt = phGo.GetComponent<RectTransform>();
-            phRt.anchorMin = Vector2.zero; phRt.anchorMax = Vector2.one;
-            phRt.sizeDelta = Vector2.zero;
-
-            var phText = phGo.AddComponent<Text>();
-            phText.text = "输入聊天内容...";
-            phText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            phText.fontSize = 16;
-            phText.color = new Color(0.4f, 0.4f, 0.5f);
-            phText.alignment = TextAnchor.MiddleLeft;
-            _inputField.placeholder = phText;
-
-            // 发送按钮
-            var sendBtn = CreateButton(parent, "SendBtn", "发送", OnSendClick);
+            // 鍙戦€佹寜閽?            var sendBtn = UIComponentFactory.CreatePrimaryButton(
+                parent, "SendBtn", "鍙戦€?, OnSendClick);
             var sendRt = sendBtn.GetComponent<RectTransform>();
-            sendRt.anchorMin = new Vector2(0.5f, 0f);
-            sendRt.anchorMax = new Vector2(0.5f, 0f);
-            sendRt.anchoredPosition = new Vector2(430, 30);
+            sendRt.anchorMin = new Vector2(0.5f, 0.5f);
+            sendRt.anchorMax = new Vector2(0.5f, 0.5f);
             sendRt.sizeDelta = new Vector2(80, 44);
-            var sendImg = sendBtn.GetComponent<Image>();
-            sendImg.color = new Color(0.35f, 0.2f, 0.65f);
-            var sendTxt = sendBtn.GetComponentInChildren<Text>();
-            sendTxt.fontSize = 18;
+            sendRt.anchoredPosition = new Vector2(270, -248);
 
-            // 语音按钮(长按录音)
-            var voiceGo = new GameObject("VoiceBtn", typeof(RectTransform), typeof(Image));
-            voiceGo.transform.SetParent(parent, false);
-            var voiceRtL = voiceGo.GetComponent<RectTransform>();
-            voiceRtL.anchorMin = new Vector2(0.5f, 0f);
-            voiceRtL.anchorMax = new Vector2(0.5f, 0f);
-            voiceRtL.anchoredPosition = new Vector2(-430, 30);
-            voiceRtL.sizeDelta = new Vector2(100, 44);
-            var voiceImgL = voiceGo.GetComponent<Image>();
-            voiceImgL.color = new Color(0.25f, 0.25f, 0.4f);
+            // 璇煶鎸夐挳 馃攰
+            var voiceBtnGo = new GameObject("VoiceBtn", typeof(RectTransform), typeof(Image));
+            voiceBtnGo.transform.SetParent(parent, false);
+            var voiceRt = voiceBtnGo.GetComponent<RectTransform>();
+            voiceRt.anchorMin = new Vector2(0.5f, 0.5f);
+            voiceRt.anchorMax = new Vector2(0.5f, 0.5f);
+            voiceRt.sizeDelta = new Vector2(90, 44);
+            voiceRt.anchoredPosition = new Vector2(-440, -248);
 
-            var voiceTxtGo = new GameObject("Text", typeof(RectTransform));
-            voiceTxtGo.transform.SetParent(voiceGo.transform, false);
-            var voiceTxtRt = voiceTxtGo.GetComponent<RectTransform>();
-            voiceTxtRt.anchorMin = Vector2.zero; voiceTxtRt.anchorMax = Vector2.one;
-            voiceTxtRt.sizeDelta = Vector2.zero;
-            var voiceTxtL = voiceTxtGo.AddComponent<Text>();
-            voiceTxtL.text = "🎤 语音";
-            voiceTxtL.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            voiceTxtL.fontSize = 16;
-            voiceTxtL.alignment = TextAnchor.MiddleCenter;
-            voiceTxtL.color = new Color(0.7f, 0.7f, 0.8f);
+            var voiceImg = voiceBtnGo.GetComponent<Image>();
+            voiceImg.color = ThemeColors.BtnSecondary;
 
-            // 长按事件: 添加EventTrigger
-            var voiceTrigger = voiceGo.AddComponent<EventTrigger>();
-            // PointerDown = 开始录音
-            var downEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
-            downEntry.callback.AddListener((_) => OnVoiceBtnDown(voiceImgL, voiceTxtL));
-            voiceTrigger.triggers.Add(downEntry);
-            // PointerUp = 停止录音
-            var upEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
-            upEntry.callback.AddListener((_) => OnVoiceBtnUp(voiceImgL, voiceTxtL));
-            voiceTrigger.triggers.Add(upEntry);
-            // PointerExit = 取消录音
-            var exitEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-            exitEntry.callback.AddListener((_) => OnVoiceBtnUp(voiceImgL, voiceTxtL));
-            voiceTrigger.triggers.Add(exitEntry);
+            var voiceTxt = voiceBtnGo.AddComponent<Text>();
+            voiceTxt.text = "馃攰 璇煶";
+            voiceTxt.font = UIComponentFactory.Font;
+            voiceTxt.fontSize = ThemeColors.FontBody;
+            voiceTxt.alignment = TextAnchor.MiddleCenter;
+            voiceTxt.color = ThemeColors.TextNormal;
+            voiceTxt.raycastTarget = false;
+
+            var voiceBtn = voiceBtnGo.AddComponent<Button>();
+            voiceBtn.targetGraphic = voiceImg;
+            voiceBtn.onClick.AddListener(OnVoiceClick);
         }
 
-        private void SwitchChannel(int ch)
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        //  Channel Switching
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        private void SwitchChannel(int channel)
         {
-            if (ch == _currentChannel) return;
-            _currentChannel = ch;
+            if (channel == _currentChannel) return;
+            _currentChannel = channel;
 
-            // 更新Tab高亮
-            for (int i = 0; i < _channelBtns.Count; i++)
+            // 鏇存柊 Tab 楂樹寒
+            for (int i = 0; i < _channelTabs.Count; i++)
             {
-                var img = _channelBtns[i].GetComponent<Image>();
-                var txt = _channelBtns[i].GetComponentInChildren<Text>();
-                if (i == ch)
-                {
-                    img.color = ColorTabActive;
-                    txt.color = Color.white;
-                }
-                else
-                {
-                    img.color = ColorTabNormal;
-                    txt.color = new Color(0.7f, 0.7f, 0.8f);
-                }
+                var img = _channelTabs[i].GetComponent<Image>();
+                var txt = _channelTabs[i].GetComponent<Text>();
+                bool active = (i == channel);
+                img.color = active ? ThemeColors.TabActive : ThemeColors.TabInactive;
+                txt.color = active ? ThemeColors.TextWhite : ThemeColors.TextNormal;
             }
 
             RefreshMessages();
         }
 
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        //  Message Display
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
         private void RefreshMessages()
         {
-            // 清除旧消息
-            foreach (Transform child in _contentRt)
+            // 娓呴櫎鏃ф秷鎭?            foreach (Transform child in _contentRt)
                 Destroy(child.gameObject);
 
-            // 从ChatManager获取历史消息
-            var messages = ChatManager.Instance?.Messages;
-            if (messages == null || messages.Count == 0)
+            if (!_demoMessages.TryGetValue(_currentChannel, out var msgs) || msgs.Count == 0)
             {
-                var emptyText = CreateText(_contentRt, "EmptyHint", "暂无聊天消息", 16);
-                emptyText.color = new Color(0.4f, 0.4f, 0.5f);
+                var empty = UIComponentFactory.CreateText(
+                    _contentRt, "Empty", "鏆傛棤鑱婂ぉ娑堟伅",
+                    ThemeColors.FontSmall, ThemeColors.TextDim);
+                var ert = empty.rectTransform;
+                ert.sizeDelta = new Vector2(0, 30);
                 return;
             }
 
-            for (int i = messages.Count - 1; i >= 0; i--)
+            // 鏈€鏂版秷鎭湪涓婃柟
+            for (int i = msgs.Count - 1; i >= 0; i--)
             {
-                var msg = messages[i];
-                if (_currentChannel < 5 && msg.Channel != _currentChannel) continue;
-                if (_currentChannel == 5 && msg.Channel != 5) continue;
-
-                AppendMessage(msg);
+                AppendMessage(msgs[i]);
             }
         }
 
-        private void AppendMessage(ChatMessage msg)
+        private void AppendMessage(DemoMsg msg)
         {
-            Color channelColor;
-            string channelTag;
-            if (msg.Channel >= 0 && msg.Channel < 5)
-            {
-                channelColor = _channelColors[msg.Channel];
-                channelTag = _channelNames[msg.Channel];
-            }
-            else
-            {
-                channelColor = PrivateColor;
-                channelTag = "私聊";
-            }
+            var color = ChannelColors[_currentChannel];
+            var channelName = ChannelNames[_currentChannel];
 
-            // 语音消息特殊处理
-            if (msg.Content.StartsWith("🎤"))
-            {
-                AppendVoiceMessage(msg, channelTag, channelColor);
-                return;
-            }
+            var msgText = UIComponentFactory.CreateText(
+                _contentRt, "Msg",
+                $"<color=#{ColorUtility.ToHtmlStringRGB(color)}>[{channelName}]</color> {msg.Sender}: {msg.Content}",
+                ThemeColors.FontTiny, ThemeColors.TextBright, TextAnchor.MiddleLeft);
 
-            var msgGo = new GameObject("Msg" + msg.MsgId, typeof(RectTransform));
-            msgGo.transform.SetParent(_contentRt, false);
-            var msgRt = msgGo.GetComponent<RectTransform>();
-            msgRt.sizeDelta = new Vector2(0, 22);
-            msgRt.anchorMin = new Vector2(0, 1);
-            msgRt.anchorMax = new Vector2(1, 1);
-
-            // 整个消息行使用一个Text(支持rich text来处理颜色)
-            var lineText = msgGo.AddComponent<Text>();
-            lineText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            lineText.fontSize = 15;
-            lineText.alignment = TextAnchor.MiddleLeft;
-            lineText.supportRichText = true;
-            lineText.color = new Color(0.8f, 0.8f, 0.85f);
-
-            string colorHex = ColorUtility.ToHtmlStringRGB(channelColor);
-            string lineContent = $"<color=#{colorHex}>[{channelTag}]</color> {msg.SenderName}: {msg.Content}";
-            lineText.text = lineContent;
+            msgText.supportRichText = true;
+            var mrt = msgText.rectTransform;
+            mrt.sizeDelta = new Vector2(0, 24);
+            mrt.anchorMin = new Vector2(0, 1);
+            mrt.anchorMax = new Vector2(1, 1);
         }
 
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        //  Input Actions
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
         private void OnSendClick()
         {
-            if (string.IsNullOrEmpty(_inputField.text)) return;
-            var content = _inputField.text;
-            if (_currentChannel == 5)
+            var content = _inputField?.text?.Trim();
+            if (string.IsNullOrEmpty(content)) return;
+
+            // 娣诲姞鍒板綋鍓嶉閬撶殑 demo 娑堟伅
+            if (!_demoMessages.ContainsKey(_currentChannel))
+                _demoMessages[_currentChannel] = new List<DemoMsg>();
+
+            _demoMessages[_currentChannel].Insert(0, new DemoMsg
             {
-                ChatManager.Instance?.SendChat(5, content);
-            }
-            else
-            {
-                ChatManager.Instance?.SendChat(_currentChannel, content);
-            }
+                Sender = "浣?,
+                Content = content
+            });
+
             _inputField.text = "";
+            RefreshMessages();
+
+            Debug.Log($"[ChatPanel] 鍙戦€?[{ChannelNames[_currentChannel]}] 娑堟伅: {content}");
         }
 
-        // ===== 语音按钮长按 =====
-
-        private void OnVoiceBtnDown(Image btnImg, Text btnTxt)
+        private void OnVoiceClick()
         {
-            if (VoiceChatManager.Instance == null) return;
-
-            // 设置语音频道
-            VoiceChatManager.Instance.CurrentChannel = _currentChannel;
-            // 强制按下按键(模拟V键)
-            VoiceChatManager.Instance.PushToTalkKey = KeyCode.None; // 临时取消键盘PTT
-            VoiceChatManager.Instance.StartRecording();
-
-            btnImg.color = new Color(0.35f, 0.5f, 0.2f); // 绿色高亮
-            btnTxt.text = "🎤 录音中...";
-            Debug.Log("[ChatPanel] 语音按钮按下 - 开始录音");
+            Debug.Log($"[ChatPanel] 馃帳 璇煶鎸夐挳鐐瑰嚮 鈥?褰撳墠棰戦亾: {ChannelNames[_currentChannel]}");
+            // TODO: 鎺ュ叆 VoiceChatManager 褰曢煶娴佺▼
         }
 
-        private void OnVoiceBtnUp(Image btnImg, Text btnTxt)
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?        //  Panel Overrides
+        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        public override void Refresh()
         {
-            if (VoiceChatManager.Instance == null) return;
-            if (!VoiceChatManager.Instance.IsRecording) return;
-
-            VoiceChatManager.Instance.StopRecording();
-            VoiceChatManager.Instance.PushToTalkKey = KeyCode.V; // 恢复键盘PTT
-
-            btnImg.color = new Color(0.25f, 0.25f, 0.4f);
-            btnTxt.text = "🎤 语音";
-
-            // 发送语音消息到聊天
-            ChatManager.Instance?.SendChat(_currentChannel, "🎤 [语音消息]");
-            Debug.Log("[ChatPanel] 语音按钮松开 - 语音消息已发送");
-        }
-
-        /// <summary>语音消息行添加播放按钮</summary>
-        private void AppendVoiceMessage(ChatMessage msg, string channelTag, Color channelColor)
-        {
-            var msgGo = new GameObject("VoiceMsg" + msg.MsgId, typeof(RectTransform));
-            msgGo.transform.SetParent(_contentRt, false);
-            var msgRt = msgGo.GetComponent<RectTransform>();
-            msgRt.sizeDelta = new Vector2(0, 28);
-            msgRt.anchorMin = new Vector2(0, 1);
-            msgRt.anchorMax = new Vector2(1, 1);
-
-            // 频道标签
-            var tagGo = new GameObject("Tag", typeof(RectTransform));
-            tagGo.transform.SetParent(msgGo.transform, false);
-            var tagRt = tagGo.GetComponent<RectTransform>();
-            tagRt.anchorMin = new Vector2(0, 0);
-            tagRt.anchorMax = new Vector2(0, 1);
-            tagRt.sizeDelta = new Vector2(60, 0);
-            var tagTxt = tagGo.AddComponent<Text>();
-            tagTxt.text = $"[{channelTag}]";
-            tagTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            tagTxt.fontSize = 14;
-            tagTxt.color = channelColor;
-            tagTxt.alignment = TextAnchor.MiddleLeft;
-
-            // 发送者名
-            var nameGo = new GameObject("Name", typeof(RectTransform));
-            nameGo.transform.SetParent(msgGo.transform, false);
-            var nameRt = nameGo.GetComponent<RectTransform>();
-            nameRt.anchorMin = new Vector2(0, 0);
-            nameRt.anchorMax = new Vector2(0, 1);
-            nameRt.sizeDelta = new Vector2(100, 0);
-            nameRt.anchoredPosition = new Vector2(65, 0);
-            var nameTxt = nameGo.AddComponent<Text>();
-            nameTxt.text = msg.SenderName + ": ";
-            nameTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            nameTxt.fontSize = 14;
-            nameTxt.color = new Color(0.8f, 0.8f, 0.85f);
-            nameTxt.alignment = TextAnchor.MiddleLeft;
-
-            // 🎤标记
-            var micGo = new GameObject("MicIcon", typeof(RectTransform));
-            micGo.transform.SetParent(msgGo.transform, false);
-            var micRt = micGo.GetComponent<RectTransform>();
-            micRt.anchorMin = new Vector2(0, 0);
-            micRt.anchorMax = new Vector2(0, 1);
-            micRt.sizeDelta = new Vector2(24, 0);
-            micRt.anchoredPosition = new Vector2(170, 0);
-            var micTxt = micGo.AddComponent<Text>();
-            micTxt.text = "🎤";
-            micTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            micTxt.fontSize = 16;
-            micTxt.alignment = TextAnchor.MiddleCenter;
-
-            // 播放按钮
-            var playBtn = new GameObject("PlayBtn", typeof(RectTransform), typeof(Image));
-            playBtn.transform.SetParent(msgGo.transform, false);
-            var playRt = playBtn.GetComponent<RectTransform>();
-            playRt.anchorMin = new Vector2(0, 0);
-            playRt.anchorMax = new Vector2(0, 1);
-            playRt.sizeDelta = new Vector2(60, 0);
-            playRt.anchoredPosition = new Vector2(200, 0);
-            var playImg = playBtn.GetComponent<Image>();
-            playImg.color = new Color(0.25f, 0.25f, 0.4f);
-            var playBtnTxtGo = new GameObject("Text", typeof(RectTransform));
-            playBtnTxtGo.transform.SetParent(playBtn.transform, false);
-            var playBtnTxtRt = playBtnTxtGo.GetComponent<RectTransform>();
-            playBtnTxtRt.anchorMin = Vector2.zero; playBtnTxtRt.anchorMax = Vector2.one;
-            playBtnTxtRt.sizeDelta = Vector2.zero;
-            var playBtnTxt = playBtnTxtGo.AddComponent<Text>();
-            playBtnTxt.text = "▶ 播放";
-            playBtnTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            playBtnTxt.fontSize = 13;
-            playBtnTxt.alignment = TextAnchor.MiddleCenter;
-            playBtnTxt.color = new Color(0.5f, 0.8f, 1.0f);
-            var playBtnComp = playBtn.AddComponent<Button>();
-            playBtnComp.targetGraphic = playImg;
-            playBtnComp.onClick.AddListener(() => PlayVoiceMessage(msg.MsgId, playBtnTxt));
-        }
-
-        private void PlayVoiceMessage(ulong msgId, Text btnTxt)
-        {
-            // 播放语音(模拟 - 实际应有语音数据关联)
-            if (VoiceChatManager.Instance != null)
-            {
-                btnTxt.text = "▶ 播放中...";
-                Debug.Log($"[ChatPanel] 播放语音消息 msgId={msgId}");
-                // 使用协程1.5秒后恢复
-                StartCoroutine(ResetPlayButton(btnTxt));
-            }
-        }
-
-        private System.Collections.IEnumerator ResetPlayButton(Text btnTxt)
-        {
-            yield return new WaitForSeconds(1.5f);
-            if (btnTxt != null) btnTxt.text = "▶ 播放";
+            base.Refresh();
+            RefreshMessages();
         }
     }
 }
-
-
-

@@ -1,18 +1,20 @@
-#nullable disable
+﻿#nullable disable
 using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
 using System.Collections.Generic;
 using System;
+using Jx3.UI;
+using Jx3.UI.Panels;
 
 namespace Jx3.UI.Panels
 {
     public class FriendPanel : BasePanel
     {
-        private static readonly Color ColorBg = new Color(0.06f, 0.06f, 0.12f, 0.95f);
-        private static readonly Color ColorTabNormal = new Color(0.15f, 0.15f, 0.25f);
+        private static readonly Color ColorBg = new Color(0.047f, 0.039f, 0.031f, 0.95f);
+        private static readonly Color ColorTabNormal = new Color(0.18f, 0.16f, 0.14f);
         private static readonly Color ColorTabActive = new Color(0.5f, 0.28f, 0.75f);
-        private static readonly Color ColorInputBg = new Color(0.12f, 0.12f, 0.22f);
+        private static readonly Color ColorInputBg = new Color(0.16f, 0.14f, 0.12f);
         private static readonly Color ColorGreen = new Color(0.2f, 1.0f, 0.2f);
         private static readonly Color ColorRed = new Color(1.0f, 0.2f, 0.2f);
         private static readonly Color ColorGold = new Color(1f, 0.85f, 0.2f);
@@ -28,7 +30,7 @@ namespace Jx3.UI.Panels
         private static readonly Color ColorOffline = new Color(0.45f, 0.45f, 0.55f);
         private static readonly Color ColorInBattle = new Color(1f, 0.2f, 0.2f);
 
-        private static readonly string[] TabNames = { "好友", "请求", "最近", "推荐", "黑名单" };
+        private static readonly string[] TabNames = { "濂藉弸", "璇锋眰", "鏈€杩?, "鎺ㄨ崘", "榛戝悕鍗? };
 
         private Text _onlineCountText;
         private InputField _searchInput;
@@ -69,13 +71,13 @@ namespace Jx3.UI.Panels
             var bgRt = bg.GetComponent<RectTransform>();
             bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one; bgRt.sizeDelta = Vector2.zero;
 
-            var title = CreateText(rootRt, "Title", "好  友", 32);
+            var title = CreateText(rootRt, "Title", "濂? 鍙?, 32);
             title.fontStyle = FontStyle.Bold; title.color = ColorGold;
             var tRt = title.rectTransform;
             tRt.anchorMin = new Vector2(0.5f, 1f); tRt.anchorMax = new Vector2(0.5f, 1f);
             tRt.anchoredPosition = new Vector2(0, -40); tRt.sizeDelta = new Vector2(200, 44);
 
-            _onlineCountText = CreateText(rootRt, "OnlineCount", "在线: 0/0", 16);
+            _onlineCountText = CreateText(rootRt, "OnlineCount", "鍦ㄧ嚎: 0/0", 16);
             _onlineCountText.alignment = TextAnchor.MiddleCenter;
             _onlineCountText.color = new Color(0.6f, 0.8f, 0.6f);
             var or = _onlineCountText.rectTransform;
@@ -97,7 +99,7 @@ namespace Jx3.UI.Panels
             var lr = listBg.GetComponent<RectTransform>();
             lr.anchorMin = new Vector2(0.5f, 0.5f); lr.anchorMax = new Vector2(0.5f, 0.5f);
             lr.sizeDelta = new Vector2(860, 460); lr.anchoredPosition = new Vector2(0, -40);
-            listBg.GetComponent<Image>().color = new Color(0.08f, 0.08f, 0.16f);
+            listBg.GetComponent<Image>().color = new Color(0.12f, 0.10f, 0.09f);
 
             var scrollGo = new GameObject("ScrollRect", typeof(RectTransform));
             scrollGo.transform.SetParent(lr, false);
@@ -122,6 +124,18 @@ namespace Jx3.UI.Panels
             _listContainer.anchorMin = new Vector2(0, 1f); _listContainer.anchorMax = new Vector2(1f, 1f);
             _listContainer.pivot = new Vector2(0.5f, 1f); _listContainer.sizeDelta = new Vector2(0, 0);
             scrollRect.content = _listContainer;
+
+            // 杩斿洖涓诲煄鎸夐挳
+            var backBtn = CreateButton(rootRt, "BackToMainCityBtn", "杩斿洖涓诲煄", () =>
+            {
+                UIManager.Instance.Hide<FriendPanel>();
+                UIManager.Instance.Show<MainCityPanel>();
+            });
+            var backRt = backBtn.GetComponent<RectTransform>();
+            backRt.anchorMin = new Vector2(1, 1);
+            backRt.anchorMax = new Vector2(1, 1);
+            backRt.sizeDelta = new Vector2(100, 40);
+            backRt.anchoredPosition = new Vector2(-60, -25);
         }
 
         private void BuildSearchBar(RectTransform parent)
@@ -152,13 +166,13 @@ namespace Jx3.UI.Panels
             var phr = ph.GetComponent<RectTransform>();
             phr.anchorMin = Vector2.zero; phr.anchorMax = Vector2.one; phr.sizeDelta = Vector2.zero;
             var pht = ph.AddComponent<Text>();
-            pht.text = "搜索玩家ID/名称...";
+            pht.text = "鎼滅储鐜╁ID/鍚嶇О...";
             pht.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             pht.fontSize = 14; pht.color = new Color(0.4f, 0.4f, 0.5f);
             pht.alignment = TextAnchor.MiddleLeft;
             _searchInput.placeholder = pht;
 
-            var addBtn = CreateButton(parent, "AddFriendBtn", "添加", () => OnAddFriendClick());
+            var addBtn = CreateButton(parent, "AddFriendBtn", "娣诲姞", () => OnAddFriendClick());
             var ar = addBtn.GetComponent<RectTransform>();
             ar.anchorMin = new Vector2(0.5f, 1f); ar.anchorMax = new Vector2(0.5f, 1f);
             ar.sizeDelta = new Vector2(80, 36); ar.anchoredPosition = new Vector2(155, -105);
@@ -226,7 +240,7 @@ namespace Jx3.UI.Panels
                 _badgeText.transform.parent.gameObject.SetActive(cnt > 0);
             }
             if (_currentTab == 0)
-                _onlineCountText.text = "在线: " + FriendManager.Instance.OnlineCount + "/" + FriendManager.Instance.FriendCount;
+                _onlineCountText.text = "鍦ㄧ嚎: " + FriendManager.Instance.OnlineCount + "/" + FriendManager.Instance.FriendCount;
             switch (_currentTab)
             {
                 case 0: BuildFriendList(); break;
@@ -240,7 +254,7 @@ namespace Jx3.UI.Panels
         private void BuildFriendList()
         {
             var friends = FriendManager.Instance.GetNormalFriends();
-            if (friends.Count == 0) { ShowEmptyHint("暂无好友, 去推荐列表看看吧"); return; }
+            if (friends.Count == 0) { ShowEmptyHint("鏆傛棤濂藉弸, 鍘绘帹鑽愬垪琛ㄧ湅鐪嬪惂"); return; }
             float y = 0;
             foreach (var f in friends)
             {
@@ -259,8 +273,8 @@ namespace Jx3.UI.Panels
                 sd.GetComponent<Image>().color = f.OnlineStatus == FriendOnlineStatus.Online ? ColorOnline :
                     f.OnlineStatus == FriendOnlineStatus.InBattle ? ColorInBattle : ColorOffline;
 
-                string sl = f.OnlineStatus == FriendOnlineStatus.Online ? "在线" :
-                    f.OnlineStatus == FriendOnlineStatus.InBattle ? "战斗中" : "离线";
+                string sl = f.OnlineStatus == FriendOnlineStatus.Online ? "鍦ㄧ嚎" :
+                    f.OnlineStatus == FriendOnlineStatus.InBattle ? "鎴樻枟涓? : "绂荤嚎";
                 var lt = CreateText(ir, "SL", sl, 11);
                 lt.alignment = TextAnchor.MiddleLeft; lt.color = sd.GetComponent<Image>().color;
                 var lr = lt.rectTransform;
@@ -295,11 +309,11 @@ namespace Jx3.UI.Panels
                 }
 
                 float bx = 480;
-                CreateSmallButton(ir, "Chat", "私聊", bx, () => { Debug.Log("[Friend] 私聊 " + f.Name); FriendManager.Instance.RecordPrivateChat(f.PlayerId, f.Name); });
-                CreateSmallButton(ir, "Team", "组队", bx+75, () => { Debug.Log("[Friend] 组队邀请 " + f.Name); });
-                var db = CreateSmallButton(ir, "Del", "删除", bx+150, () => { FriendManager.Instance.RemoveFriend(f.PlayerId); });
+                CreateSmallButton(ir, "Chat", "绉佽亰", bx, () => { Debug.Log("[Friend] 绉佽亰 " + f.Name); FriendManager.Instance.RecordPrivateChat(f.PlayerId, f.Name); });
+                CreateSmallButton(ir, "Team", "缁勯槦", bx+75, () => { Debug.Log("[Friend] 缁勯槦閭€璇?" + f.Name); });
+                var db = CreateSmallButton(ir, "Del", "鍒犻櫎", bx+150, () => { FriendManager.Instance.RemoveFriend(f.PlayerId); });
                 db.GetComponent<Image>().color = ColorBtnDanger;
-                var bb = CreateSmallButton(ir, "Block", "拉黑", bx+225, () => { FriendManager.Instance.BlockPlayer(f.PlayerId); });
+                var bb = CreateSmallButton(ir, "Block", "鎷夐粦", bx+225, () => { FriendManager.Instance.BlockPlayer(f.PlayerId); });
                 bb.GetComponent<Image>().color = new Color(0.4f, 0.15f, 0.15f);
                 y -= 62;
             }
@@ -309,7 +323,7 @@ namespace Jx3.UI.Panels
         private void BuildRequestList()
         {
             var reqs = FriendManager.Instance.PendingRequests;
-            if (reqs.Count == 0) { ShowEmptyHint("暂无好友申请"); return; }
+            if (reqs.Count == 0) { ShowEmptyHint("鏆傛棤濂藉弸鐢宠"); return; }
             float y = 0;
             foreach (var r in reqs)
             {
@@ -342,16 +356,16 @@ namespace Jx3.UI.Panels
 
                 if (!string.IsNullOrEmpty(r.Message))
                 {
-                    var mt = CreateText(ir, "Msg", "留言: " + r.Message, 13);
+                    var mt = CreateText(ir, "Msg", "鐣欒█: " + r.Message, 13);
                     mt.alignment = TextAnchor.MiddleLeft; mt.color = new Color(0.7f, 0.7f, 0.5f);
                     var mr = mt.rectTransform;
                     mr.anchorMin = new Vector2(0, 0.5f); mr.anchorMax = new Vector2(0, 0.5f);
                     mr.sizeDelta = new Vector2(200, 20); mr.anchoredPosition = new Vector2(200, 5);
                 }
 
-                var abtn = CreateSmallButton(ir, "Accept", "接受", 550, () => { FriendManager.Instance.AcceptRequest(r.RequestId); });
+                var abtn = CreateSmallButton(ir, "Accept", "鎺ュ彈", 550, () => { FriendManager.Instance.AcceptRequest(r.RequestId); });
                 abtn.GetComponent<Image>().color = ColorBtnAccept;
-                var dbtn = CreateSmallButton(ir, "Decline", "拒绝", 625, () => { FriendManager.Instance.DeclineRequest(r.RequestId); });
+                var dbtn = CreateSmallButton(ir, "Decline", "鎷掔粷", 625, () => { FriendManager.Instance.DeclineRequest(r.RequestId); });
                 dbtn.GetComponent<Image>().color = ColorBtnDanger;
                 y -= 62;
             }
@@ -361,7 +375,7 @@ namespace Jx3.UI.Panels
         private void BuildRecentContactList()
         {
             var cs = FriendManager.Instance.RecentContacts;
-            if (cs.Count == 0) { ShowEmptyHint("暂无最近联系人, 开始私聊吧"); return; }
+            if (cs.Count == 0) { ShowEmptyHint("鏆傛棤鏈€杩戣仈绯讳汉, 寮€濮嬬鑱婂惂"); return; }
             float y = 0;
             foreach (var c in cs)
             {
@@ -380,7 +394,7 @@ namespace Jx3.UI.Panels
 
                 if (c.IsFriend)
                 {
-                    var ft = CreateText(ir, "FT", "[好友]", 13);
+                    var ft = CreateText(ir, "FT", "[濂藉弸]", 13);
                     ft.alignment = TextAnchor.MiddleLeft; ft.color = ColorGreen;
                     var fr = ft.rectTransform;
                     fr.anchorMin = new Vector2(0, 0.5f); fr.anchorMax = new Vector2(0, 0.5f);
@@ -388,14 +402,14 @@ namespace Jx3.UI.Panels
                 }
 
                 var ma = (int)(DateTime.Now - c.LastChatTime).TotalMinutes;
-                string ts = ma < 1 ? "刚刚" : ma < 60 ? ma + "分钟前" : (ma / 60) + "小时前";
+                string ts = ma < 1 ? "鍒氬垰" : ma < 60 ? ma + "鍒嗛挓鍓? : (ma / 60) + "灏忔椂鍓?;
                 var tt = CreateText(ir, "Time", ts, 13);
                 tt.alignment = TextAnchor.MiddleRight; tt.color = ColorDimText;
                 var tr = tt.rectTransform;
                 tr.anchorMin = new Vector2(1f, 0.5f); tr.anchorMax = new Vector2(1f, 0.5f);
                 tr.sizeDelta = new Vector2(100, 20); tr.anchoredPosition = new Vector2(-130, 0);
 
-                CreateSmallButton(ir, "Chat", "私聊", 600, () => { Debug.Log("[Friend] 私聊: " + c.Name); });
+                CreateSmallButton(ir, "Chat", "绉佽亰", 600, () => { Debug.Log("[Friend] 绉佽亰: " + c.Name); });
                 y -= 56;
             }
             _listContainer.sizeDelta = new Vector2(0, Mathf.Abs(y) + 20);
@@ -405,7 +419,7 @@ namespace Jx3.UI.Panels
         {
             FriendManager.Instance.RefreshRecommendList();
             var recs = FriendManager.Instance.RecommendList;
-            if (recs.Count == 0) { ShowEmptyHint("暂无推荐好友"); return; }
+            if (recs.Count == 0) { ShowEmptyHint("鏆傛棤鎺ㄨ崘濂藉弸"); return; }
             float y = 0;
             foreach (var rec in recs)
             {
@@ -450,13 +464,13 @@ namespace Jx3.UI.Panels
                     rr.sizeDelta = new Vector2(140, 20); rr.anchoredPosition = new Vector2(180, 8);
                 }
 
-                var ot = CreateText(ir, "OL", rec.Online ? "在线" : "离线", 12);
+                var ot = CreateText(ir, "OL", rec.Online ? "鍦ㄧ嚎" : "绂荤嚎", 12);
                 ot.color = rec.Online ? ColorGreen : ColorOffline;
                 var or = ot.rectTransform;
                 or.anchorMin = new Vector2(0, 0.5f); or.anchorMax = new Vector2(0, 0.5f);
                 or.sizeDelta = new Vector2(40, 20); or.anchoredPosition = new Vector2(180, -10);
 
-                var ab = CreateSmallButton(ir, "Add", "添加", 550, () => { FriendManager.Instance.AddFriend(rec.PlayerId); });
+                var ab = CreateSmallButton(ir, "Add", "娣诲姞", 550, () => { FriendManager.Instance.AddFriend(rec.PlayerId); });
                 ab.GetComponent<Image>().color = ColorBtnPrimary;
                 y -= 68;
             }
@@ -466,7 +480,7 @@ namespace Jx3.UI.Panels
         private void BuildBlacklist()
         {
             var bl = FriendManager.Instance.GetBlacklistedPlayers();
-            if (bl.Count == 0) { ShowEmptyHint("黑名单为空"); return; }
+            if (bl.Count == 0) { ShowEmptyHint("榛戝悕鍗曚负绌?); return; }
             float y = 0;
             foreach (var b in bl)
             {
@@ -491,13 +505,13 @@ namespace Jx3.UI.Panels
                 nr.anchorMin = new Vector2(0, 0.5f); nr.anchorMax = new Vector2(0, 0.5f);
                 nr.sizeDelta = new Vector2(140, 30); nr.anchoredPosition = new Vector2(50, 0);
 
-                var tagt = CreateText(ir, "Tag", "已拉黑", 13);
+                var tagt = CreateText(ir, "Tag", "宸叉媺榛?, 13);
                 tagt.alignment = TextAnchor.MiddleLeft; tagt.color = ColorRed;
                 var tagr = tagt.rectTransform;
                 tagr.anchorMin = new Vector2(0, 0.5f); tagr.anchorMax = new Vector2(0, 0.5f);
                 tagr.sizeDelta = new Vector2(50, 20); tagr.anchoredPosition = new Vector2(190, 0);
 
-                var ub = CreateSmallButton(ir, "UB", "取消拉黑", 550, () => { FriendManager.Instance.UnblockPlayer(b.PlayerId); });
+                var ub = CreateSmallButton(ir, "UB", "鍙栨秷鎷夐粦", 550, () => { FriendManager.Instance.UnblockPlayer(b.PlayerId); });
                 ub.GetComponent<Image>().color = new Color(0.25f, 0.3f, 0.45f);
                 y -= 56;
             }
@@ -533,18 +547,18 @@ namespace Jx3.UI.Panels
         private void OnAddFriendClick()
         {
             var name = _searchInput.text.Trim();
-            if (string.IsNullOrEmpty(name)) { Debug.Log("[Friend] 请输入玩家名称"); return; }
+            if (string.IsNullOrEmpty(name)) { Debug.Log("[Friend] 璇疯緭鍏ョ帺瀹跺悕绉?); return; }
             if (ulong.TryParse(name, out var id))
             {
-                Debug.Log("[Friend] 搜索玩家ID: " + id);
+                Debug.Log("[Friend] 鎼滅储鐜╁ID: " + id);
                 FriendManager.Instance.AddFriend(id);
             }
             else
             {
-                Debug.Log("[Friend] 搜索玩家名称: " + name);
+                Debug.Log("[Friend] 鎼滅储鐜╁鍚嶇О: " + name);
                 FriendManager.Instance.SearchPlayer(name, (results) =>
                 {
-                    if (results.Count == 0) Debug.Log("[Friend] 未找到玩家: " + name);
+                    if (results.Count == 0) Debug.Log("[Friend] 鏈壘鍒扮帺瀹? " + name);
                     else foreach (var r in results) FriendManager.Instance.AddFriend(r.PlayerId);
                 });
             }

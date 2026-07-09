@@ -1,4 +1,4 @@
-#nullable disable
+﻿#nullable disable
 using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
@@ -7,23 +7,22 @@ using System.Collections.Generic;
 namespace Jx3.UI.Panels
 {
     /// <summary>
-    /// PVP段位排行榜面板 - 前50名玩家排名展示
-    /// 暗黑紫色主题,全程序化生成
+    /// PVP娈典綅鎺掕姒滈潰鏉?- 鍓?0鍚嶇帺瀹舵帓鍚嶅睍绀?    /// 鏆楅粦绱壊涓婚,鍏ㄧ▼搴忓寲鐢熸垚
     /// </summary>
     public class PvpRankPanel : BasePanel
     {
-        // ===== 配色 =====
+        // ===== 閰嶈壊 =====
         private static readonly Color ColorBg = new Color(0.04f, 0.04f, 0.08f, 0.92f);
-        private static readonly Color ColorCard = new Color(0.07f, 0.07f, 0.12f, 0.95f);
-        private static readonly Color ColorAccent = new Color(0.69f, 0.53f, 1f, 0.9f);
+        private static readonly Color ColorCard = new Color(0.102f, 0.086f, 0.070f, 0.95f);
+        private static readonly Color ColorAccent = new Color(0.83f, 0.66f, 0.26f, 0.9f);
         private static readonly Color ColorGold = new Color(1f, 0.85f, 0.2f);
         private static readonly Color ColorSilver = new Color(0.7f, 0.7f, 0.8f);
         private static readonly Color ColorBronze = new Color(0.8f, 0.5f, 0.2f);
         private static readonly Color ColorRowEven = new Color(0.1f, 0.1f, 0.2f, 0.5f);
-        private static readonly Color ColorRowOdd = new Color(0.12f, 0.12f, 0.22f, 0.5f);
-        private static readonly Color ColorMyRow = new Color(0.69f, 0.53f, 1f, 0.15f);
-        private static readonly Color ColorTextDim = new Color(0.5f, 0.5f, 0.65f);
-        private static readonly Color ColorTextBright = new Color(0.8f, 0.8f, 0.9f);
+        private static readonly Color ColorRowOdd = new Color(0.16f, 0.14f, 0.12f, 0.5f);
+        private static readonly Color ColorMyRow = new Color(0.83f, 0.66f, 0.26f, 0.15f);
+        private static readonly Color ColorTextDim = new Color(0.48f, 0.43f, 0.38f);
+        private static readonly Color ColorTextBright = new Color(0.94f, 0.91f, 0.85f);
         private static readonly Color ColorHeaderBg = new Color(0.15f, 0.12f, 0.25f, 0.9f);
 
         private static readonly Color[] TierColors =
@@ -36,25 +35,25 @@ namespace Jx3.UI.Panels
             new Color(1f, 0.4f, 0.6f),
         };
 
-        // ===== UI引用 =====
+        // ===== UI寮曠敤 =====
         private RectTransform _listContainer;
         private Text _titleText;
         private Button _closeBtn;
         private Text _myRankPosText;
 
-        // 排行条目对象池(最多50)
+        // 鎺掕鏉＄洰瀵硅薄姹?鏈€澶?0)
         private readonly List<GameObject> _rowPool = new();
 
-        // 当前数据
+        // 褰撳墠鏁版嵁
         private List<RankEntry> _currentEntries = new();
 
         protected override void Awake()
         {
             base.Awake();
             BuildUI();
-            Hide(); // 默认隐藏
+            Hide(); // 榛樿闅愯棌
 
-            // 事件监听
+            // 浜嬩欢鐩戝惉
             if (PvpManager.Instance != null)
             {
                 PvpManager.Instance.OnRankListUpdate += OnRankListUpdate;
@@ -71,14 +70,13 @@ namespace Jx3.UI.Panels
 
         private void BuildUI()
         {
-            // 全屏背景
+            // 鍏ㄥ睆鑳屾櫙
             var bg = CreateImage(transform as RectTransform, "Bg", ColorBg);
             bg.rectTransform.anchorMin = Vector2.zero;
             bg.rectTransform.anchorMax = Vector2.one;
             bg.rectTransform.sizeDelta = Vector2.zero;
 
-            // 主卡片
-            var card = new GameObject("Card", typeof(RectTransform), typeof(Image));
+            // 涓诲崱鐗?            var card = new GameObject("Card", typeof(RectTransform), typeof(Image));
             card.transform.SetParent(transform, false);
             var cardRt = card.GetComponent<RectTransform>();
             cardRt.anchorMin = new Vector2(0.5f, 0.5f);
@@ -87,7 +85,7 @@ namespace Jx3.UI.Panels
             cardRt.anchoredPosition = Vector2.zero;
             card.GetComponent<Image>().color = ColorCard;
 
-            // 边框
+            // 杈规
             var border = new GameObject("Border", typeof(RectTransform), typeof(Image));
             border.transform.SetParent(cardRt, false);
             var borderRt = border.GetComponent<RectTransform>();
@@ -96,8 +94,7 @@ namespace Jx3.UI.Panels
             borderRt.sizeDelta = new Vector2(-4, -4);
             border.GetComponent<Image>().color = ColorAccent;
 
-            // 标题栏
-            var headerBar = new GameObject("HeaderBar", typeof(RectTransform), typeof(Image));
+            // 鏍囬鏍?            var headerBar = new GameObject("HeaderBar", typeof(RectTransform), typeof(Image));
             headerBar.transform.SetParent(cardRt, false);
             var headerRt = headerBar.GetComponent<RectTransform>();
             headerRt.anchorMin = new Vector2(0, 1);
@@ -106,8 +103,7 @@ namespace Jx3.UI.Panels
             headerRt.anchoredPosition = new Vector2(0, -28);
             headerBar.GetComponent<Image>().color = ColorHeaderBg;
 
-            // 底部装饰线
-            var headerLine = new GameObject("HeaderLine", typeof(RectTransform), typeof(Image));
+            // 搴曢儴瑁呴グ绾?            var headerLine = new GameObject("HeaderLine", typeof(RectTransform), typeof(Image));
             headerLine.transform.SetParent(headerRt, false);
             headerLine.GetComponent<Image>().color = ColorAccent;
             var hlRt = headerLine.GetComponent<RectTransform>();
@@ -116,16 +112,16 @@ namespace Jx3.UI.Panels
             hlRt.sizeDelta = new Vector2(0, 2);
             hlRt.anchoredPosition = Vector2.zero;
 
-            // 标题
-            _titleText = CreateText(headerRt, "Title", "🏆 段位排行榜", 28);
+            // 鏍囬
+            _titleText = CreateText(headerRt, "Title", "馃弳 娈典綅鎺掕姒?, 28);
             _titleText.fontStyle = FontStyle.Bold;
             _titleText.color = ColorGold;
             _titleText.rectTransform.anchorMin = new Vector2(0.5f, 0);
             _titleText.rectTransform.anchorMax = new Vector2(0.5f, 1);
             _titleText.rectTransform.sizeDelta = new Vector2(300, 0);
 
-            // 关闭按钮
-            _closeBtn = CreateButton(headerRt, "CloseBtn", "✕", () => Hide());
+            // 鍏抽棴鎸夐挳
+            _closeBtn = CreateButton(headerRt, "CloseBtn", "鉁?, () => Hide());
             var closeRt = _closeBtn.GetComponent<RectTransform>();
             closeRt.anchorMin = new Vector2(1, 0.5f);
             closeRt.anchorMax = new Vector2(1, 0.5f);
@@ -133,10 +129,10 @@ namespace Jx3.UI.Panels
             closeRt.anchoredPosition = new Vector2(-22, 0);
             _closeBtn.GetComponent<Image>().color = new Color(0.4f, 0.15f, 0.15f, 0.8f);
 
-            // 列标题(排名/名字/段位/积分/胜率)
+            // 鍒楁爣棰?鎺掑悕/鍚嶅瓧/娈典綅/绉垎/鑳滅巼)
             BuildColumnHeaders(cardRt);
 
-            // ScrollView容器
+            // ScrollView瀹瑰櫒
             var scrollGo = new GameObject("ScrollView", typeof(RectTransform));
             scrollGo.transform.SetParent(cardRt, false);
             var scrollRt = scrollGo.GetComponent<RectTransform>();
@@ -151,7 +147,7 @@ namespace Jx3.UI.Panels
             scrollRect.vertical = true;
             scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
 
-            // 内容容器(自动扩展)
+            // 鍐呭瀹瑰櫒(鑷姩鎵╁睍)
             _listContainer = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
             _listContainer.SetParent(scrollRt, false);
             _listContainer.anchorMin = new Vector2(0, 1);
@@ -161,7 +157,7 @@ namespace Jx3.UI.Panels
 
             scrollRect.content = _listContainer;
 
-            // 我的排名信息(底部)
+            // 鎴戠殑鎺掑悕淇℃伅(搴曢儴)
             var bottomBar = new GameObject("BottomBar", typeof(RectTransform), typeof(Image));
             bottomBar.transform.SetParent(cardRt, false);
             var bottomRt = bottomBar.GetComponent<RectTransform>();
@@ -171,7 +167,7 @@ namespace Jx3.UI.Panels
             bottomRt.anchoredPosition = new Vector2(0, 0);
             bottomBar.GetComponent<Image>().color = ColorHeaderBg;
 
-            _myRankPosText = CreateText(bottomRt, "MyRank", "我的排名: 未上榜", 18);
+            _myRankPosText = CreateText(bottomRt, "MyRank", "鎴戠殑鎺掑悕: 鏈笂姒?, 18);
             _myRankPosText.color = ColorTextBright;
             _myRankPosText.alignment = TextAnchor.MiddleLeft;
             _myRankPosText.rectTransform.anchorMin = new Vector2(0, 0);
@@ -182,7 +178,7 @@ namespace Jx3.UI.Panels
 
         private void BuildColumnHeaders(RectTransform parent)
         {
-            string[] headers = { "排名", "玩家", "段位", "积分", "胜率" };
+            string[] headers = { "鎺掑悕", "鐜╁", "娈典綅", "绉垎", "鑳滅巼" };
             float[] widths = { 60, 160, 90, 80, 80 };
             float startX = 16;
 
@@ -197,7 +193,7 @@ namespace Jx3.UI.Panels
                 hRt.sizeDelta = new Vector2(widths[i], 26);
                 hRt.anchoredPosition = new Vector2(startX + widths[i] / 2, -70);
 
-                // 对齐
+                // 瀵归綈
                 hText.alignment = i == 0 ? TextAnchor.MiddleCenter : TextAnchor.MiddleLeft;
                 startX += widths[i];
             }
@@ -211,7 +207,7 @@ namespace Jx3.UI.Panels
 
         private void PopulateList()
         {
-            // 清除旧行
+            // 娓呴櫎鏃ц
             foreach (var row in _rowPool)
             {
                 Destroy(row);
@@ -231,22 +227,22 @@ namespace Jx3.UI.Panels
                 _rowPool.Add(row);
             }
 
-            // 更新容器高度
+            // 鏇存柊瀹瑰櫒楂樺害
             float height = _currentEntries.Count * 48f;
             if (height < 400) height = 400;
             _listContainer.sizeDelta = new Vector2(0, height);
 
-            // 我的排名
+            // 鎴戠殑鎺掑悕
             if (myRankPos > 0)
             {
                 var rank = PvpManager.Instance.MyRank;
-                _myRankPosText.text = $"我的排名: 第 {myRankPos} 名 | " +
-                    $"{rank.TierName} {rank.Points}分 | " +
-                    $"{rank.Wins}胜 {rank.Losses}败";
+                _myRankPosText.text = $"鎴戠殑鎺掑悕: 绗?{myRankPos} 鍚?| " +
+                    $"{rank.TierName} {rank.Points}鍒?| " +
+                    $"{rank.Wins}鑳?{rank.Losses}璐?;
             }
             else
             {
-                _myRankPosText.text = "我的排名: 未上榜";
+                _myRankPosText.text = "鎴戠殑鎺掑悕: 鏈笂姒?;
             }
         }
 
@@ -260,19 +256,18 @@ namespace Jx3.UI.Panels
             rowRt.sizeDelta = new Vector2(0, 48);
             rowRt.anchoredPosition = new Vector2(0, -index * 48);
 
-            // 行背景
-            var rowImg = row.GetComponent<Image>();
+            // 琛岃儗鏅?            var rowImg = row.GetComponent<Image>();
             rowImg.color = isMe ? ColorMyRow : (index % 2 == 0 ? ColorRowEven : ColorRowOdd);
 
             float[] widths = { 60, 160, 90, 80, 80 };
             float startX = 16;
 
-            // 排名(带奖牌风格)
+            // 鎺掑悕(甯﹀鐗岄鏍?
             string rankStr = index switch
             {
-                0 => "🥇",
-                1 => "🥈",
-                2 => "🥉",
+                0 => "馃",
+                1 => "馃",
+                2 => "馃",
                 _ => $"#{entry.Position}"
             };
             var rankColor = index switch
@@ -292,8 +287,7 @@ namespace Jx3.UI.Panels
             rankText.rectTransform.anchoredPosition = new Vector2(widths[0] / 2 + startX, 0);
             rankText.fontStyle = index < 3 ? FontStyle.Bold : FontStyle.Normal;
 
-            // 玩家名
-            float nameX = startX + widths[0];
+            // 鐜╁鍚?            float nameX = startX + widths[0];
             var nameText = CreateText(rowRt, "Name", entry.Name, 18);
             nameText.color = isMe ? ColorAccent : ColorTextBright;
             nameText.alignment = TextAnchor.MiddleLeft;
@@ -303,7 +297,7 @@ namespace Jx3.UI.Panels
             nameText.rectTransform.anchoredPosition = new Vector2(nameX + widths[1] / 2, 0);
             if (isMe) nameText.fontStyle = FontStyle.Bold;
 
-            // 段位
+            // 娈典綅
             float tierX = nameX + widths[1];
             var tierText = CreateText(rowRt, "Tier", GetTierShortName(entry.Tier), 18);
             tierText.color = TierColors[(int)entry.Tier];
@@ -313,7 +307,7 @@ namespace Jx3.UI.Panels
             tierText.rectTransform.sizeDelta = new Vector2(widths[2], 0);
             tierText.rectTransform.anchoredPosition = new Vector2(tierX + widths[2] / 2, 0);
 
-            // 积分
+            // 绉垎
             float ptsX = tierX + widths[2];
             var ptsText = CreateText(rowRt, "Points", entry.Points.ToString(), 18);
             ptsText.color = ColorTextBright;
@@ -323,7 +317,7 @@ namespace Jx3.UI.Panels
             ptsText.rectTransform.sizeDelta = new Vector2(widths[3], 0);
             ptsText.rectTransform.anchoredPosition = new Vector2(ptsX + widths[3] / 2, 0);
 
-            // 胜率
+            // 鑳滅巼
             float wrX = ptsX + widths[3];
             var wrText = CreateText(rowRt, "WinRate", (entry.WinRate * 100).ToString("F1") + "%", 18);
             wrText.color = entry.WinRate >= 0.6f ? new Color(0.3f, 1f, 0.3f) :
@@ -334,8 +328,7 @@ namespace Jx3.UI.Panels
             wrText.rectTransform.sizeDelta = new Vector2(widths[4], 0);
             wrText.rectTransform.anchoredPosition = new Vector2(wrX + widths[4] / 2, 0);
 
-            // 分割线
-            var divider = new GameObject("Divider", typeof(RectTransform), typeof(Image));
+            // 鍒嗗壊绾?            var divider = new GameObject("Divider", typeof(RectTransform), typeof(Image));
             divider.transform.SetParent(rowRt, false);
             var divRt = divider.GetComponent<RectTransform>();
             divRt.anchorMin = new Vector2(0, 0);
@@ -351,12 +344,12 @@ namespace Jx3.UI.Panels
         {
             return tier switch
             {
-                RankTier.Bronze => "青铜",
-                RankTier.Silver => "白银",
-                RankTier.Gold => "黄金",
-                RankTier.Platinum => "铂金",
-                RankTier.Diamond => "钻石",
-                RankTier.Legendary => "传说",
+                RankTier.Bronze => "闈掗摐",
+                RankTier.Silver => "鐧介摱",
+                RankTier.Gold => "榛勯噾",
+                RankTier.Platinum => "閾傞噾",
+                RankTier.Diamond => "閽荤煶",
+                RankTier.Legendary => "浼犺",
                 _ => "?"
             };
         }
