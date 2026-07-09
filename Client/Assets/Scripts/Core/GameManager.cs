@@ -1,4 +1,4 @@
-#nullable disable
+﻿#nullable disable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -45,6 +45,14 @@ namespace Jx3.Core
             if (Instance != null) { Destroy(gameObject); return; }
             Instance = this; DontDestroyOnLoad(gameObject);
             Network.OnMessage += HandleMessage;
+
+            // 自动创建VoiceChatManager
+            if (VoiceChatManager.Instance == null)
+            {
+                var voiceGo = new GameObject("VoiceChatManager");
+                voiceGo.transform.SetParent(transform);
+                voiceGo.AddComponent<VoiceChatManager>();
+            }
         }
 
         void Update() => Network.Update();
@@ -79,3 +87,5 @@ namespace Jx3.Core
         public void FireLoginSuccess() => OnLoginSuccess?.Invoke();
     }
 }
+
+

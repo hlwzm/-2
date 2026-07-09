@@ -1,7 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
+using Jx3.Core.Network;
+using System.Collections;
 
 namespace Jx3.UI.Panels
 {
@@ -34,6 +37,18 @@ namespace Jx3.UI.Panels
             base.Awake();
             BuildUI();
             RefreshMessages();
+
+            // 创建语音指示器(只创建一次)
+            if (UIRoot.Instance != null && VoiceChatManager.Instance != null)
+            {
+                var indicatorGo = UIRoot.Instance.TopLayer.Find("VoiceIndicator")?.gameObject;
+                if (indicatorGo == null)
+                {
+                    indicatorGo = new GameObject("VoiceIndicator", typeof(RectTransform));
+                    indicatorGo.transform.SetParent(UIRoot.Instance.TopLayer, false);
+                    indicatorGo.AddComponent<VoiceIndicator>();
+                }
+            }
         }
 
         private void BuildUI()
@@ -266,17 +281,43 @@ namespace Jx3.UI.Panels
             var sendTxt = sendBtn.GetComponentInChildren<Text>();
             sendTxt.fontSize = 18;
 
-            // 语音按钮
-            var voiceBtn = CreateButton(parent, "VoiceBtn", "🔊语音", OnVoiceClick);
-            var voiceRt = voiceBtn.GetComponent<RectTransform>();
-            voiceRt.anchorMin = new Vector2(0.5f, 0f);
-            voiceRt.anchorMax = new Vector2(0.5f, 0f);
-            voiceRt.anchoredPosition = new Vector2(-430, 30);
-            voiceRt.sizeDelta = new Vector2(100, 44);
-            var voiceImg = voiceBtn.GetComponent<Image>();
-            voiceImg.color = new Color(0.25f, 0.25f, 0.4f);
-            var voiceTxt = voiceBtn.GetComponentInChildren<Text>();
-            voiceTxt.fontSize = 16;
+            // 语音按钮(长按录音)
+            var voiceGo = new GameObject("VoiceBtn", typeof(RectTransform), typeof(Image));
+            voiceGo.transform.SetParent(parent, false);
+            var voiceRtL = voiceGo.GetComponent<RectTransform>();
+            voiceRtL.anchorMin = new Vector2(0.5f, 0f);
+            voiceRtL.anchorMax = new Vector2(0.5f, 0f);
+            voiceRtL.anchoredPosition = new Vector2(-430, 30);
+            voiceRtL.sizeDelta = new Vector2(100, 44);
+            var voiceImgL = voiceGo.GetComponent<Image>();
+            voiceImgL.color = new Color(0.25f, 0.25f, 0.4f);
+
+            var voiceTxtGo = new GameObject("Text", typeof(RectTransform));
+            voiceTxtGo.transform.SetParent(voiceGo.transform, false);
+            var voiceTxtRt = voiceTxtGo.GetComponent<RectTransform>();
+            voiceTxtRt.anchorMin = Vector2.zero; voiceTxtRt.anchorMax = Vector2.one;
+            voiceTxtRt.sizeDelta = Vector2.zero;
+            var voiceTxtL = voiceTxtGo.AddComponent<Text>();
+            voiceTxtL.text = "🎤 语音";
+            voiceTxtL.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            voiceTxtL.fontSize = 16;
+            voiceTxtL.alignment = TextAnchor.MiddleCenter;
+            voiceTxtL.color = new Color(0.7f, 0.7f, 0.8f);
+
+            // 长按事件: 添加EventTrigger
+            var voiceTrigger = voiceGo.AddComponent<EventTrigger>();
+            // PointerDown = 开始录音
+            var downEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
+            downEntry.callback.AddListener((_) => OnVoiceBtnDown(voiceImgL, voiceTxtL));
+            voiceTrigger.triggers.Add(downEntry);
+            // PointerUp = 停止录音
+            var upEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
+            upEntry.callback.AddListener((_) => OnVoiceBtnUp(voiceImgL, voiceTxtL));
+            voiceTrigger.triggers.Add(upEntry);
+            // PointerExit = 取消录音
+            var exitEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+            exitEntry.callback.AddListener((_) => OnVoiceBtnUp(voiceImgL, voiceTxtL));
+            voiceTrigger.triggers.Add(exitEntry);
         }
 
         private void SwitchChannel(int ch)
@@ -344,6 +385,13 @@ namespace Jx3.UI.Panels
                 channelTag = "私聊";
             }
 
+            // 语音消息特殊处理
+            if (msg.Content.StartsWith("🎤"))
+            {
+                AppendVoiceMessage(msg, channelTag, channelColor);
+                return;
+            }
+
             var msgGo = new GameObject("Msg" + msg.MsgId, typeof(RectTransform));
             msgGo.transform.SetParent(_contentRt, false);
             var msgRt = msgGo.GetComponent<RectTransform>();
@@ -379,10 +427,137 @@ namespace Jx3.UI.Panels
             _inputField.text = "";
         }
 
-        private void OnVoiceClick()
+        // ===== 语音按钮长按 =====
+
+        private void OnVoiceBtnDown(Image btnImg, Text btnTxt)
         {
-            ChatManager.Instance?.SendChat(_currentChannel, "[语音消息]");
-            Debug.Log("[ChatPanel] 语音消息发送");
+            if (VoiceChatManager.Instance == null) return;
+
+            // 设置语音频道
+            VoiceChatManager.Instance.CurrentChannel = _currentChannel;
+            // 强制按下按键(模拟V键)
+            VoiceChatManager.Instance.PushToTalkKey = KeyCode.None; // 临时取消键盘PTT
+            VoiceChatManager.Instance.StartRecording();
+
+            btnImg.color = new Color(0.35f, 0.5f, 0.2f); // 绿色高亮
+            btnTxt.text = "🎤 录音中...";
+            Debug.Log("[ChatPanel] 语音按钮按下 - 开始录音");
+        }
+
+        private void OnVoiceBtnUp(Image btnImg, Text btnTxt)
+        {
+            if (VoiceChatManager.Instance == null) return;
+            if (!VoiceChatManager.Instance.IsRecording) return;
+
+            VoiceChatManager.Instance.StopRecording();
+            VoiceChatManager.Instance.PushToTalkKey = KeyCode.V; // 恢复键盘PTT
+
+            btnImg.color = new Color(0.25f, 0.25f, 0.4f);
+            btnTxt.text = "🎤 语音";
+
+            // 发送语音消息到聊天
+            ChatManager.Instance?.SendChat(_currentChannel, "🎤 [语音消息]");
+            Debug.Log("[ChatPanel] 语音按钮松开 - 语音消息已发送");
+        }
+
+        /// <summary>语音消息行添加播放按钮</summary>
+        private void AppendVoiceMessage(ChatMessage msg, string channelTag, Color channelColor)
+        {
+            var msgGo = new GameObject("VoiceMsg" + msg.MsgId, typeof(RectTransform));
+            msgGo.transform.SetParent(_contentRt, false);
+            var msgRt = msgGo.GetComponent<RectTransform>();
+            msgRt.sizeDelta = new Vector2(0, 28);
+            msgRt.anchorMin = new Vector2(0, 1);
+            msgRt.anchorMax = new Vector2(1, 1);
+
+            // 频道标签
+            var tagGo = new GameObject("Tag", typeof(RectTransform));
+            tagGo.transform.SetParent(msgGo.transform, false);
+            var tagRt = tagGo.GetComponent<RectTransform>();
+            tagRt.anchorMin = new Vector2(0, 0);
+            tagRt.anchorMax = new Vector2(0, 1);
+            tagRt.sizeDelta = new Vector2(60, 0);
+            var tagTxt = tagGo.AddComponent<Text>();
+            tagTxt.text = $"[{channelTag}]";
+            tagTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            tagTxt.fontSize = 14;
+            tagTxt.color = channelColor;
+            tagTxt.alignment = TextAnchor.MiddleLeft;
+
+            // 发送者名
+            var nameGo = new GameObject("Name", typeof(RectTransform));
+            nameGo.transform.SetParent(msgGo.transform, false);
+            var nameRt = nameGo.GetComponent<RectTransform>();
+            nameRt.anchorMin = new Vector2(0, 0);
+            nameRt.anchorMax = new Vector2(0, 1);
+            nameRt.sizeDelta = new Vector2(100, 0);
+            nameRt.anchoredPosition = new Vector2(65, 0);
+            var nameTxt = nameGo.AddComponent<Text>();
+            nameTxt.text = msg.SenderName + ": ";
+            nameTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            nameTxt.fontSize = 14;
+            nameTxt.color = new Color(0.8f, 0.8f, 0.85f);
+            nameTxt.alignment = TextAnchor.MiddleLeft;
+
+            // 🎤标记
+            var micGo = new GameObject("MicIcon", typeof(RectTransform));
+            micGo.transform.SetParent(msgGo.transform, false);
+            var micRt = micGo.GetComponent<RectTransform>();
+            micRt.anchorMin = new Vector2(0, 0);
+            micRt.anchorMax = new Vector2(0, 1);
+            micRt.sizeDelta = new Vector2(24, 0);
+            micRt.anchoredPosition = new Vector2(170, 0);
+            var micTxt = micGo.AddComponent<Text>();
+            micTxt.text = "🎤";
+            micTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            micTxt.fontSize = 16;
+            micTxt.alignment = TextAnchor.MiddleCenter;
+
+            // 播放按钮
+            var playBtn = new GameObject("PlayBtn", typeof(RectTransform), typeof(Image));
+            playBtn.transform.SetParent(msgGo.transform, false);
+            var playRt = playBtn.GetComponent<RectTransform>();
+            playRt.anchorMin = new Vector2(0, 0);
+            playRt.anchorMax = new Vector2(0, 1);
+            playRt.sizeDelta = new Vector2(60, 0);
+            playRt.anchoredPosition = new Vector2(200, 0);
+            var playImg = playBtn.GetComponent<Image>();
+            playImg.color = new Color(0.25f, 0.25f, 0.4f);
+            var playBtnTxtGo = new GameObject("Text", typeof(RectTransform));
+            playBtnTxtGo.transform.SetParent(playBtn.transform, false);
+            var playBtnTxtRt = playBtnTxtGo.GetComponent<RectTransform>();
+            playBtnTxtRt.anchorMin = Vector2.zero; playBtnTxtRt.anchorMax = Vector2.one;
+            playBtnTxtRt.sizeDelta = Vector2.zero;
+            var playBtnTxt = playBtnTxtGo.AddComponent<Text>();
+            playBtnTxt.text = "▶ 播放";
+            playBtnTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            playBtnTxt.fontSize = 13;
+            playBtnTxt.alignment = TextAnchor.MiddleCenter;
+            playBtnTxt.color = new Color(0.5f, 0.8f, 1.0f);
+            var playBtnComp = playBtn.AddComponent<Button>();
+            playBtnComp.targetGraphic = playImg;
+            playBtnComp.onClick.AddListener(() => PlayVoiceMessage(msg.MsgId, playBtnTxt));
+        }
+
+        private void PlayVoiceMessage(ulong msgId, Text btnTxt)
+        {
+            // 播放语音(模拟 - 实际应有语音数据关联)
+            if (VoiceChatManager.Instance != null)
+            {
+                btnTxt.text = "▶ 播放中...";
+                Debug.Log($"[ChatPanel] 播放语音消息 msgId={msgId}");
+                // 使用协程1.5秒后恢复
+                StartCoroutine(ResetPlayButton(btnTxt));
+            }
+        }
+
+        private System.Collections.IEnumerator ResetPlayButton(Text btnTxt)
+        {
+            yield return new WaitForSeconds(1.5f);
+            if (btnTxt != null) btnTxt.text = "▶ 播放";
         }
     }
 }
+
+
+
