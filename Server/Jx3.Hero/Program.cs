@@ -11,7 +11,7 @@ namespace Jx3.Hero;
 
 public class HeroServer : GameServer
 {
-    public HeroServer() : base("Hero", 9002) { }
+    public HeroServer() : base("Hero", GameConfig.HeroPort) { }
 
     protected override async Task OnStartAsync()
     {
@@ -183,6 +183,7 @@ public class Program
 {
     public static async Task Main()
     {
+        GameConfigLoader.Load();
         await new HeroServer().StartAsync();
     }
 }

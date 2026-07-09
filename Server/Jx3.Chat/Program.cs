@@ -32,7 +32,7 @@ public class ChatServer : GameServer
 
     private const string Tag = "Chat";
 
-    public ChatServer() : base("Chat", 9004) { }
+    public ChatServer() : base("Chat", GameConfig.ChatPort) { }
 
     protected override async Task OnStartAsync()
     {

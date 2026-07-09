@@ -16,7 +16,7 @@ namespace Jx3.Social;
 /// </summary>
 public class SocialServer : GameServer
 {
-    public SocialServer() : base("Social", 9004) { }
+    public SocialServer() : base("Social", GameConfig.SocialPort) { }
 
     protected override async Task OnStartAsync()
     {

@@ -17,7 +17,7 @@ public class DungeonServer : GameServer
     private TcpListener? _listener;
     private readonly ConcurrentDictionary<uint, TcpClient> _sessions = new();
 
-    public DungeonServer() : base("Dungeon", 9005) { }
+    public DungeonServer() : base("Dungeon", GameConfig.DungeonPort) { }
 
     protected override async Task OnStartAsync()
     {
@@ -142,6 +142,7 @@ public class Program
 {
     public static async Task Main()
     {
+        GameConfigLoader.Load();
         await new DungeonServer().StartAsync();
     }
 }

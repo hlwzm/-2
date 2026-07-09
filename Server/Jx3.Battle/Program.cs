@@ -10,7 +10,7 @@ namespace Jx3.Battle;
 
 public class BattleServer : GameServer
 {
-    public BattleServer() : base("Battle", 9005) { }
+    public BattleServer() : base("Battle", GameConfig.BattlePort) { }
 
     protected override async Task OnStartAsync()
     {
@@ -506,6 +506,7 @@ public class Program
 {
     public static async Task Main()
     {
+        GameConfigLoader.Load();
         await new BattleServer().StartAsync();
     }
 }

@@ -97,6 +97,7 @@ public class Program
 {
     public static async Task Main()
     {
+        GameConfigLoader.Load();
         await new GatewayServer().StartAsync();
     }
 }

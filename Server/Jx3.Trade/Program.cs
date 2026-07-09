@@ -18,7 +18,7 @@ public class TradeServer : GameServer
         PropertyNameCaseInsensitive = true
     };
 
-    public TradeServer() : base("Trade", 9003) { }
+    public TradeServer() : base("Trade", GameConfig.TradePort) { }
 
     protected override Task OnStartAsync()
     {
@@ -154,6 +154,7 @@ public class Program
 {
     public static async Task Main()
     {
+        GameConfigLoader.Load();
         await new TradeServer().StartAsync();
     }
 }

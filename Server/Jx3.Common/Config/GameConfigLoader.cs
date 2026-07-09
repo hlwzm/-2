@@ -29,13 +29,26 @@ public class GameConfigLoader
 
         // 同步到 GameConfig 静态字段
         GameConfig.GatewayPort = config.Server.GatewayPort;
+        GameConfig.LoginPort = config.Server.LoginPort;
+        GameConfig.HeroPort = config.Server.HeroPort;
+        GameConfig.TradePort = config.Server.TradePort;
+        GameConfig.BattlePort = config.Server.BattlePort;
+        GameConfig.DungeonPort = config.Server.DungeonPort;
+        GameConfig.ChatPort = config.Server.ChatPort;
+        GameConfig.SocialPort = config.Server.SocialPort;
+        GameConfig.PvpPort = config.Server.PvpPort;
+        GameConfig.ShopPort = config.Server.ShopPort;
+        GameConfig.QuestPort = config.Server.QuestPort;
+        GameConfig.AdminPort = config.Server.AdminPort;
         GameConfig.MySQLConn = config.Database.MySQL;
         GameConfig.RedisConn = config.Database.Redis;
         GameConfig.TradeFeePercent = config.Game.TradeFeePercent;
         GameConfig.RecruitPityMax = config.Game.RecruitPityMax;
         GameConfig.TeamMaxMembers = config.Game.TeamMaxMembers;
+        GameConfig.MaxHeroLevel = config.Game.MaxHeroLevel;
+        GameConfig.MaxHeroStar = config.Game.MaxHeroStar;
 
-        Logger.Info("Config", $"Loaded config: Gateway={config.Server.GatewayPort}");
+        Logger.Info("Config", $"Loaded: Gateway={config.Server.GatewayPort}, Login={config.Server.LoginPort}, Admin={config.Server.AdminPort}");
         return config;
     }
 }
@@ -46,6 +59,14 @@ public class ServerConfig
     public int LoginPort { get; set; } = 9001;
     public int HeroPort { get; set; } = 9002;
     public int TradePort { get; set; } = 9003;
+    public int BattlePort { get; set; } = 9004;
+    public int DungeonPort { get; set; } = 9005;
+    public int ChatPort { get; set; } = 9006;
+    public int SocialPort { get; set; } = 9007;
+    public int PvpPort { get; set; } = 9008;
+    public int ShopPort { get; set; } = 9009;
+    public int QuestPort { get; set; } = 9010;
+    public int AdminPort { get; set; } = 9100;
 }
 
 public class DatabaseConfig

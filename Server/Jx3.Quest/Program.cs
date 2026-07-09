@@ -1,5 +1,6 @@
 #nullable disable
 using Jx3.Common;
+using Jx3.Common.Config;
 using Jx3.Common.Protocol;
 using Jx3.Common.Service;
 using Jx3.Common.Utils;
@@ -37,7 +38,7 @@ public static class QuestService
 
 public class QuestServer : GameServer
 {
-    public QuestServer() : base("Quest", 9008) { }
+    public QuestServer() : base("Quest", GameConfig.QuestPort) { }
 
     protected override Task OnStartAsync()
     {
@@ -88,4 +89,4 @@ public class QuestServer : GameServer
     }
 }
 
-public class Program { public static async Task Main() { await new QuestServer().StartAsync(); } }
+public class Program { public static async Task Main() { GameConfigLoader.Load(); await new QuestServer().StartAsync(); } }

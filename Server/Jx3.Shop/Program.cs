@@ -1,5 +1,6 @@
 #nullable disable
 using Jx3.Common;
+using Jx3.Common.Config;
 using Jx3.Common.Protocol;
 using Jx3.Common.Service;
 using Jx3.Common.Utils;
@@ -8,7 +9,7 @@ namespace Jx3.Shop;
 
 public class ShopServer : GameServer
 {
-    public ShopServer() : base("Shop", 9006) { }
+    public ShopServer() : base("Shop", GameConfig.ShopPort) { }
 
     protected override Task OnStartAsync()
     {
@@ -87,4 +88,4 @@ public class ShopServer : GameServer
     }
 }
 
-public class Program { public static async Task Main() { await new ShopServer().StartAsync(); } }
+public class Program { public static async Task Main() { GameConfigLoader.Load(); await new ShopServer().StartAsync(); } }

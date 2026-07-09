@@ -1,5 +1,6 @@
 using System.Data;
 using System.Text.Json;
+using Dapper;
 using Jx3.Common.Database;
 using Jx3.Common.Utils;
 using Jx3.Trade.Models;
@@ -74,41 +75,44 @@ public class TradeService
                 return result;
             }
 
-            await db.ExecuteAsync(
-                "UPDATE player SET gold = gold - @Fee WHERE player_id = @PlayerId",
-                new { Fee = fee, req.PlayerId });
-
             // 1.6 查询玩家名称
             var playerName = await db.ExecuteScalarAsync<string>(
-                "SELECT name FROM player WHERE player_id = @PlayerId", new { req.PlayerId });
+                "SELECT name FROM player WHERE player_id = @playerId", new { req.PlayerId });
             playerName ??= "未知";
 
-            // 1.7 从背包移除物品
-            await db.ExecuteAsync(
-                "DELETE FROM bag_item WHERE bag_id = @BagItemId AND player_id = @PlayerId",
-                new { req.BagItemId, req.PlayerId });
-
-            // 1.8 写入 auction_item 表
+            // 1.7 扣费+删物品+上架 放入事务
             var now = DateTime.Now;
-            await db.ExecuteAsync(@"
-                INSERT INTO auction_item (player_id, player_name, bag_item_id, item_id, category, quality, price, duration, status, create_time, fee)
-                VALUES (@PlayerId, @PlayerName, @BagItemId, @ItemId, @Category, @Quality, @Price, @Duration, 1, @CreateTime, @Fee)",
-                new
-                {
-                    req.PlayerId,
-                    PlayerName = playerName,
-                    req.BagItemId,
-                    ItemId = bagItem.item_id,
-                    req.Category,
-                    Quality = itemInfo.quality,
-                    req.Price,
-                    req.Duration,
-                    CreateTime = now,
-                    Fee = fee
-                });
+            ulong auctionId = 0;
 
-            // 获取自增ID
-            ulong auctionId = await db.ExecuteScalarAsync<ulong>("SELECT LAST_INSERT_ID()");
+            await db.ExecuteInTransactionAsync(async (conn, tx) =>
+            {
+                await conn.ExecuteAsync(
+                    "UPDATE player SET gold = gold - @Fee WHERE player_id = @PlayerId",
+                    new { Fee = fee, req.PlayerId }, tx);
+
+                await conn.ExecuteAsync(
+                    "DELETE FROM bag_item WHERE bag_id = @BagItemId AND player_id = @PlayerId",
+                    new { req.BagItemId, req.PlayerId }, tx);
+
+                await conn.ExecuteAsync(@"
+                    INSERT INTO auction_item (player_id, player_name, bag_item_id, item_id, category, quality, price, duration, status, create_time, fee)
+                    VALUES (@PlayerId, @PlayerName, @BagItemId, @ItemId, @Category, @Quality, @Price, @Duration, 1, @CreateTime, @Fee)",
+                    new
+                    {
+                        req.PlayerId,
+                        PlayerName = playerName,
+                        req.BagItemId,
+                        ItemId = bagItem.item_id,
+                        req.Category,
+                        Quality = itemInfo.quality,
+                        req.Price,
+                        req.Duration,
+                        CreateTime = now,
+                        Fee = fee
+                    }, tx);
+
+                auctionId = await conn.ExecuteScalarAsync<ulong>("SELECT LAST_INSERT_ID()", transaction: tx);
+            });
 
             // 1.9 写入 Redis
             using var redis = new RedisHelper();
@@ -199,62 +203,62 @@ public class TradeService
             }
 
             var now = DateTime.Now;
+            ulong newBagId = 0;
 
-            // 2.4 扣除买家金币
-            await db.ExecuteAsync(
-                "UPDATE player SET gold = gold - @TotalPrice WHERE player_id = @PlayerId",
-                new { TotalPrice = totalPrice, req.PlayerId });
+            // 2.4 扣金币+改状态+写日志+加物品 放入事务
+            await db.ExecuteInTransactionAsync(async (conn, tx) =>
+            {
+                await conn.ExecuteAsync(
+                    "UPDATE player SET gold = gold - @TotalPrice WHERE player_id = @PlayerId",
+                    new { TotalPrice = totalPrice, req.PlayerId }, tx);
 
-            // 2.5 更新拍卖状态
-            await db.ExecuteAsync(@"
-                UPDATE auction_item SET status = 2, buyer_id = @BuyerId, sold_time = @SoldTime,
-                    fee = @Fee, seller_income = @SellerIncome
-                WHERE auction_id = @AuctionId",
-                new
-                {
-                    BuyerId = req.PlayerId,
-                    SoldTime = now,
-                    Fee = fee,
-                    SellerIncome = sellerIncome,
-                    req.AuctionId
-                });
+                await conn.ExecuteAsync(@"
+                    UPDATE auction_item SET status = 2, buyer_id = @BuyerId, sold_time = @SoldTime,
+                        fee = @Fee, seller_income = @SellerIncome
+                    WHERE auction_id = @AuctionId",
+                    new
+                    {
+                        BuyerId = req.PlayerId,
+                        SoldTime = now,
+                        Fee = fee,
+                        SellerIncome = sellerIncome,
+                        req.AuctionId
+                    }, tx);
 
-            // 2.6 写入交易记录
-            await db.ExecuteAsync(@"
-                INSERT INTO trade_log (auction_id, seller_id, buyer_id, item_id, price, fee, seller_income, trade_time)
-                VALUES (@AuctionId, @SellerId, @BuyerId, @ItemId, @Price, @Fee, @SellerIncome, @TradeTime)",
-                new
-                {
-                    req.AuctionId,
-                    SellerId = auction.player_id,
-                    BuyerId = req.PlayerId,
-                    ItemId = auction.item_id,
-                    Price = totalPrice,
-                    Fee = fee,
-                    SellerIncome = sellerIncome,
-                    TradeTime = now
-                });
+                await conn.ExecuteAsync(@"
+                    INSERT INTO trade_log (auction_id, seller_id, buyer_id, item_id, price, fee, seller_income, trade_time)
+                    VALUES (@AuctionId, @SellerId, @BuyerId, @ItemId, @Price, @Fee, @SellerIncome, @TradeTime)",
+                    new
+                    {
+                        req.AuctionId,
+                        SellerId = auction.player_id,
+                        BuyerId = req.PlayerId,
+                        ItemId = auction.item_id,
+                        Price = totalPrice,
+                        Fee = fee,
+                        SellerIncome = sellerIncome,
+                        TradeTime = now
+                    }, tx);
 
-            // 2.7 物品进入买家背包（找个空位）
-            int nextSlot = await db.ExecuteScalarAsync<int>(
-                "SELECT COALESCE(MAX(slot_index), 0) + 1 FROM bag_item WHERE player_id = @PlayerId",
-                new { req.PlayerId });
-            if (nextSlot < 1) nextSlot = 1;
+                int nextSlot = await conn.ExecuteScalarAsync<int>(
+                    "SELECT COALESCE(MAX(slot_index), 0) + 1 FROM bag_item WHERE player_id = @playerId",
+                    new { req.PlayerId }, tx);
+                if (nextSlot < 1) nextSlot = 1;
 
-            await db.ExecuteAsync(@"
-                INSERT INTO bag_item (player_id, item_id, slot_index, `count`, bind_type, create_time)
-                VALUES (@PlayerId, @ItemId, @SlotIndex, @Count, 1, @CreateTime)",
-                new
-                {
-                    req.PlayerId,
-                    ItemId = auction.item_id,
-                    SlotIndex = nextSlot,
-                    Count = req.Count,
-                    CreateTime = now
-                });
+                await conn.ExecuteAsync(@"
+                    INSERT INTO bag_item (player_id, item_id, slot_index, `count`, bind_type, create_time)
+                    VALUES (@PlayerId, @ItemId, @SlotIndex, @Count, 1, @CreateTime)",
+                    new
+                    {
+                        req.PlayerId,
+                        ItemId = auction.item_id,
+                        SlotIndex = nextSlot,
+                        Count = req.Count,
+                        CreateTime = now
+                    }, tx);
 
-            // 获取新bag_id
-            ulong newBagId = await db.ExecuteScalarAsync<ulong>("SELECT LAST_INSERT_ID()");
+                newBagId = await conn.ExecuteScalarAsync<ulong>("SELECT LAST_INSERT_ID()", transaction: tx);
+            });
 
             // 2.8 更新 Redis
             using var redis = new RedisHelper();

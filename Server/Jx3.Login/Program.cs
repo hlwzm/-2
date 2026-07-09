@@ -16,7 +16,7 @@ public class LoginServer : GameServer
 {
     private TcpListener? _listener;
 
-    public LoginServer() : base("Login", GameConfig.GatewayPort + 1) { }
+    public LoginServer() : base("Login", GameConfig.LoginPort) { }
 
     protected override async Task OnStartAsync()
     {
@@ -297,6 +297,7 @@ public class Program
 {
     public static async Task Main()
     {
+        GameConfigLoader.Load();
         await new LoginServer().StartAsync();
     }
 }

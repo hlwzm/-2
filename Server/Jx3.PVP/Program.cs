@@ -1,5 +1,6 @@
 #nullable disable
 using Jx3.Common;
+using Jx3.Common.Config;
 using Jx3.Common.Protocol;
 using Jx3.Common.Service;
 using Jx3.Common.Utils;
@@ -8,7 +9,7 @@ namespace Jx3.PVP;
 
 public class PvpServer : GameServer
 {
-    public PvpServer() : base("PVP", 9007) { }
+    public PvpServer() : base("PVP", GameConfig.PvpPort) { }
 
     protected override Task OnStartAsync()
     {
@@ -81,4 +82,4 @@ public class PvpServer : GameServer
     }
 }
 
-public class Program { public static async Task Main() { await new PvpServer().StartAsync(); } }
+public class Program { public static async Task Main() { GameConfigLoader.Load(); await new PvpServer().StartAsync(); } }

@@ -48,6 +48,24 @@ public class DbHelper : IDisposable
         return await conn.ExecuteScalarAsync<T>(sql, param);
     }
 
+    /// <summary>Runs multiple writes inside a single DB transaction. Rolls back on any failure.</summary>
+    public async Task ExecuteInTransactionAsync(Func<MySqlConnection, MySqlTransaction, Task> action)
+    {
+        using var conn = new MySqlConnection(_connStr);
+        await conn.OpenAsync();
+        using var tx = await conn.BeginTransactionAsync();
+        try
+        {
+            await action(conn, tx);
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
+    }
+
     // No-op: connections are per-query and auto-disposed by using statements.
     public void Dispose() { }
 }
