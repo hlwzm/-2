@@ -1,89 +1,93 @@
-﻿#nullable disable
 using UnityEngine;
 using UnityEngine.UI;
-using Jx3.Core;
 using Jx3.Core.Scene;
-using System.Collections;
+using Jx3.UI;
 
 namespace Jx3.UI.Panels
 {
     /// <summary>
-    /// 鍓湰鍐呮垬鏂楅潰鏉?- 闄愭椂鍊掕鏃?Boss琛€閲?灏廈oss鐘舵€?缁堟瀬Boss/闃熶紞鍒楄〃/閫€鍑?    /// 澧炲己鐗? 鍊掕鏃跺け璐?缁堟瀬瑙ｉ攣鍔ㄧ敾/闃舵鏄剧ず
-    /// 鍏ㄧ▼搴忓寲鐢熸垚锛屾殫榛戠传鑹蹭富棰?    /// </summary>
+    /// 副本战斗面板 - 限时倒计时/Boss血条/小Boss状态/终极Boss/队伍列表/退出
+    /// 全程程序化生成，金墨武侠主题
+    /// </summary>
     public class DungeonPanel : BasePanel
     {
-        // ===== 鍏叡鏁版嵁锛堝彲鐢卞閮ㄨ缃級 =====
+        // ===== 公共数据 =====
         public int DungeonId { get; set; }
-        public float TimeLimitSeconds { get; set; } = 480f; // 8鍒嗛挓
+        public float TimeLimitSeconds { get; set; } = 480f;
         public float BossMaxHp { get; set; } = 100000f;
         public float BossCurrentHp { get; set; } = 100000f;
-        public string BossName { get; set; } = "钁ｉ緳";
+        public string BossName { get; set; } = "董龙";
         public bool[] MinibossKilled { get; private set; } = new bool[3];
-        public string[] MinibossNames { get; set; } = { "绮捐嫳鎶ゅ崼", "鏆楀奖鍒哄", "姣掗浘鏈＋" };
+        public string[] MinibossNames { get; set; } = { "精英护卫", "暗影刺客", "毒雾术士" };
         public bool UltimateBossUnlocked { get; set; }
         public TeamMemberInfo[] TeamMembers { get; set; }
 
-        // 鍓湰闃舵
-        public int DungeonPhase { get; set; } = 1; // 1=闃舵1, 2=闃舵2
+        // 副本阶段
+        public int DungeonPhase { get; set; } = 1;
 
-        // ===== 浜嬩欢鍥炶皟 =====
-        public System.Action OnDungeonFailed;   // 鍊掕鏃跺綊闆舵垨鍥㈢伃
-        public System.Action OnAllMinibossKilled; // 涓夊皬Boss鍏ㄥ嚮鏉€
+        // ===== 事件回调 =====
+        public System.Action OnDungeonFailed;
+        public System.Action OnAllMinibossKilled;
+        public System.Action OnVictory;
 
-        // ===== UI寮曠敤 =====
+        // ===== UI引用 =====
+        // 计时区
         private Text _timerText;
-        private Text _bossNameText;
-        private Image _bossHpFill;
-        private Text _bossHpPercentText;
-        private Text[] _minibossStatusTexts = new Text[3];
-        private Text _ultimateStatusText;
-        private RectTransform _teamListContainer;
-        private Text[] _teamNameTexts;
-        private Text[] _teamClassTexts;
-        private Text[] _teamHpTexts;
-        private Image[] _teamHpFills;
-        private Button _exitBtn;
+        private Image _timerBg;
 
-        // 闃舵鏄剧ずUI
+        // 阶段显示
         private Text _phaseText;
         private GameObject _phaseFlashGo;
 
-        // 缁堟瀬Boss瑙ｉ攣鍔ㄧ敾
+        // Boss血条
+        private Text _bossNameText;
+        private Image _bossHpFill;
+        private Text _bossHpPercentText;
+
+        // 小Boss状态
+        private Text[] _minibossStatusTexts = new Text[3];
+
+        // 终极Boss
+        private Text _ultimateStatusText;
+
+        // 队伍
+        private RectTransform _teamListContainer;
+        private Text[] _teamNameTexts;
+        private Text[] _teamHpTexts;
+        private Image[] _teamHpFills;
+
+        // 按钮
+        private Button _exitBtn;
+
+        // 终极Boss解锁动画
         private GameObject _unlockFlashGo;
         private Text _unlockFlashText;
-        private float _unlockAnimTime = 0f;
-        private bool _isPlayingUnlockAnim = false;
+        private float _unlockAnimTime;
+        private bool _isPlayingUnlockAnim;
 
-        // 鍓湰澶辫触UI
+        // 失败/胜利覆盖层
         private GameObject _failOverlay;
-        private bool _failed = false;
+        private GameObject _victoryOverlay;
+        private bool _failed;
+        private bool _victory;
 
-        // ===== 閰嶈壊 =====
-        private static readonly Color ColorBg = new Color(0.04f, 0.04f, 0.08f, 0.75f);
-        private static readonly Color ColorPanelBg = new Color(0.047f, 0.039f, 0.031f, 0.85f);
-        private static readonly Color ColorAccent = new Color(0.54f, 0.42f, 0.16f, 0.8f);
-        private static readonly Color ColorBossHpBg = new Color(0.15f, 0.05f, 0.05f);
-        private static readonly Color ColorBossHpFill = new Color(0.9f, 0.15f, 0.1f);
-        private static readonly Color ColorBossHpGlow = new Color(1f, 0.2f, 0.1f, 0.3f);
-        private static readonly Color ColorMinibossDone = new Color(0.3f, 1f, 0.3f);
-        private static readonly Color ColorMinibossPending = new Color(0.6f, 0.6f, 0.6f);
-        private static readonly Color ColorUltimateLocked = new Color(1f, 0.6f, 0.1f);
-        private static readonly Color ColorUltimateUnlocked = new Color(1f, 0.9f, 0.1f);
-        private static readonly Color ColorTeamBg = new Color(0.12f, 0.10f, 0.09f, 0.8f);
-        private static readonly Color ColorTeamHpFill = new Color(0.2f, 0.8f, 0.3f);
-        private static readonly Color ColorTeamHpBg = new Color(0.1f, 0.1f, 0.15f);
-        private static readonly Color ColorTextDim = new Color(0.6f, 0.6f, 0.7f);
-        private static readonly Color ColorTextBright = new Color(0.94f, 0.91f, 0.85f);
-        private static readonly Color ColorExitBtn = new Color(0.5f, 0.1f, 0.1f, 0.85f);
-        private static readonly Color ColorSectionTitle = new Color(0.54f, 0.42f, 0.16f);
-        private static readonly Color ColorPhase1 = new Color(0.5f, 0.8f, 1f, 0.9f);
-        private static readonly Color ColorPhase2 = new Color(1f, 0.5f, 0.2f, 0.9f);
-
-        // ===== 杩愯鏃舵暟鎹?=====
+        // ===== 运行时数据 =====
         private float _timeRemaining;
         private bool _running;
-        private bool _timeoutTriggered = false;
-        private bool _unlockTriggered = false;
+        private bool _timeoutTriggered;
+        private bool _unlockTriggered;
+
+        // ===== 额外颜色 =====
+        private static readonly Color ColorBossHpBg = new(0.15f, 0.05f, 0.05f);
+        private static readonly Color ColorBossHpFill = new(0.9f, 0.15f, 0.1f);
+        private static readonly Color ColorMinibossDone = new(0.3f, 1f, 0.3f);
+        private static readonly Color ColorMinibossPending = new(0.6f, 0.6f, 0.6f);
+        private static readonly Color ColorUltimateLocked = new(1f, 0.6f, 0.1f);
+        private static readonly Color ColorUltimateUnlocked = new(1f, 0.9f, 0.1f);
+        private static readonly Color ColorTeamHpFill = new(0.2f, 0.8f, 0.3f);
+        private static readonly Color ColorTeamHpBg = new(0.1f, 0.1f, 0.15f);
+        private static readonly Color ColorPhase1 = new(0.5f, 0.8f, 1f, 0.9f);
+        private static readonly Color ColorPhase2 = new(1f, 0.5f, 0.2f, 0.9f);
 
         protected override void Awake()
         {
@@ -93,16 +97,13 @@ namespace Jx3.UI.Panels
             _running = true;
         }
 
+        // =====================================================================
+        // UI构建
+        // =====================================================================
         private void BuildUI()
         {
-            // ===== 鍏ㄥ睆鍗婇€忔槑鑳屾櫙 =====
-            var bg = new GameObject("Bg", typeof(RectTransform), typeof(Image));
-            bg.transform.SetParent(transform, false);
-            var bgRt = bg.GetComponent<RectTransform>();
-            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
-            bgRt.sizeDelta = Vector2.zero;
-            var bgImg = bg.GetComponent<Image>();
-            bgImg.color = ColorBg;
+            // 全屏半透明背景
+            UIComponentFactory.CreateBackground(transform as RectTransform);
 
             BuildTimerArea();
             BuildPhaseDisplay();
@@ -112,34 +113,33 @@ namespace Jx3.UI.Panels
             BuildTeamList();
             BuildExitButton();
             BuildFailOverlay();
+            BuildVictoryOverlay();
             BuildUnlockFlashOverlay();
         }
 
         // =====================================================================
-        // 1. 闄愭椂鍊掕鏃讹紙椤堕儴灞呬腑锛屽ぇ鍙风孩鑹叉暟瀛楋級
+        // 1. 限时倒计时（顶部居中）
         // =====================================================================
         private void BuildTimerArea()
         {
-            var container = new GameObject("TimerArea", typeof(RectTransform), typeof(Image));
-            container.transform.SetParent(transform, false);
-            var ctRt = container.GetComponent<RectTransform>();
-            ctRt.anchorMin = new Vector2(0.5f, 1);
-            ctRt.anchorMax = new Vector2(0.5f, 1);
-            ctRt.sizeDelta = new Vector2(200, 80);
-            ctRt.anchoredPosition = new Vector2(0, -50);
-            var ctImg = container.GetComponent<Image>();
-            ctImg.color = new Color(0.08f, 0.02f, 0.02f, 0.6f);
+            var container = UIComponentFactory.CreateCard(transform as RectTransform,
+                "TimerArea", new Vector2(200, 80), new Vector2(0, 375));
+            var cImg = container.GetComponent<Image>();
+            cImg.color = new Color(0.08f, 0.02f, 0.02f, 0.6f);
 
-            var label = CreateLabel(ctRt, "Label", "鈴?鍓╀綑鏃堕棿", 14, TextAnchor.MiddleCenter,
-                ColorTextDim, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(180, 25), new Vector2(0, -5));
+            UIComponentFactory.CreateText(container, "Label", "⏳ 剩余时间",
+                ThemeColors.FontTiny, ThemeColors.TextDim, TextAnchor.MiddleCenter)
+                .GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 18);
 
-            _timerText = CreateLabel(ctRt, "Timer", "00:00", 36, TextAnchor.MiddleCenter,
-                new Color(1f, 0.2f, 0.1f), new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(190, 45), new Vector2(0, -30));
+            _timerText = UIComponentFactory.CreateText(container, "Timer", "00:00",
+                36, new Color(1f, 0.2f, 0.1f), TextAnchor.MiddleCenter);
             _timerText.fontStyle = FontStyle.Bold;
+            _timerText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -10);
         }
 
         // =====================================================================
-        // 2. 鍓湰闃舵鏄剧ず锛堣鏃跺櫒涓嬫柟锛?        // =====================================================================
+        // 2. 副本阶段显示
+        // =====================================================================
         private void BuildPhaseDisplay()
         {
             _phaseFlashGo = new GameObject("PhaseDisplay", typeof(RectTransform), typeof(Image));
@@ -148,35 +148,30 @@ namespace Jx3.UI.Panels
             phaseRt.anchorMin = new Vector2(0.5f, 1);
             phaseRt.anchorMax = new Vector2(0.5f, 1);
             phaseRt.sizeDelta = new Vector2(160, 30);
-            phaseRt.anchoredPosition = new Vector2(0, -105);
+            phaseRt.anchoredPosition = new Vector2(0, -100);
             var phaseImg = _phaseFlashGo.GetComponent<Image>();
             phaseImg.color = new Color(0.1f, 0.15f, 0.3f, 0.5f);
 
-            _phaseText = CreateLabel(phaseRt, "PhaseText", "闃舵 1", 18, TextAnchor.MiddleCenter,
-                ColorPhase1, Vector2.one * 0.5f, Vector2.one * 0.5f, Vector2.zero, Vector2.zero);
+            _phaseText = UIComponentFactory.CreateText(phaseRt, "PhaseText", "阶段 1",
+                18, ColorPhase1, TextAnchor.MiddleCenter);
             _phaseText.fontStyle = FontStyle.Bold;
         }
 
         // =====================================================================
-        // 3. Boss琛€鏉★紙闃舵鏄剧ず涓嬫柟锛?        // =====================================================================
+        // 3. Boss血条
+        // =====================================================================
         private void BuildBossHpArea()
         {
-            var bossArea = new GameObject("BossHpArea", typeof(RectTransform), typeof(Image));
-            bossArea.transform.SetParent(transform, false);
-            var bossRt = bossArea.GetComponent<RectTransform>();
-            bossRt.anchorMin = new Vector2(0.5f, 1);
-            bossRt.anchorMax = new Vector2(0.5f, 1);
-            bossRt.sizeDelta = new Vector2(400, 55);
-            bossRt.anchoredPosition = new Vector2(0, -140);
-            var bossImg = bossArea.GetComponent<Image>();
-            bossImg.color = new Color(0.06f, 0.03f, 0.06f, 0.7f);
+            var bossArea = UIComponentFactory.CreateCard(transform as RectTransform,
+                "BossHpArea", new Vector2(400, 55), new Vector2(0, -170));
 
-            _bossNameText = CreateLabel(bossRt, "BossName", "鈼?" + BossName + " 鈼?,
-                16, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.2f),
-                new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(380, 20), new Vector2(0, -3));
+            _bossNameText = UIComponentFactory.CreateText(bossArea, "BossName",
+                "◆ " + BossName + " ◆", 16, new Color(1f, 0.5f, 0.2f), TextAnchor.MiddleCenter);
+            _bossNameText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 12);
 
-            // 琛€鏉¤儗鏅?            var hpBarBg = new GameObject("HpBarBg", typeof(RectTransform), typeof(Image));
-            hpBarBg.transform.SetParent(bossRt, false);
+            // 血条背景
+            var hpBarBg = new GameObject("HpBarBg", typeof(RectTransform), typeof(Image));
+            hpBarBg.transform.SetParent(bossArea, false);
             var hpBarBgRt = hpBarBg.GetComponent<RectTransform>();
             hpBarBgRt.anchorMin = new Vector2(0.5f, 0);
             hpBarBgRt.anchorMax = new Vector2(0.5f, 0);
@@ -185,69 +180,64 @@ namespace Jx3.UI.Panels
             var bgImg = hpBarBg.GetComponent<Image>();
             bgImg.color = ColorBossHpBg;
 
-            // 琛€鏉″～鍏?            var hpFill = new GameObject("HpFill", typeof(RectTransform), typeof(Image));
+            // 血条填充
+            var hpFill = new GameObject("HpFill", typeof(RectTransform), typeof(Image));
             hpFill.transform.SetParent(hpBarBgRt, false);
             var hpFillRt = hpFill.GetComponent<RectTransform>();
-            hpFillRt.anchorMin = Vector2.zero; hpFillRt.anchorMax = Vector2.one;
+            hpFillRt.anchorMin = Vector2.zero;
+            hpFillRt.anchorMax = Vector2.one;
             hpFillRt.sizeDelta = Vector2.zero;
             _bossHpFill = hpFill.GetComponent<Image>();
             _bossHpFill.type = Image.Type.Filled;
             _bossHpFill.fillMethod = Image.FillMethod.Horizontal;
             _bossHpFill.color = ColorBossHpFill;
 
-            // 鐧惧垎姣旀枃瀛?            _bossHpPercentText = CreateLabel(hpBarBgRt, "HpPercent", "100%",
-                13, TextAnchor.MiddleCenter, ColorTextBright,
-                Vector2.one * 0.5f, Vector2.one * 0.5f, Vector2.zero, Vector2.zero);
+            // 百分比文字
+            _bossHpPercentText = UIComponentFactory.CreateText(hpBarBgRt, "HpPercent",
+                "100%", 13, ThemeColors.TextWhite, TextAnchor.MiddleCenter);
         }
 
         // =====================================================================
-        // 4. 灏廈oss鐘舵€佸垪琛紙Boss琛€鏉′笅鏂癸級
+        // 4. 小Boss状态列表
         // =====================================================================
         private void BuildMinibossStatus()
         {
-            var miniArea = new GameObject("MinibossArea", typeof(RectTransform), typeof(Image));
-            miniArea.transform.SetParent(transform, false);
-            var miniRt = miniArea.GetComponent<RectTransform>();
-            miniRt.anchorMin = new Vector2(0.5f, 1);
-            miniRt.anchorMax = new Vector2(0.5f, 1);
-            miniRt.sizeDelta = new Vector2(400, 80);
-            miniRt.anchoredPosition = new Vector2(0, -210);
-            var miniImg = miniArea.GetComponent<Image>();
-            miniImg.color = new Color(0.06f, 0.06f, 0.1f, 0.6f);
+            var miniArea = UIComponentFactory.CreateCard(transform as RectTransform,
+                "MinibossArea", new Vector2(400, 80), new Vector2(0, -240));
+            var mImg = miniArea.GetComponent<Image>();
+            mImg.color = new Color(0.06f, 0.06f, 0.1f, 0.6f);
 
-            CreateLabel(miniRt, "Title", "鈹佲攣 绮捐嫳璁ㄤ紣杩涘害 鈹佲攣", 13, TextAnchor.MiddleCenter,
-                ColorSectionTitle, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(380, 22), new Vector2(0, -5));
+            UIComponentFactory.CreateText(miniArea, "Title", "━┳ 精英讨伐进度 ┳━",
+                13, ThemeColors.Accent, TextAnchor.MiddleCenter)
+                .GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 28);
 
             for (int i = 0; i < 3; i++)
             {
-                var idx = i;
-                _minibossStatusTexts[i] = CreateLabel(miniRt, "Mini" + i, "鈽?" + MinibossNames[i],
-                    14, TextAnchor.MiddleLeft, ColorMinibossPending,
-                    new Vector2(0, 1), new Vector2(0, 1), new Vector2(380, 18), new Vector2(10, -30 - i * 18));
+                _minibossStatusTexts[i] = UIComponentFactory.CreateText(miniArea,
+                    "Mini" + i, "★ " + MinibossNames[i], 14, ColorMinibossPending,
+                    TextAnchor.MiddleLeft);
+                _minibossStatusTexts[i].GetComponent<RectTransform>()
+                    .anchoredPosition = new Vector2(-180, 2 - i * 20);
             }
         }
 
         // =====================================================================
-        // 5. 缁堟瀬Boss瑙ｉ攣鐘舵€侊紙灏廈oss鍒楄〃涓嬫柟锛?        // =====================================================================
+        // 5. 终极Boss解锁状态
+        // =====================================================================
         private void BuildUltimateBossStatus()
         {
-            var ultArea = new GameObject("UltimateArea", typeof(RectTransform), typeof(Image));
-            ultArea.transform.SetParent(transform, false);
-            var ultRt = ultArea.GetComponent<RectTransform>();
-            ultRt.anchorMin = new Vector2(0.5f, 1);
-            ultRt.anchorMax = new Vector2(0.5f, 1);
-            ultRt.sizeDelta = new Vector2(400, 36);
-            ultRt.anchoredPosition = new Vector2(0, -300);
-            var ultImg = ultArea.GetComponent<Image>();
-            ultImg.color = new Color(0.08f, 0.04f, 0.02f, 0.7f);
+            var ultArea = UIComponentFactory.CreateCard(transform as RectTransform,
+                "UltimateArea", new Vector2(400, 36), new Vector2(0, -320));
+            var uImg = ultArea.GetComponent<Image>();
+            uImg.color = new Color(0.08f, 0.04f, 0.02f, 0.7f);
 
-            _ultimateStatusText = CreateLabel(ultRt, "UltStatus", "鈿?闇€鍑绘潃3绮捐嫳瑙ｉ攣缁堟瀬Boss",
-                14, TextAnchor.MiddleCenter, ColorUltimateLocked,
-                Vector2.one * 0.5f, Vector2.one * 0.5f, Vector2.zero, Vector2.zero);
+            _ultimateStatusText = UIComponentFactory.CreateText(ultArea, "UltStatus",
+                "⚡ 需击杀3精英解锁终极Boss", 14, ColorUltimateLocked, TextAnchor.MiddleCenter);
         }
 
         // =====================================================================
-        // 6. 闃熶紞鎴愬憳鍒楄〃锛堝彸涓嬭锛?        // =====================================================================
+        // 6. 队伍成员列表（右下角）
+        // =====================================================================
         private void BuildTeamList()
         {
             var teamArea = new GameObject("TeamArea", typeof(RectTransform), typeof(Image));
@@ -260,19 +250,20 @@ namespace Jx3.UI.Panels
             var teamImg = teamArea.GetComponent<Image>();
             teamImg.color = new Color(0.04f, 0.04f, 0.08f, 0.5f);
 
-            CreateLabel(teamRt, "Title", "鈽?闃熶紞 鈽?, 15, TextAnchor.MiddleCenter,
-                ColorSectionTitle, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(190, 25), new Vector2(0, -5));
+            UIComponentFactory.CreateText(teamRt, "Title", "★ 队伍 ★",
+                15, ThemeColors.Accent, TextAnchor.MiddleCenter)
+                .GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -12);
 
-            _teamListContainer = new GameObject("TeamList", typeof(RectTransform)).GetComponent<RectTransform>();
+            _teamListContainer = new GameObject("TeamList", typeof(RectTransform))
+                .GetComponent<RectTransform>();
             _teamListContainer.SetParent(teamRt, false);
             _teamListContainer.anchorMin = new Vector2(0, 0);
             _teamListContainer.anchorMax = new Vector2(1, 1);
             _teamListContainer.sizeDelta = new Vector2(-10, -40);
             _teamListContainer.anchoredPosition = new Vector2(0, -20);
 
-            // 榛樿8浜洪槦浼?            int teamSize = 8;
+            int teamSize = 8;
             _teamNameTexts = new Text[teamSize];
-            _teamClassTexts = new Text[teamSize];
             _teamHpTexts = new Text[teamSize];
             _teamHpFills = new Image[teamSize];
 
@@ -286,115 +277,133 @@ namespace Jx3.UI.Panels
                 rowRt.sizeDelta = new Vector2(0, 28);
                 rowRt.anchoredPosition = new Vector2(0, -10 - i * 30);
 
-                _teamNameTexts[i] = CreateLabel(rowRt, "Name", "渚犲" + (i + 1),
-                    12, TextAnchor.MiddleLeft, ColorTextBright,
-                    new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(70, 20), new Vector2(5, 0));
+                _teamNameTexts[i] = UIComponentFactory.CreateText(rowRt, "Name",
+                    "侠客" + (i + 1), 12, ThemeColors.TextBright, TextAnchor.MiddleLeft);
+                _teamNameTexts[i].GetComponent<RectTransform>()
+                    .sizeDelta = new Vector2(70, 20);
+                _teamNameTexts[i].GetComponent<RectTransform>()
+                    .anchoredPosition = new Vector2(-85, 0);
 
-                _teamClassTexts[i] = CreateLabel(rowRt, "Class", "闂ㄦ淳",
-                    10, TextAnchor.MiddleLeft, ColorTextDim,
-                    new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(40, 16), new Vector2(68, 0));
-
-                // 琛€閲忔潯
+                // 血条
                 var hpBar = new GameObject("HpBar", typeof(RectTransform), typeof(Image));
                 hpBar.transform.SetParent(rowRt, false);
                 var hpBarRt = hpBar.GetComponent<RectTransform>();
                 hpBarRt.anchorMin = new Vector2(0, 0.5f);
                 hpBarRt.anchorMax = new Vector2(0, 0.5f);
                 hpBarRt.sizeDelta = new Vector2(60, 10);
-                hpBarRt.anchoredPosition = new Vector2(115, 0);
+                hpBarRt.anchoredPosition = new Vector2(50, 0);
                 var hpBarBg = hpBar.GetComponent<Image>();
                 hpBarBg.color = ColorTeamHpBg;
 
                 var hpFill = new GameObject("Fill", typeof(RectTransform), typeof(Image));
                 hpFill.transform.SetParent(hpBarRt, false);
                 var hpFillRt = hpFill.GetComponent<RectTransform>();
-                hpFillRt.anchorMin = Vector2.zero; hpFillRt.anchorMax = Vector2.one;
+                hpFillRt.anchorMin = Vector2.zero;
+                hpFillRt.anchorMax = Vector2.one;
                 hpFillRt.sizeDelta = Vector2.zero;
                 _teamHpFills[i] = hpFill.GetComponent<Image>();
                 _teamHpFills[i].type = Image.Type.Filled;
                 _teamHpFills[i].fillMethod = Image.FillMethod.Horizontal;
                 _teamHpFills[i].color = ColorTeamHpFill;
 
-                _teamHpTexts[i] = CreateLabel(hpBarRt, "HpText", "100%",
-                    9, TextAnchor.MiddleCenter, ColorTextBright,
-                    Vector2.one * 0.5f, Vector2.one * 0.5f, Vector2.zero, Vector2.zero);
+                _teamHpTexts[i] = UIComponentFactory.CreateText(hpBarRt, "HpText",
+                    "100%", 9, ThemeColors.TextWhite, TextAnchor.MiddleCenter);
             }
         }
 
         // =====================================================================
-        // 7. 閫€鍑烘寜閽紙鍙充笂瑙掞級
+        // 7. 退出按钮（右上角）
         // =====================================================================
         private void BuildExitButton()
         {
-            var btnGo = new GameObject("ExitBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-            btnGo.transform.SetParent(transform, false);
-            var btnRt = btnGo.GetComponent<RectTransform>();
+            var btnRt = new GameObject("ExitBtn", typeof(RectTransform)).GetComponent<RectTransform>();
+            btnRt.SetParent(transform, false);
             btnRt.anchorMin = new Vector2(1, 1);
             btnRt.anchorMax = new Vector2(1, 1);
             btnRt.sizeDelta = new Vector2(100, 36);
             btnRt.anchoredPosition = new Vector2(-70, -50);
-            var btnImg = btnGo.GetComponent<Image>();
-            btnImg.color = ColorExitBtn;
 
-            var btnText = new GameObject("Text", typeof(RectTransform), typeof(Text));
-            btnText.transform.SetParent(btnRt, false);
-            var btnTextRt = btnText.GetComponent<RectTransform>();
-            btnTextRt.anchorMin = Vector2.zero; btnTextRt.anchorMax = Vector2.one;
-            btnTextRt.sizeDelta = Vector2.zero;
-            var btnTxt = btnText.GetComponent<Text>();
-            btnTxt.text = "閫€鍑哄壇鏈?;
-            btnTxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            btnTxt.fontSize = 14;
-            btnTxt.alignment = TextAnchor.MiddleCenter;
-            btnTxt.color = new Color(0.9f, 0.7f, 0.7f);
-
-            _exitBtn = btnGo.GetComponent<Button>();
-            _exitBtn.targetGraphic = btnImg;
-            _exitBtn.onClick.AddListener(OnExitDungeon);
+            _exitBtn = UIComponentFactory.CreateButton(btnRt, "Btn", "退出副本",
+                ThemeColors.BtnDanger, OnExitDungeon, ThemeColors.FontSmall);
         }
 
         // =====================================================================
-        // 8. 鍓湰澶辫触瑕嗙洊灞?        // =====================================================================
+        // 8. 失败覆盖层
+        // =====================================================================
         private void BuildFailOverlay()
         {
             _failOverlay = new GameObject("FailOverlay", typeof(RectTransform), typeof(Image));
             _failOverlay.transform.SetParent(transform, false);
             var failRt = _failOverlay.GetComponent<RectTransform>();
-            failRt.anchorMin = Vector2.zero; failRt.anchorMax = Vector2.one;
+            failRt.anchorMin = Vector2.zero;
+            failRt.anchorMax = Vector2.one;
             failRt.sizeDelta = Vector2.zero;
             var failImg = _failOverlay.GetComponent<Image>();
             failImg.color = new Color(0, 0, 0, 0.7f);
             failImg.raycastTarget = true;
             _failOverlay.SetActive(false);
 
-            var failText = CreateLabel(failRt, "FailText", "鉂?鍓湰澶辫触 鉂?,
-                48, TextAnchor.MiddleCenter, new Color(1f, 0.1f, 0.1f),
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(600, 80), Vector2.zero);
-            failText.fontStyle = FontStyle.Bold;
+            UIComponentFactory.CreateText(failRt, "FailText",
+                "⚔ 副本失败 ⚔", 48, new Color(1f, 0.1f, 0.1f), TextAnchor.MiddleCenter);
+            _failOverlay.transform.GetChild(0).GetComponent<RectTransform>()
+                .anchoredPosition = new Vector2(0, 30);
 
-            var subText = CreateLabel(failRt, "SubText", "鏃堕棿鑰楀敖锛岃閲嶆暣鏃楅紦",
-                22, TextAnchor.MiddleCenter, new Color(0.8f, 0.4f, 0.4f),
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(400, 40), new Vector2(0, -60));
+            UIComponentFactory.CreateText(failRt, "SubText",
+                "时间耗尽，请重整旗鼓", 22, new Color(0.8f, 0.4f, 0.4f), TextAnchor.MiddleCenter)
+                .GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -20);
 
-            var returnBtn = new GameObject("ReturnBtn", typeof(RectTransform), typeof(Image), typeof(Button));
-            returnBtn.transform.SetParent(failRt, false);
-            var retRt = returnBtn.GetComponent<RectTransform>();
-            retRt.anchorMin = new Vector2(0.5f, 0.5f);
-            retRt.anchorMax = new Vector2(0.5f, 0.5f);
-            retRt.sizeDelta = new Vector2(180, 44);
-            retRt.anchoredPosition = new Vector2(0, -130);
-            var retImg = returnBtn.GetComponent<Image>();
-            retImg.color = new Color(0.4f, 0.1f, 0.1f, 0.9f);
-            var retBtn = returnBtn.GetComponent<Button>();
-            retBtn.targetGraphic = retImg;
-            retBtn.onClick.AddListener(OnExitDungeon);
+            var retBtnRt = new GameObject("ReturnBtn", typeof(RectTransform))
+                .GetComponent<RectTransform>();
+            retBtnRt.SetParent(failRt, false);
+            retBtnRt.anchorMin = new Vector2(0.5f, 0.5f);
+            retBtnRt.anchorMax = new Vector2(0.5f, 0.5f);
+            retBtnRt.sizeDelta = new Vector2(180, 44);
+            retBtnRt.anchoredPosition = new Vector2(0, -80);
 
-            var retText = CreateLabel(retRt, "RetText", "杩斿洖鍓湰閫夋嫨", 18, TextAnchor.MiddleCenter,
-                new Color(0.9f, 0.6f, 0.6f), Vector2.one * 0.5f, Vector2.one * 0.5f, Vector2.zero, Vector2.zero);
+            UIComponentFactory.CreateButton(retBtnRt, "RetBtn", "返回副本选择",
+                new Color(0.4f, 0.1f, 0.1f, 0.9f), OnExitDungeon, ThemeColors.FontBody);
         }
 
         // =====================================================================
-        // 9. 缁堟瀬Boss瑙ｉ攣闂儊鍔ㄧ敾瑕嗙洊灞?        // =====================================================================
+        // 9. 胜利覆盖层
+        // =====================================================================
+        private void BuildVictoryOverlay()
+        {
+            _victoryOverlay = new GameObject("VictoryOverlay", typeof(RectTransform), typeof(Image));
+            _victoryOverlay.transform.SetParent(transform, false);
+            var vicRt = _victoryOverlay.GetComponent<RectTransform>();
+            vicRt.anchorMin = Vector2.zero;
+            vicRt.anchorMax = Vector2.one;
+            vicRt.sizeDelta = Vector2.zero;
+            var vicImg = _victoryOverlay.GetComponent<Image>();
+            vicImg.color = new Color(0, 0, 0, 0.6f);
+            vicImg.raycastTarget = true;
+            _victoryOverlay.SetActive(false);
+
+            UIComponentFactory.CreateText(vicRt, "VictoryText",
+                "🏆 副本胜利 🏆", 48, new Color(1f, 0.8f, 0.1f), TextAnchor.MiddleCenter);
+            _victoryOverlay.transform.GetChild(0).GetComponent<RectTransform>()
+                .anchoredPosition = new Vector2(0, 30);
+
+            UIComponentFactory.CreateText(vicRt, "SubText",
+                "恭喜通关！", 22, ThemeColors.Gold, TextAnchor.MiddleCenter)
+                .GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -20);
+
+            var exitBtnRt = new GameObject("ExitBtn", typeof(RectTransform))
+                .GetComponent<RectTransform>();
+            exitBtnRt.SetParent(vicRt, false);
+            exitBtnRt.anchorMin = new Vector2(0.5f, 0.5f);
+            exitBtnRt.anchorMax = new Vector2(0.5f, 0.5f);
+            exitBtnRt.sizeDelta = new Vector2(180, 44);
+            exitBtnRt.anchoredPosition = new Vector2(0, -80);
+
+            UIComponentFactory.CreateButton(exitBtnRt, "ExitBtn", "离开副本",
+                ThemeColors.BtnPrimary, OnExitDungeon, ThemeColors.FontBody);
+        }
+
+        // =====================================================================
+        // 10. 终极Boss解锁动画覆盖层
+        // =====================================================================
         private void BuildUnlockFlashOverlay()
         {
             _unlockFlashGo = new GameObject("UnlockFlash", typeof(RectTransform), typeof(Image));
@@ -409,42 +418,42 @@ namespace Jx3.UI.Panels
             flashImg.raycastTarget = false;
             _unlockFlashGo.SetActive(false);
 
-            _unlockFlashText = CreateLabel(flashRt, "FlashText",
-                "馃敟 缁堟瀬Boss瑙ｉ攣锛?馃敟", 42, TextAnchor.MiddleCenter, ColorUltimateUnlocked,
-                Vector2.one * 0.5f, Vector2.one * 0.5f, Vector2.zero, Vector2.zero);
+            _unlockFlashText = UIComponentFactory.CreateText(flashRt, "FlashText",
+                "🔥 终极Boss解锁！ 🔥", 42, ColorUltimateUnlocked, TextAnchor.MiddleCenter);
             _unlockFlashText.fontStyle = FontStyle.Bold;
         }
 
         // =====================================================================
-        // 10. Update寰幆
+        // 11. Update循环
         // =====================================================================
         void Update()
         {
-            if (!_running || _failed) return;
+            if (!_running || _failed || _victory) return;
 
-            // 1. 鍊掕鏃舵洿鏂颁笌瓒呮椂妫€娴?            _timeRemaining -= Time.deltaTime;
+            // ── 倒计时更新与超时检测 ──
+            _timeRemaining -= Time.deltaTime;
             if (_timeRemaining < 0) _timeRemaining = 0;
 
             int minutes = Mathf.FloorToInt(_timeRemaining / 60);
             int seconds = Mathf.FloorToInt(_timeRemaining % 60);
             _timerText.text = string.Format("{0:D2}:{1:D2}", minutes, seconds);
 
-            // 鍊掕鏃跺綊闆?鈫?鍓湰澶辫触
             if (_timeRemaining <= 0f && !_timeoutTriggered)
             {
                 _timeoutTriggered = true;
-                TriggerDungeonFail("鈴?鏃堕棿鑰楀敖锛?);
+                TriggerDungeonFail("⏳ 时间耗尽！");
                 return;
             }
 
-            // 鍊掕鏃?60绉掑彉闂儊
+            // 倒计时60秒变闪烁
             if (_timeRemaining <= 60f && _timeRemaining > 0)
             {
                 float blink = Mathf.PingPong(Time.time * 4f, 1f);
                 _timerText.color = new Color(1f, 0.1f, 0.05f, blink);
             }
 
-            // 2. Boss琛€閲?            if (BossMaxHp > 0)
+            // ── Boss血量 ──
+            if (BossMaxHp > 0)
             {
                 float pct = Mathf.Clamp01(BossCurrentHp / BossMaxHp);
                 _bossHpFill.fillAmount = pct;
@@ -453,38 +462,39 @@ namespace Jx3.UI.Panels
                 _bossHpFill.color = pct > 0.3f ? ColorBossHpFill : new Color(1f, 0.3f, 0.1f);
             }
 
-            // 3. 鍓湰闃舵鏄剧ず
+            // ── 副本阶段 ──
             UpdatePhaseDisplay();
 
-            // 4. 灏廈oss鐘舵€佸埛鏂?            for (int i = 0; i < _minibossStatusTexts.Length && i < MinibossKilled.Length; i++)
+            // ── 小Boss状态刷新 ──
+            for (int i = 0; i < _minibossStatusTexts.Length && i < MinibossKilled.Length; i++)
             {
                 if (MinibossKilled[i])
                 {
-                    _minibossStatusTexts[i].text = "鈽?" + MinibossNames[i];
+                    _minibossStatusTexts[i].text = "★ " + MinibossNames[i];
                     _minibossStatusTexts[i].color = ColorMinibossDone;
                 }
                 else
                 {
-                    _minibossStatusTexts[i].text = "鈽?" + MinibossNames[i];
+                    _minibossStatusTexts[i].text = "☆ " + MinibossNames[i];
                     _minibossStatusTexts[i].color = ColorMinibossPending;
                 }
             }
 
-            // 5. 缁堟瀬Boss瑙ｉ攣妫€娴?            bool allKilled = true;
+            // ── 终极Boss解锁检测 ──
+            bool allKilled = true;
             for (int i = 0; i < MinibossKilled.Length; i++)
             {
                 if (!MinibossKilled[i]) { allKilled = false; break; }
             }
 
-            bool wasUnlocked = UltimateBossUnlocked;
             UltimateBossUnlocked = allKilled;
 
             if (UltimateBossUnlocked)
             {
-                _ultimateStatusText.text = "馃敟 缁堟瀬Boss宸茶В閿?";
+                _ultimateStatusText.text = "🔥 终极Boss已解锁！";
                 _ultimateStatusText.color = ColorUltimateUnlocked;
 
-                // 瑙﹀彂瑙ｉ攣鍔ㄧ敾锛堥娆¤В閿佹椂锛?                if (!_unlockTriggered)
+                if (!_unlockTriggered)
                 {
                     _unlockTriggered = true;
                     StartUnlockAnimation();
@@ -496,17 +506,18 @@ namespace Jx3.UI.Panels
                 int remaining = 0;
                 for (int i = 0; i < MinibossKilled.Length; i++)
                     if (!MinibossKilled[i]) remaining++;
-                _ultimateStatusText.text = "鈿?杩橀渶鍑绘潃 " + remaining + " 绮捐嫳瑙ｉ攣";
+                _ultimateStatusText.text = "⚡ 还需击杀 " + remaining + " 精英解锁";
                 _ultimateStatusText.color = ColorUltimateLocked;
             }
 
-            // 6. 瑙ｉ攣鍔ㄧ敾鏇存柊
+            // ── 解锁动画更新 ──
             if (_isPlayingUnlockAnim)
             {
                 UpdateUnlockAnimation();
             }
 
-            // 7. 闃熶紞鎴愬憳琛€閲忓埛鏂?            if (TeamMembers != null)
+            // ── 队伍成员血量刷新 ──
+            if (TeamMembers != null)
             {
                 for (int i = 0; i < _teamHpFills.Length && i < TeamMembers.Length; i++)
                 {
@@ -514,16 +525,17 @@ namespace Jx3.UI.Panels
                     _teamHpFills[i].fillAmount = hp;
                     _teamHpTexts[i].text = Mathf.CeilToInt(hp * 100) + "%";
                     _teamHpFills[i].color = hp > 0.3f ? ColorTeamHpFill : new Color(1f, 0.3f, 0.2f);
+                    _teamNameTexts[i].text = TeamMembers[i].Name ?? "侠客" + (i + 1);
                 }
             }
         }
 
         // =====================================================================
-        // 闃舵鏄剧ず鏇存柊
+        // 阶段显示更新
         // =====================================================================
         private void UpdatePhaseDisplay()
         {
-            // 鏍规嵁褰撳墠Boss琛€閲忓喅瀹氶樁娈垫樉绀?            float hpPct = BossMaxHp > 0 ? BossCurrentHp / BossMaxHp : 1f;
+            float hpPct = BossMaxHp > 0 ? BossCurrentHp / BossMaxHp : 1f;
             int targetPhase = hpPct <= 0.5f ? 2 : 1;
 
             if (targetPhase != DungeonPhase)
@@ -531,26 +543,25 @@ namespace Jx3.UI.Panels
                 DungeonPhase = targetPhase;
                 if (DungeonPhase == 2)
                 {
-                    Debug.Log("[DungeonPanel] Boss杩涘叆绗簩闃舵锛?);
+                    Debug.Log("[DungeonPanel] Boss进入第二阶段！");
                 }
             }
 
             if (DungeonPhase == 1)
             {
-                _phaseText.text = "闃舵 1";
+                _phaseText.text = "阶段 1";
                 _phaseText.color = ColorPhase1;
             }
             else
             {
-                // 闃舵2闂儊鏁堟灉
                 float blink = Mathf.PingPong(Time.time * 3f, 1f);
-                _phaseText.text = "鈿?闃舵 2 鈿?;
+                _phaseText.text = "⚡ 阶段 2 ⚡";
                 _phaseText.color = new Color(1f, 0.5f, 0.2f, 0.6f + blink * 0.4f);
             }
         }
 
         // =====================================================================
-        // 缁堟瀬Boss瑙ｉ攣鍔ㄧ敾
+        // 终极Boss解锁动画
         // =====================================================================
         private void StartUnlockAnimation()
         {
@@ -565,13 +576,11 @@ namespace Jx3.UI.Panels
 
             if (_unlockAnimTime > 3.0f)
             {
-                // 鍔ㄧ敾缁撴潫
                 _isPlayingUnlockAnim = false;
                 _unlockFlashGo.SetActive(false);
                 return;
             }
 
-            // 闂儊 + 缂╂斁鑴夊啿
             float t = _unlockAnimTime;
             float flash = Mathf.PingPong(t * 8f, 1f);
             float scale = 1f + Mathf.Sin(t * 6f) * 0.1f;
@@ -586,7 +595,7 @@ namespace Jx3.UI.Panels
         }
 
         // =====================================================================
-        // 鍓湰澶辫触瑙﹀彂
+        // 副本失败触发
         // =====================================================================
         private void TriggerDungeonFail(string reason)
         {
@@ -594,13 +603,27 @@ namespace Jx3.UI.Panels
             _failed = true;
             _running = false;
 
-            Debug.Log($"[DungeonPanel] 鍓湰澶辫触: {reason}");
+            Debug.Log($"[DungeonPanel] 副本失败: {reason}");
             _failOverlay.SetActive(true);
             OnDungeonFailed?.Invoke();
         }
 
         // =====================================================================
-        // 鍏紑鏂规硶
+        // 副本胜利触发
+        // =====================================================================
+        public void TriggerVictory()
+        {
+            if (_victory || _failed) return;
+            _victory = true;
+            _running = false;
+
+            Debug.Log("[DungeonPanel] 副本胜利！");
+            _victoryOverlay.SetActive(true);
+            OnVictory?.Invoke();
+        }
+
+        // =====================================================================
+        // 公共方法
         // =====================================================================
         public void SetBossHp(float current, float max)
         {
@@ -612,7 +635,7 @@ namespace Jx3.UI.Panels
         {
             BossName = name;
             if (_bossNameText != null)
-                _bossNameText.text = "鈼?" + name + " 鈼?;
+                _bossNameText.text = "◆ " + name + " ◆";
         }
 
         public void SetMinibossKilled(int index, bool killed)
@@ -644,20 +667,35 @@ namespace Jx3.UI.Panels
             return _failed;
         }
 
+        public bool IsVictory()
+        {
+            return _victory;
+        }
+
         public void UpdateTeamMember(int index, float hpPercent)
         {
             if (TeamMembers != null && index >= 0 && index < TeamMembers.Length)
                 TeamMembers[index].HpPercent = hpPercent;
         }
 
+        // =====================================================================
+        // 退出
+        // =====================================================================
         protected virtual void OnExitDungeon()
         {
             _running = false;
             SceneManager.Instance.LoadScene(GameScene.DungeonSelect);
         }
 
-        protected override void OnShow() { _running = true; }
-        protected override void OnHide() { _running = false; }
+        protected override void OnShow()
+        {
+            _running = true;
+        }
+
+        protected override void OnHide()
+        {
+            _running = false;
+        }
 
         public override void Refresh()
         {
@@ -665,39 +703,18 @@ namespace Jx3.UI.Panels
             _timeRemaining = TimeLimitSeconds;
             _running = true;
             _failed = false;
+            _victory = false;
             _timeoutTriggered = false;
             _unlockTriggered = false;
             _isPlayingUnlockAnim = false;
             _failOverlay?.SetActive(false);
+            _victoryOverlay?.SetActive(false);
             _unlockFlashGo?.SetActive(false);
-        }
-
-        // =====================================================================
-        // Helper: 鍒涘缓鏍囩
-        // =====================================================================
-        private Text CreateLabel(RectTransform parent, string name, string text,
-            int fontSize, TextAnchor align, Color color,
-            Vector2 anchorMin, Vector2 anchorMax, Vector2 sizeDelta, Vector2 anchoredPos)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = anchorMin;
-            rt.anchorMax = anchorMax;
-            rt.sizeDelta = sizeDelta;
-            rt.anchoredPosition = anchoredPos;
-            var txt = go.AddComponent<Text>();
-            txt.text = text;
-            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            txt.fontSize = fontSize;
-            txt.alignment = align;
-            txt.color = color;
-            return txt;
         }
     }
 
     /// <summary>
-    /// 闃熶紞鎴愬憳淇℃伅
+    /// 队伍成员信息
     /// </summary>
     [System.Serializable]
     public class TeamMemberInfo

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
 using Jx3.Core.Scene;
@@ -50,7 +50,7 @@ namespace Jx3.UI.Panels
             glow.GetComponent<Image>().color = new Color(0.83f, 0.66f, 0.26f, 0.12f);
 
             // Title
-            var title = UIComponentFactory.CreateText(card, "Title", "鎸囧皷姹熸箹2",
+            var title = UIComponentFactory.CreateText(card, "Title", "指尖江湖2",
                 ThemeColors.FontTitle, Color.white); title.fontStyle = FontStyle.Bold;
             title.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             title.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
@@ -58,17 +58,25 @@ namespace Jx3.UI.Panels
             title.rectTransform.anchoredPosition = new Vector2(0, logoY);
 
             // Subtitle
-            var sub = UIComponentFactory.CreateText(card, "SubTitle", "JIAN XIA JIANG HU 2",
+            var sub = UIComponentFactory.CreateText(card, "SubTitle", "— 金 墨 武 侠 —",
                 ThemeColors.FontTiny, new Color(0.5f, 0.4f, 0.7f, 0.8f));
             sub.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             sub.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             sub.rectTransform.sizeDelta = new Vector2(300, 30);
             sub.rectTransform.anchoredPosition = new Vector2(0, logoY - 35);
 
+            // Login card title
+            var loginTitle = UIComponentFactory.CreateText(card, "LoginTitle", "账 号 登 录",
+                ThemeColors.FontTitleSmall, Color.white); loginTitle.fontStyle = FontStyle.Bold;
+            loginTitle.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            loginTitle.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            loginTitle.rectTransform.sizeDelta = new Vector2(300, 30);
+            loginTitle.rectTransform.anchoredPosition = new Vector2(0, 190);
+
             // Inputs
-            _phoneInput = UIComponentFactory.CreateInputField(card, "PhoneInput", "鎵嬫満鍙?/ 璐﹀彿",
+            _phoneInput = UIComponentFactory.CreateInputField(card, "PhoneInput", "请输入手机号",
                 new Vector2(300, 44), new Vector2(0, 140));
-            _pwdInput = UIComponentFactory.CreateInputField(card, "PwdInput", "瀵? 鐮?,
+            _pwdInput = UIComponentFactory.CreateInputField(card, "PwdInput", "请输入密码",
                 new Vector2(300, 44), new Vector2(0, 80));
 
             // Status text
@@ -80,15 +88,15 @@ namespace Jx3.UI.Panels
             _statusText.rectTransform.anchoredPosition = new Vector2(0, -55);
 
             // Login button
-            var loginBtn = UIComponentFactory.CreatePrimaryButton(card, "LoginBtn", "鐧? 褰?, OnLoginClick);
+            var loginBtn = UIComponentFactory.CreatePrimaryButton(card, "LoginBtn", "登 录", OnLoginClick);
             PositionRect(loginBtn.GetComponent<RectTransform>(), new Vector2(300, 44), new Vector2(0, -100));
 
             // Register button
-            var regBtn = UIComponentFactory.CreateSecondaryButton(card, "RegisterBtn", "娉? 鍐?, OnRegisterClick);
+            var regBtn = UIComponentFactory.CreateSecondaryButton(card, "RegisterBtn", "注册新账号", OnRegisterClick);
             PositionRect(regBtn.GetComponent<RectTransform>(), new Vector2(300, 44), new Vector2(0, -155));
 
             // Version
-            var ver = UIComponentFactory.CreateText(card, "Version", "v0.1.0 路 姹熸箹娴嬭瘯鐗?,
+            var ver = UIComponentFactory.CreateText(card, "Version", "v0.1.0 · 江湖测试版",
                 11, ThemeColors.TextDim);
             ver.rectTransform.anchorMin = new Vector2(0.5f, 0);
             ver.rectTransform.anchorMax = new Vector2(0.5f, 0);
@@ -98,7 +106,7 @@ namespace Jx3.UI.Panels
             // Subscribe to login success
             GameManager.Instance.OnLoginSuccess += () =>
             {
-                _statusText.text = "鐧诲綍鎴愬姛锛?;
+                _statusText.text = "登录成功！";
                 Invoke(nameof(GoToMainCity), 0.5f);
             };
         }
@@ -116,12 +124,12 @@ namespace Jx3.UI.Panels
             var phone = _phoneInput.text;
             var pwd = _pwdInput.text;
             if (string.IsNullOrEmpty(phone) || string.IsNullOrEmpty(pwd))
-            { _statusText.text = ""; return; }
-            _statusText.text = "杩炴帴鏈嶅姟鍣?..";
+            { _statusText.text = "请填写完整信息"; return; }
+            _statusText.text = "连接服务器中...";
             var connected = await GameManager.Instance.Network.ConnectAsync(
                 GameManager.Instance.ServerHost, GameManager.Instance.ServerPort);
-            if (!connected) { _statusText.text = "杩炴帴鏈嶅姟鍣ㄥけ璐?; return; }
-            _statusText.text = "鐧诲綍涓?..";
+            if (!connected) { _statusText.text = "连接服务器失败"; return; }
+            _statusText.text = "登录中...";
             LoginManager.Instance?.SendLogin(phone, pwd);
         }
 
@@ -130,9 +138,9 @@ namespace Jx3.UI.Panels
             var phone = _phoneInput.text;
             var pwd = _pwdInput.text;
             if (string.IsNullOrEmpty(phone) || string.IsNullOrEmpty(pwd))
-            { _statusText.text = ""; return; }
+            { _statusText.text = "请填写完整信息"; return; }
             LoginManager.Instance?.SendRegister(phone, pwd);
-            _statusText.text = "娉ㄥ唽鎴愬姛锛岃鐧诲綍";
+            _statusText.text = "注册成功，请登录";
         }
 
         private void GoToMainCity()

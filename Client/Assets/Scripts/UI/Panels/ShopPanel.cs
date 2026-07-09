@@ -1,15 +1,14 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
 using System.Collections.Generic;
-using Jx3.UI;
 
 namespace Jx3.UI.Panels
 {
     public class ShopPanel : BasePanel
     {
         // ===== Categories =====
-        private static readonly string[] Categories = { "鐑崠", "鏃惰", "閬撳叿", "浼樻儬", "鏈堝崱" };
+        private static readonly string[] Categories = { "热卖", "时装", "道具", "优惠", "月卡" };
 
         // ===== Demo Shop Item Data =====
         private class ShopItemData
@@ -24,40 +23,39 @@ namespace Jx3.UI.Panels
 
         private readonly List<ShopItemData> _mockItems = new()
         {
-            // 鈹€鈹€ 鐑崠 (6 items) 鈹€鈹€
-            new() { Name = "姹熸箹鏂版墜绀煎寘", Quality = 3, PriceGold = 1000, CanBuyWithGold = true, Category = "鐑崠" },
-            new() { Name = "姹熸箹鍘嗙粌绀肩洅", Quality = 4, PriceGold = 2880, CanBuyWithGold = true, Category = "鐑崠" },
-            new() { Name = "寮哄寲鏉愭枡鍖?, Quality = 3, PriceGold = 2000, CanBuyWithGold = true, Category = "鐑崠" },
-            new() { Name = "闄愭椂路宸呭嘲瀵瑰喅", Quality = 5, PriceGold = 0, PriceTongbao = 9800, Category = "鐑崠" },
-            new() { Name = "姣忔棩鐗规儬路閲戝竵", Quality = 3, PriceGold = 680, CanBuyWithGold = true, Category = "鐑崠" },
-            new() { Name = "姝﹀绉樼睄路鍏ラ棬", Quality = 4, PriceGold = 3500, CanBuyWithGold = true, Category = "鐑崠" },
+            // ── 热卖 (6 items) ──
+            new() { Name = "江湖新手礼包", Quality = 3, PriceGold = 1000, CanBuyWithGold = true, Category = "热卖" },
+            new() { Name = "江湖历练礼盒", Quality = 4, PriceGold = 2880, CanBuyWithGold = true, Category = "热卖" },
+            new() { Name = "强化材料包",    Quality = 3, PriceGold = 2000, CanBuyWithGold = true, Category = "热卖" },
+            new() { Name = "限时·巅峰对决", Quality = 5, PriceGold = 0, PriceTongbao = 9800, Category = "热卖" },
+            new() { Name = "每日特惠·金币", Quality = 3, PriceGold = 680, CanBuyWithGold = true, Category = "热卖" },
+            new() { Name = "武学秘籍·入门", Quality = 4, PriceGold = 3500, CanBuyWithGold = true, Category = "热卖" },
 
-            // 鈹€鈹€ 鏃惰 (5 items) 鈹€鈹€
-            new() { Name = "闄愭椂路缁濅唬椋庡崕", Quality = 5, PriceGold = 0, PriceTongbao = 12800, Category = "鏃惰" },
-            new() { Name = "鍑よ垶涔濆ぉ路琛?, Quality = 5, PriceGold = 0, PriceTongbao = 19800, Category = "鏃惰" },
-            new() { Name = "鏆楀骞藉叞路琛?, Quality = 4, PriceGold = 0, PriceTongbao = 8800, Category = "鏃惰" },
-            new() { Name = "鏄ラ鎷傛煶路濂楄", Quality = 4, PriceGold = 0, PriceTongbao = 6600, Category = "鏃惰" },
-            new() { Name = "鏄熸渤婕路鎶", Quality = 3, PriceGold = 0, PriceTongbao = 4800, Category = "鏃惰" },
+            // ── 时装 (5 items) ──
+            new() { Name = "限时·绝代风华", Quality = 5, PriceGold = 0, PriceTongbao = 12800, Category = "时装" },
+            new() { Name = "凤舞九天·衣",   Quality = 5, PriceGold = 0, PriceTongbao = 19800, Category = "时装" },
+            new() { Name = "暗夜幽兰·衣",   Quality = 4, PriceGold = 0, PriceTongbao = 8800,  Category = "时装" },
+            new() { Name = "春风拂柳·套装", Quality = 4, PriceGold = 0, PriceTongbao = 6600,  Category = "时装" },
+            new() { Name = "星河漫步·披风", Quality = 3, PriceGold = 0, PriceTongbao = 4800,  Category = "时装" },
 
-            // 鈹€鈹€ 閬撳叿 (6 items) 鈹€鈹€
-            new() { Name = "娲楃偧鐭陈烽珮绾?, Quality = 4, PriceGold = 5000, CanBuyWithGold = true, Category = "閬撳叿" },
-            new() { Name = "浜旇鐭陈峰叚绾?, Quality = 4, PriceGold = 1500, CanBuyWithGold = true, Category = "閬撳叿" },
-            new() { Name = "淇负涓孤峰ぇ", Quality = 3, PriceGold = 800, CanBuyWithGold = true, Category = "閬撳叿" },
-            new() { Name = "绮剧偧鐭陈锋瀬鍝?, Quality = 5, PriceGold = 12000, CanBuyWithGold = true, Category = "閬撳叿" },
-            new() { Name = "寮哄寲淇濇姢绗?, Quality = 4, PriceGold = 3000, CanBuyWithGold = true, Category = "閬撳叿" },
-            new() { Name = "鑳屽寘鎵╁睍鍒?, Quality = 3, PriceGold = 0, PriceTongbao = 1500, Category = "閬撳叿" },
+            // ── 道具 (6 items) ──
+            new() { Name = "洗炼石·高级",   Quality = 4, PriceGold = 5000, CanBuyWithGold = true, Category = "道具" },
+            new() { Name = "五行石·六级",   Quality = 4, PriceGold = 1500, CanBuyWithGold = true, Category = "道具" },
+            new() { Name = "修为丹·大",     Quality = 3, PriceGold = 800,  CanBuyWithGold = true, Category = "道具" },
+            new() { Name = "精炼石·极品",   Quality = 5, PriceGold = 12000, CanBuyWithGold = true, Category = "道具" },
+            new() { Name = "强化保护符",     Quality = 4, PriceGold = 3000, CanBuyWithGold = true, Category = "道具" },
+            new() { Name = "背包扩展页",     Quality = 3, PriceGold = 0, PriceTongbao = 1500, Category = "道具" },
 
-            // 鈹€鈹€ 浼樻儬 (4 items) 鈹€鈹€
-            new() { Name = "鏂版墜鐗规儬鍖?, Quality = 4, PriceGold = 680, CanBuyWithGold = true, Category = "浼樻儬" },
-            new() { Name = "闄愭椂鐗规儬路淇负", Quality = 3, PriceGold = 480, CanBuyWithGold = true, Category = "浼樻儬" },
-            new() { Name = "7鏃ユ湀鍗′綋楠屽埜", Quality = 3, PriceGold = 680, CanBuyWithGold = true, Category = "浼樻儬" },
-            new() { Name = "鍛ㄦ湯鐙傛绀肩洅", Quality = 4, PriceGold = 1280, CanBuyWithGold = true, Category = "浼樻儬" },
+            // ── 优惠 (4 items) ──
+            new() { Name = "限时·通宝礼包", Quality = 4, PriceGold = 0, PriceTongbao = 6480,  Category = "优惠" },
+            new() { Name = "新人特惠包",     Quality = 5, PriceGold = 0, PriceTongbao = 3800,  Category = "优惠" },
+            new() { Name = "每周材料包",     Quality = 3, PriceGold = 2500, CanBuyWithGold = true, Category = "优惠" },
+            new() { Name = "限时折扣·强化",  Quality = 4, PriceGold = 1800, CanBuyWithGold = true, Category = "优惠" },
 
-            // 鈹€鈹€ 鏈堝崱 (4 items) 鈹€鈹€
-            new() { Name = "鏈堝崱路30澶?, Quality = 4, PriceGold = 0, PriceTongbao = 6000, Category = "鏈堝崱" },
-            new() { Name = "鑷冲皧鏈堝崱路90澶?, Quality = 5, PriceGold = 0, PriceTongbao = 16800, Category = "鏈堝崱" },
-            new() { Name = "鏈堝崱路7澶╀綋楠?, Quality = 3, PriceGold = 0, PriceTongbao = 1200, Category = "鏈堝崱" },
-            new() { Name = "骞村害鑷冲皧鍗?, Quality = 5, PriceGold = 0, PriceTongbao = 49800, Category = "鏈堝崱" },
+            // ── 月卡 (3 items) ──
+            new() { Name = "月卡·青铜",     Quality = 3, PriceGold = 0, PriceTongbao = 3000,  Category = "月卡" },
+            new() { Name = "月卡·白银",     Quality = 4, PriceGold = 0, PriceTongbao = 6800,  Category = "月卡" },
+            new() { Name = "月卡·黄金",     Quality = 5, PriceGold = 0, PriceTongbao = 12800, Category = "月卡" },
         };
 
         // ===== UI References =====
@@ -84,11 +82,11 @@ namespace Jx3.UI.Panels
         }
 
         // =====================================================================
-        // 1. Title Bar 鈥?"鍟嗗煄" + close 鈫?MainCityPanel
+        // 1. Title Bar — "商城" + close → MainCityPanel
         // =====================================================================
         private void BuildTitleBar(RectTransform root)
         {
-            UIComponentFactory.CreateTitleBar(root, "鍟嗗煄", () =>
+            UIComponentFactory.CreateTitleBar(root, "商城", () =>
             {
                 UIManager.Instance.Hide<ShopPanel>();
                 UIManager.Instance.Show<MainCityPanel>();
@@ -96,7 +94,8 @@ namespace Jx3.UI.Panels
         }
 
         // =====================================================================
-        // 2. Currency Row 鈥?馃挵閲戝竵 + 馃拵閫氬疂 + 鍏呭€兼寜閽?        // =====================================================================
+        // 2. Currency Row — 💰金币 + 💎通宝 + 充值按钮
+        // =====================================================================
         private void BuildCurrencyBar(RectTransform root)
         {
             var bar = CreateBar(root, "CurrencyBar",
@@ -105,20 +104,21 @@ namespace Jx3.UI.Panels
 
             var p = GameManager.Instance.Player;
 
-            // 馃挵 閲戝竵
+            // 💰 金币
             UIComponentFactory.CreateCurrencyLabel(bar, "GoldLabel",
-                "馃挵", $"{p.Gold:N0}", ThemeColors.Gold, new Vector2(50, 0));
+                "💰", $"{p.Gold:N0}", ThemeColors.Gold, new Vector2(50, 0));
 
-            // 馃拵 閫氬疂
+            // 💎 通宝
             UIComponentFactory.CreateCurrencyLabel(bar, "TongbaoLabel",
-                "馃拵", $"{p.Tongbao:N0}", ThemeColors.Tongbao, new Vector2(280, 0));
+                "💎", $"{p.Tongbao:N0}", ThemeColors.Tongbao, new Vector2(280, 0));
 
-            // 鍏呭€兼寜閽?            var rechargeBtn = UIComponentFactory.CreatePrimaryButton(bar, "RechargeBtn", "鍏? 鍊?, OnRecharge);
+            // 充值按钮
+            var rechargeBtn = UIComponentFactory.CreatePrimaryButton(bar, "RechargeBtn", "充 值", OnRecharge);
             AnchorRight(rechargeBtn.GetComponent<RectTransform>(), new Vector2(100, 34), new Vector2(-60, 0));
         }
 
         // =====================================================================
-        // 3. Category Tabs 鈥?[鐑崠] [鏃惰] [閬撳叿] [浼樻儬] [鏈堝崱]
+        // 3. Category Tabs — [热卖] [时装] [道具] [优惠] [月卡]
         // =====================================================================
         private void BuildTabs(RectTransform root)
         {
@@ -144,7 +144,7 @@ namespace Jx3.UI.Panels
         }
 
         // =====================================================================
-        // 4. Grid Area 鈥?3-column GridLayoutGroup for shop items
+        // 4. Grid Area — 3-column GridLayoutGroup for shop items
         // =====================================================================
         private void BuildGridArea(RectTransform root)
         {
@@ -205,7 +205,8 @@ namespace Jx3.UI.Panels
         }
 
         // =====================================================================
-        // 5. Bottom Bar 鈥?鏈堝崱鍓╀綑澶╂暟 + 棰嗗彇/鍏呭€兼寜閽?        // =====================================================================
+        // 5. Bottom Bar — 月卡剩余天数 + 领取/充值按钮
+        // =====================================================================
         private void BuildBottomBar(RectTransform root)
         {
             var bottomBar = CreateBar(root, "BottomBar",
@@ -213,9 +214,9 @@ namespace Jx3.UI.Panels
                 new Color(0.13f, 0.12f, 0.09f, 0.85f),
                 AnchorY.Bottom);
 
-            // 鏈堝崱淇℃伅
+            // 月卡信息
             _monthlyText = UIComponentFactory.CreateText(bottomBar, "MonthlyInfo",
-                "鏈堝崱鍓╀綑: 0澶? |  姣忔棩棰嗗彇: 馃拵60閫氬疂 + 120浣撳姏",
+                "月卡剩余: 0天  |  每日领取: 💎60通宝 + 120体力",
                 ThemeColors.FontSmall, ThemeColors.TextNormal, TextAnchor.MiddleLeft);
             var mtRt = _monthlyText.rectTransform;
             mtRt.anchorMin = new Vector2(0, 0.5f);
@@ -223,16 +224,17 @@ namespace Jx3.UI.Panels
             mtRt.sizeDelta = new Vector2(420, 30);
             mtRt.anchoredPosition = new Vector2(24, 0);
 
-            // 棰嗗彇鎸夐挳
-            var claimBtn = UIComponentFactory.CreatePrimaryButton(bottomBar, "ClaimBtn", "棰? 鍙?, OnClaimDaily);
+            // 领取按钮
+            var claimBtn = UIComponentFactory.CreatePrimaryButton(bottomBar, "ClaimBtn", "领 取", OnClaimDaily);
             AnchorRight(claimBtn.GetComponent<RectTransform>(), new Vector2(80, 34), new Vector2(-12, 0));
 
-            // 鍏呭€兼寜閽?            var rechargeBtn = UIComponentFactory.CreateSecondaryButton(bottomBar, "BottomRechargeBtn", "鍏? 鍊?, OnRecharge);
+            // 充值按钮
+            var rechargeBtn = UIComponentFactory.CreateSecondaryButton(bottomBar, "BottomRechargeBtn", "充 值", OnRecharge);
             AnchorRight(rechargeBtn.GetComponent<RectTransform>(), new Vector2(80, 34), new Vector2(-104, 0));
         }
 
         // =====================================================================
-        // Show Category 鈥?filter items and update tab highlights
+        // Show Category — filter items and update tab highlights
         // =====================================================================
         private void ShowCategory(int index)
         {
@@ -265,7 +267,7 @@ namespace Jx3.UI.Panels
         }
 
         // =====================================================================
-        // Create Shop Item Card 鈥?icon placeholder | name | stars | price | buy
+        // Create Shop Item Card — icon placeholder | name | stars | price | buy
         // =====================================================================
         private void CreateShopItemCard(ShopItemData data)
         {
@@ -281,7 +283,7 @@ namespace Jx3.UI.Panels
             bRt.sizeDelta = Vector2.zero;
             border.GetComponent<Image>().color = ThemeColors.GetQualityColor(data.Quality) * new Color(1, 1, 1, 0.6f);
 
-            // Card background (#1a1a2e)
+            // Card background
             var card = new GameObject("Card", typeof(RectTransform), typeof(Image));
             card.transform.SetParent(item.transform, false);
             var cardRt = card.GetComponent<RectTransform>();
@@ -322,8 +324,8 @@ namespace Jx3.UI.Panels
 
             // Price
             string priceStr = data.CanBuyWithGold
-                ? $"馃挵 {data.PriceGold:N0}"
-                : $"馃拵 {data.PriceTongbao:N0}";
+                ? $"💰 {data.PriceGold:N0}"
+                : $"💎 {data.PriceTongbao:N0}";
             Color priceColor = data.CanBuyWithGold ? ThemeColors.Gold : ThemeColors.Tongbao;
             var priceTxt = UIComponentFactory.CreateText(cardRt, "Price", priceStr,
                 ThemeColors.FontSmall, priceColor, TextAnchor.MiddleLeft);
@@ -334,9 +336,9 @@ namespace Jx3.UI.Panels
             priceRt.anchoredPosition = new Vector2(14, 14);
 
             // Buy button
-            var buyBtn = UIComponentFactory.CreatePrimaryButton(cardRt, "BuyBtn", "璐? 涔?, () =>
+            var buyBtn = UIComponentFactory.CreatePrimaryButton(cardRt, "BuyBtn", "购 买", () =>
             {
-                Debug.Log($"[Shop] 璐拱: {data.Name}");
+                Debug.Log($"[Shop] 购买: {data.Name}");
                 ShopManager.Instance?.BuyItem(0);
             });
             var buyRt = (RectTransform)buyBtn.transform;
@@ -356,13 +358,13 @@ namespace Jx3.UI.Panels
         // =====================================================================
         private static void OnRecharge()
         {
-            Debug.Log("[Shop] 鎵撳紑鍏呭€肩晫闈?);
+            Debug.Log("[Shop] 打开充值界面");
             ShopManager.Instance?.Recharge(1);
         }
 
         private static void OnClaimDaily()
         {
-            Debug.Log("[Shop] 棰嗗彇鏈堝崱濂栧姳");
+            Debug.Log("[Shop] 领取月卡奖励");
             ShopManager.Instance?.BuyItem(0);
         }
 

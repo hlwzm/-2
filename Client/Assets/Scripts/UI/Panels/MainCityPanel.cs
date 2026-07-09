@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
 using Jx3.Core.Scene;
@@ -6,8 +6,8 @@ using Jx3.Core.Scene;
 namespace Jx3.UI.Panels
 {
     /// <summary>
-    /// 涓诲煄闈㈡澘 - 椤堕儴鐜╁淇℃伅 + 鍔熻兘鍏ュ彛缃戞牸 + 鍏憡鍖?+ 蹇嵎鎿嶄綔
-    /// 鏆楅粦姝︿緺椋庢牸 路 绱壊璋?路 鍏ㄧ▼搴忓寲鐢熸垚
+    /// 主城面板 - 顶部玩家信息 + 功能入口网格 + 公告区 + 快捷操作
+    /// 暗黑武侠风格 · 紫色调 · 全程序化生成
     /// </summary>
     public class MainCityPanel : BasePanel
     {
@@ -15,8 +15,8 @@ namespace Jx3.UI.Panels
         private Text _goldText, _tongbaoText, _staminaText;
         private Text _noticeText;
 
-        private static readonly string[] EntryNames = { "鑻遍泟", "鍓湰", "绔炴妧", "浜ゆ槗琛?, "鑳屽寘", "浠诲姟", "濂藉弸", "鍚岀洘" };
-        private static readonly string[] EntryIcons = { "鈿?, "馃彴", "鈿?, "馃挵", "馃帓", "馃摐", "馃懃", "馃彌" };
+        private static readonly string[] EntryNames = { "英雄", "副本", "竞技", "交易行", "背包", "任务", "好友", "同盟" };
+        private static readonly string[] EntryIcons = { "⚔", "🏰", "⚡", "💰", "🎒", "📜", "👥", "🏛" };
 
         protected override void Awake()
         {
@@ -33,7 +33,7 @@ namespace Jx3.UI.Panels
             RefreshPlayerData();
         }
 
-        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 1. 椤堕儴鏍?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        // ═══════════ 1. 顶部栏 ═══════════
         private void BuildTopBar(RectTransform root)
         {
             var bar = new GameObject("TopBar", typeof(RectTransform), typeof(Image));
@@ -60,29 +60,29 @@ namespace Jx3.UI.Panels
             avatar.GetComponent<Image>().color = ThemeColors.AccentDim;
 
             // Name / Level / Class
-            _nameText = PlaceText(rt, "Name", "鏈懡鍚?, ThemeColors.FontEntry, FontStyle.Bold, Color.white,
+            _nameText = PlaceText(rt, "Name", "未命名", ThemeColors.FontEntry, FontStyle.Bold, Color.white,
                 TextAnchor.MiddleLeft, 140, 30, 108, 12);
             _levelText = PlaceText(rt, "Level", "Lv.1", ThemeColors.FontSmall, FontStyle.Normal, ThemeColors.Gold,
                 TextAnchor.MiddleLeft, 60, 24, 108, -10);
-            _classText = PlaceText(rt, "Class", "渚犲＋", ThemeColors.FontSmall, FontStyle.Normal, ThemeColors.Tongbao,
+            _classText = PlaceText(rt, "Class", "侠士", ThemeColors.FontSmall, FontStyle.Normal, ThemeColors.Tongbao,
                 TextAnchor.MiddleLeft, 60, 24, 168, -10);
 
             // Currency labels
-            _goldText = UIComponentFactory.CreateCurrencyLabel(rt, "Gold", "馃挵", "000000", ThemeColors.Gold,
+            _goldText = UIComponentFactory.CreateCurrencyLabel(rt, "Gold", "💰", "000000", ThemeColors.Gold,
                 new Vector2(370, 12));
-            _tongbaoText = UIComponentFactory.CreateCurrencyLabel(rt, "Tongbao", "馃拵", "000000", ThemeColors.Tongbao,
+            _tongbaoText = UIComponentFactory.CreateCurrencyLabel(rt, "Tongbao", "💎", "000000", ThemeColors.Tongbao,
                 new Vector2(570, 12));
-            _staminaText = UIComponentFactory.CreateCurrencyLabel(rt, "Stamina", "鈿?, "120/120", ThemeColors.Stamina,
+            _staminaText = UIComponentFactory.CreateCurrencyLabel(rt, "Stamina", "⚡", "120/120", ThemeColors.Stamina,
                 new Vector2(770, 12));
 
             // Settings button
-            var settingsBtn = UIComponentFactory.CreateIconButton(rt, "Settings", "鈿?, 44, () => Debug.Log("[MainCity] Settings"));
+            var settingsBtn = UIComponentFactory.CreateIconButton(rt, "Settings", "⚙", 44, () => Debug.Log("[MainCity] Settings"));
             var srt = settingsBtn.GetComponent<RectTransform>();
             srt.anchorMin = new Vector2(1, 0.5f); srt.anchorMax = new Vector2(1, 0.5f);
             srt.anchoredPosition = new Vector2(-30, 0);
         }
 
-        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 2. 鍔熻兘鍏ュ彛缃戞牸 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        // ═══════════ 2. 功能入口网格 ═══════════
         private void BuildFunctionGrid(RectTransform root)
         {
             var grid = new GameObject("FunctionGrid", typeof(RectTransform));
@@ -92,7 +92,7 @@ namespace Jx3.UI.Panels
             grt.sizeDelta = new Vector2(900, 420); grt.anchoredPosition = new Vector2(0, 90);
 
             // Title
-            var title = UIComponentFactory.CreateText(grt, "Title", "鈥斺€?鍔熻兘鍏ュ彛 鈥斺€?,
+            var title = UIComponentFactory.CreateText(grt, "Title", "—— 功能入口 ——",
                 ThemeColors.FontSmall, ThemeColors.TextDim);
             var trt = title.rectTransform;
             trt.anchorMin = new Vector2(0, 1); trt.anchorMax = Vector2.one;
@@ -135,7 +135,7 @@ namespace Jx3.UI.Panels
             lrt.sizeDelta = new Vector2(size.x, 30); lrt.anchoredPosition = new Vector2(0, -35);
         }
 
-        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 3. 鍏憡鍖?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        // ═══════════ 3. 公告区 ═══════════
         private void BuildNoticeArea(RectTransform root)
         {
             var notice = new GameObject("NoticeArea", typeof(RectTransform), typeof(Image));
@@ -154,7 +154,7 @@ namespace Jx3.UI.Panels
             deco.GetComponent<Image>().color = ThemeColors.Accent;
 
             // Label
-            var label = UIComponentFactory.CreateText(nrt, "Label", "馃摙 鍏憡",
+            var label = UIComponentFactory.CreateText(nrt, "Label", "📙 公告",
                 ThemeColors.FontBody, ThemeColors.Gold); label.alignment = TextAnchor.MiddleCenter;
             var lrt = label.rectTransform;
             lrt.anchorMin = new Vector2(0, 0.5f); lrt.anchorMax = new Vector2(0, 0.5f);
@@ -162,7 +162,7 @@ namespace Jx3.UI.Panels
 
             // Content
             _noticeText = UIComponentFactory.CreateText(nrt, "Content",
-                "娆㈣繋鏉ュ埌鎸囧皷姹熸箹锛佹柊鐗堟湰宸蹭笂绾匡紝缁勯槦鍓湰寮€鍚紒",
+                "欢迎来到指尖江湖！新版本已上线，组队副本开启！",
                 ThemeColors.FontSmall, ThemeColors.TextDim);
             _noticeText.alignment = TextAnchor.MiddleLeft;
             var crt = _noticeText.rectTransform;
@@ -170,13 +170,13 @@ namespace Jx3.UI.Panels
             crt.sizeDelta = new Vector2(-120, 30); crt.anchoredPosition = new Vector2(60, 0);
 
             // Detail button
-            var detailBtn = UIComponentFactory.CreateSecondaryButton(nrt, "Detail", "璇︽儏", () => { });
+            var detailBtn = UIComponentFactory.CreateSecondaryButton(nrt, "Detail", "详情", () => { });
             var drt2 = detailBtn.GetComponent<RectTransform>();
             drt2.anchorMin = new Vector2(1, 0.5f); drt2.anchorMax = new Vector2(1, 0.5f);
             drt2.sizeDelta = new Vector2(60, 30); drt2.anchoredPosition = new Vector2(-10, 0);
         }
 
-        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 4. 蹇嵎鎿嶄綔 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        // ═══════════ 4. 快捷操作 ═══════════
         private void BuildQuickActions(RectTransform root)
         {
             var bar = new GameObject("QuickBar", typeof(RectTransform), typeof(Image));
@@ -194,9 +194,9 @@ namespace Jx3.UI.Panels
             lrt.sizeDelta = new Vector2(0, 2); lrt.anchoredPosition = Vector2.zero;
             line.GetComponent<Image>().color = ThemeColors.Accent;
 
-            string[] names = { "姣忔棩浠诲姟", "鍦ㄧ嚎濂栧姳", "闃熶紞鎷涘嫙" };
-            string[] descs = { "瀹屾垚鏃ュ父鑾峰緱濂栧姳", "绱鍦ㄧ嚎棰嗗ソ绀?, "蹇€熷尮閰嶉槦浼? };
-            string[] icons = { "馃搵", "馃巵", "馃摨" };
+            string[] names = { "每日任务", "在线奖励", "队伍招募" };
+            string[] descs = { "完成日常获得奖励", "累计在线领好礼", "快速匹配队伍" };
+            string[] icons = { "📵", "🎴", "📨" };
             float[] xs = { -300f, 0f, 300f };
 
             for (int i = 0; i < 3; i++)
@@ -226,7 +226,7 @@ namespace Jx3.UI.Panels
                 d.rectTransform.anchorMin = new Vector2(0, 0.5f); d.rectTransform.anchorMax = new Vector2(0, 0.5f);
                 d.rectTransform.sizeDelta = new Vector2(150, 20); d.rectTransform.anchoredPosition = new Vector2(60, -12);
 
-                var arrow = UIComponentFactory.CreateText(card, "Arrow", "锛?,
+                var arrow = UIComponentFactory.CreateText(card, "Arrow", "›",
                     ThemeColors.FontBody, ThemeColors.TextDim);
                 arrow.rectTransform.anchorMin = new Vector2(1, 0.5f);
                 arrow.rectTransform.anchorMax = new Vector2(1, 0.5f);
@@ -235,7 +235,7 @@ namespace Jx3.UI.Panels
             }
         }
 
-        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 5. Data 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        // ═══════════ 5. Data ═══════════
         public override void Refresh()
         {
             base.Refresh();
@@ -245,20 +245,20 @@ namespace Jx3.UI.Panels
         private void RefreshPlayerData()
         {
             var p = GameManager.Instance.Player;
-            _nameText.text = string.IsNullOrEmpty(p.Name) ? "鏈懡鍚? : p.Name;
+            _nameText.text = string.IsNullOrEmpty(p.Name) ? "未命名" : p.Name;
             _levelText.text = "Lv." + p.Level;
-            _classText.text = "渚犲＋";
-            _goldText.text = $"馃挵 {p.Gold:N0}";
-            _tongbaoText.text = $"馃拵 {p.Tongbao:N0}";
-            _staminaText.text = $"鈿?120/120";
+            _classText.text = "侠士";
+            _goldText.text = $"💰 {p.Gold:N0}";
+            _tongbaoText.text = $"💎 {p.Tongbao:N0}";
+            _staminaText.text = $"⚡ 120/120";
         }
 
         public void UpdateNotice(string msg) { if (_noticeText != null) _noticeText.text = msg; }
 
-        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 6. Events 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        // ═══════════ 6. Events ═══════════
         private void OnEntryClick(int index)
         {
-            Debug.Log($"[MainCity] 鐐瑰嚮: {EntryNames[index]}");
+            Debug.Log($"[MainCity] 点击: {EntryNames[index]}");
             UIManager.Instance.Hide<MainCityPanel>();
 
             switch (index)
@@ -276,11 +276,11 @@ namespace Jx3.UI.Panels
 
         private void OnQuickClick(int index)
         {
-            Debug.Log($"[MainCity] 蹇嵎鎿嶄綔: {index}");
+            Debug.Log($"[MainCity] 快捷操作: {index}");
             if (index == 0) { UIManager.Instance.Hide<MainCityPanel>(); UIManager.Instance.Show<QuestPanel>(); }
         }
 
-        // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 7. Helpers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        // ═══════════ 7. Helpers ═══════════
         private static Text PlaceText(RectTransform parent, string name, string text,
             int size, FontStyle style, Color color, TextAnchor anchor,
             float w, float h, float x, float y)

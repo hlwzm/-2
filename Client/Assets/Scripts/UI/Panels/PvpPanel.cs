@@ -1,4 +1,4 @@
-﻿#nullable disable
+#nullable disable
 using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
@@ -9,12 +9,12 @@ using System;
 namespace Jx3.UI.Panels
 {
     /// <summary>
-    /// PVP绔炴妧鍦哄尮閰嶉潰鏉?- 娈典綅鏄剧ず/妯″紡鍒囨崲/鍖归厤鎸夐挳/鍖归厤鍔ㄧ敾
-    /// 鏆楅粦绱壊涓婚,鍏ㄧ▼搴忓寲鐢熸垚
+    /// PVP竞技场匹配面板 - 段位显示/模式切换/匹配按钮/匹配动画
+    /// 暗黑紫色主题,全过程化生成
     /// </summary>
     public class PvpPanel : BasePanel
     {
-        // ===== 閰嶈壊 =====
+        // ===== 配色 =====
         private static readonly Color ColorBg = new Color(0.04f, 0.04f, 0.08f);       // #0a0a14
         private static readonly Color ColorCard = new Color(0.102f, 0.086f, 0.070f, 0.9f); // #12121e
         private static readonly Color ColorAccent = new Color(0.83f, 0.66f, 0.26f, 0.9f); // #b088ff
@@ -32,18 +32,18 @@ namespace Jx3.UI.Panels
         private static readonly Color ColorModeInactive = new Color(0.18f, 0.16f, 0.14f, 0.6f);
         private static readonly Color ColorTierBg = new Color(0.13f, 0.12f, 0.09f, 0.8f);
 
-        // ===== 娈典綅棰滆壊鏄犲皠 =====
+        // ===== 段位颜色映射 =====
         private static readonly Color[] TierColors =
         {
-            new Color(0.8f, 0.5f, 0.2f),  // 闈掗摐
-            new Color(0.7f, 0.7f, 0.8f),  // 鐧介摱
-            new Color(1f, 0.85f, 0.2f),   // 榛勯噾
-            new Color(0.5f, 0.8f, 1f),    // 閾傞噾
-            new Color(0.3f, 1f, 0.8f),    // 閽荤煶
+            new Color(0.8f, 0.5f, 0.2f),  // 青铜
+            new Color(0.7f, 0.7f, 0.8f),  // 白银
+            new Color(1f, 0.85f, 0.2f),   // 黄金
+            new Color(0.5f, 0.8f, 1f),    // 铂金
+            new Color(0.3f, 1f, 0.8f),    // 钻石
             new Color(1f, 0.4f, 0.6f),    //  legendary
         };
 
-        // ===== UI寮曠敤 =====
+        // ===== UI引用 =====
         private Text _titleText;
         private Text _tierNameText;
         private Text _pointsText;
@@ -59,20 +59,20 @@ namespace Jx3.UI.Panels
         private Text _matchBtnText;
         private Text _queueStatusText;
         private Button _backBtn;
-        private Button _rankBtn;      // 鎺掕姒滄寜閽?
+        private Button _rankBtn;      // 排行榜按钮
 
-        // 鍖归厤鍔ㄧ敾
+        // 匹配动画
         private GameObject _matchingAnimGo;
         private Image _matchingRing;
         private Text _matchingLabel;
 
-        // 閫夋墜灞曠ず鍖?鍖归厤鎴愬姛鍚庢樉绀虹畝鍖栦俊鎭?
+        // 选手展示区(匹配成功后显示简化信息)
         private GameObject _opponentPreviewGo;
         private Text _opponentNameText;
         private Text _opponentRankText;
         private Text _opponentClassText;
 
-        // 鐘舵€?
+        // 状态
         private bool _isMatching;
         private float _animAngle;
 
@@ -88,7 +88,7 @@ namespace Jx3.UI.Panels
             BuildOpponentPreview();
             BuildBottomButtons();
             SyncUIState();
-            // 鐩戝惉PVP浜嬩欢
+            // 监听PVP事件
             PvpManager.Instance.OnMatchStateChanged += OnMatchStateChanged;
             PvpManager.Instance.OnQueueUpdate += OnQueueUpdate;
             PvpManager.Instance.OnRankUpdate += OnRankUpdate;
@@ -107,7 +107,7 @@ namespace Jx3.UI.Panels
         }
 
         // =====================================================================
-        // UI鏋勫缓
+        // UI构建
         // =====================================================================
 
         private void BuildBackground()
@@ -120,7 +120,7 @@ namespace Jx3.UI.Panels
 
         private void BuildTopBar()
         {
-            // 椤堕儴鏍忚儗鏅?
+            // 顶部栏背景
             var topBar = new GameObject("TopBar", typeof(RectTransform), typeof(Image));
             topBar.transform.SetParent(transform, false);
             var topBarRt = topBar.GetComponent<RectTransform>();
@@ -130,7 +130,7 @@ namespace Jx3.UI.Panels
             topBarRt.anchoredPosition = new Vector2(0, -35);
             topBar.GetComponent<Image>().color = ColorCard;
 
-            // 搴曢儴瑁呴グ绾?
+            // 底部装饰线
             var line = new GameObject("Line", typeof(RectTransform), typeof(Image));
             line.transform.SetParent(topBarRt, false);
             var lineRt = line.GetComponent<RectTransform>();
@@ -140,16 +140,16 @@ namespace Jx3.UI.Panels
             lineRt.anchoredPosition = new Vector2(0, 0);
             line.GetComponent<Image>().color = ColorAccent;
 
-            // 鏍囬
-            _titleText = CreateText(topBarRt, "Title", "鈿?绔炴妧鍦?鈿?, 36);
+            // 标题
+            _titleText = CreateText(topBarRt, "Title", "⚔ 竞技场 ⚔", 36);
             _titleText.fontStyle = FontStyle.Bold;
             _titleText.color = ColorGold;
             _titleText.rectTransform.anchorMin = new Vector2(0.5f, 0);
             _titleText.rectTransform.anchorMax = new Vector2(0.5f, 1);
             _titleText.rectTransform.sizeDelta = new Vector2(300, 0);
 
-            // 杩斿洖鎸夐挳
-            _backBtn = CreateButton(topBarRt, "BackBtn", "鈫?杩斿洖", () =>
+            // 返回按钮
+            _backBtn = CreateButton(topBarRt, "BackBtn", "← 返回", () =>
             {
                 if (_isMatching) PvpManager.Instance.CancelMatch();
                 Hide();
@@ -164,7 +164,7 @@ namespace Jx3.UI.Panels
 
         private void BuildRankCard()
         {
-            // 娈典綅鍗＄墖
+            // 段位卡片
             var card = new GameObject("RankCard", typeof(RectTransform), typeof(Image));
             card.transform.SetParent(transform, false);
             var cardRt = card.GetComponent<RectTransform>();
@@ -174,7 +174,7 @@ namespace Jx3.UI.Panels
             cardRt.anchoredPosition = new Vector2(0, -130);
             card.GetComponent<Image>().color = ColorCard;
 
-            // 杈规
+            // 边框
             var border = new GameObject("Border", typeof(RectTransform), typeof(Image));
             border.transform.SetParent(cardRt, false);
             var borderRt = border.GetComponent<RectTransform>();
@@ -183,15 +183,15 @@ namespace Jx3.UI.Panels
             borderRt.sizeDelta = new Vector2(-4, -4);
             border.GetComponent<Image>().color = new Color(0.3f, 0.3f, 0.5f, 0.5f);
 
-            // 娈典綅鍥炬爣鑳屾櫙(鍦嗗舰鍗犱綅)
+            // 段位图标背景(圆形占位)
             _tierIconBg = CreateImage(cardRt, "TierIcon", ColorTierBg);
             _tierIconBg.rectTransform.anchorMin = new Vector2(0, 0.5f);
             _tierIconBg.rectTransform.anchorMax = new Vector2(0, 0.5f);
             _tierIconBg.rectTransform.sizeDelta = new Vector2(80, 80);
             _tierIconBg.rectTransform.anchoredPosition = new Vector2(60, 0);
 
-            // 娈典綅鍚嶇О
-            _tierNameText = CreateText(cardRt, "TierName", "闈掗摐", 28);
+            // 段位名称
+            _tierNameText = CreateText(cardRt, "TierName", "青铜", 28);
             _tierNameText.fontStyle = FontStyle.Bold;
             _tierNameText.color = TierColors[0];
             _tierNameText.alignment = TextAnchor.MiddleLeft;
@@ -200,8 +200,8 @@ namespace Jx3.UI.Panels
             _tierNameText.rectTransform.sizeDelta = new Vector2(140, 40);
             _tierNameText.rectTransform.anchoredPosition = new Vector2(130, 20);
 
-            // 绉垎
-            _pointsText = CreateText(cardRt, "Points", "1000 鍒?, 22);
+            // 积分
+            _pointsText = CreateText(cardRt, "Points", "1000 分", 22);
             _pointsText.color = ColorTextDim;
             _pointsText.alignment = TextAnchor.MiddleLeft;
             _pointsText.rectTransform.anchorMin = new Vector2(0, 0.5f);
@@ -209,8 +209,8 @@ namespace Jx3.UI.Panels
             _pointsText.rectTransform.sizeDelta = new Vector2(140, 30);
             _pointsText.rectTransform.anchoredPosition = new Vector2(130, -20);
 
-            // 鑳滅巼
-            var winLabel = CreateText(cardRt, "WinLabel", "鑳滅巼", 16);
+            // 胜率
+            var winLabel = CreateText(cardRt, "WinLabel", "胜率", 16);
             winLabel.color = ColorTextDim;
             winLabel.alignment = TextAnchor.MiddleLeft;
             winLabel.rectTransform.anchorMin = new Vector2(0, 0);
@@ -226,8 +226,8 @@ namespace Jx3.UI.Panels
             _winRateText.rectTransform.sizeDelta = new Vector2(100, 24);
             _winRateText.rectTransform.anchoredPosition = new Vector2(80, 24);
 
-            // 杩炶儨
-            var streakLabel = CreateText(cardRt, "StreakLabel", "杩炶儨", 16);
+            // 连胜
+            var streakLabel = CreateText(cardRt, "StreakLabel", "连胜", 16);
             streakLabel.color = ColorTextDim;
             streakLabel.alignment = TextAnchor.MiddleLeft;
             streakLabel.rectTransform.anchorMin = new Vector2(0, 0);
@@ -243,7 +243,7 @@ namespace Jx3.UI.Panels
             _streakText.rectTransform.sizeDelta = new Vector2(100, 24);
             _streakText.rectTransform.anchoredPosition = new Vector2(80, -4);
 
-            // 鎺掕姒滃悕娆?
+            // 排行榜名次
             _rankPosText = CreateText(cardRt, "RankPos", "", 16);
             _rankPosText.color = ColorAccentDim;
             _rankPosText.alignment = TextAnchor.MiddleRight;
@@ -255,7 +255,7 @@ namespace Jx3.UI.Panels
 
         private void BuildModeToggle()
         {
-            // 妯″紡鍒囨崲鍖哄煙
+            // 模式切换区域
             var modeArea = new GameObject("ModeArea", typeof(RectTransform));
             modeArea.transform.SetParent(transform, false);
             var modeRt = modeArea.GetComponent<RectTransform>();
@@ -264,7 +264,7 @@ namespace Jx3.UI.Panels
             modeRt.sizeDelta = new Vector2(340, 56);
             modeRt.anchoredPosition = new Vector2(0, -250);
 
-            // 1v1鎸夐挳
+            // 1v1按钮
             _mode1v1Btn = CreateButton(modeRt, "Mode1v1", "1 vs 1", () =>
             {
                 PvpManager.Instance.SetMatchMode(1);
@@ -277,7 +277,7 @@ namespace Jx3.UI.Panels
             m1Rt.anchoredPosition = new Vector2(85, 0);
             _mode1v1Text = m1Rt.GetComponentInChildren<Text>();
 
-            // 3v3鎸夐挳
+            // 3v3按钮
             _mode3v3Btn = CreateButton(modeRt, "Mode3v3", "3 vs 3", () =>
             {
                 PvpManager.Instance.SetMatchMode(3);
@@ -295,15 +295,15 @@ namespace Jx3.UI.Panels
 
         private void BuildMatchButton()
         {
-            // 鍖归厤鎸夐挳 - 灞呬腑鍋忎笅
-            _matchBtn = CreateButton(transform as RectTransform, "MatchBtn", "寮€ 濮?鍖?閰?, OnMatchBtnClick);
+            // 匹配按钮 - 居中偏下
+            _matchBtn = CreateButton(transform as RectTransform, "MatchBtn", "开 始 匹 配", OnMatchBtnClick);
             var btnRt = _matchBtn.GetComponent<RectTransform>();
             btnRt.anchorMin = new Vector2(0.5f, 0.5f);
             btnRt.anchorMax = new Vector2(0.5f, 0.5f);
             btnRt.sizeDelta = new Vector2(240, 60);
             btnRt.anchoredPosition = new Vector2(0, -50);
 
-            // 鑷畾涔夋寜閽牱寮?
+            // 自定义按钮样式
             var btnImg = _matchBtn.GetComponent<Image>();
             btnImg.color = ColorBtnMatch;
 
@@ -311,7 +311,7 @@ namespace Jx3.UI.Panels
             _matchBtnText.fontSize = 26;
             _matchBtnText.fontStyle = FontStyle.Bold;
 
-            // 闃熷垪鐘舵€佹枃瀛?鍦ㄦ寜閽笅鏂?
+            // 队列状态文本(在按钮下方)
             _queueStatusText = CreateText(transform as RectTransform, "QueueStatus", "", 18);
             _queueStatusText.color = ColorAccentDim;
             _queueStatusText.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
@@ -322,7 +322,7 @@ namespace Jx3.UI.Panels
 
         private void BuildMatchingAnimation()
         {
-            // 鍖归厤涓姩鐢诲鍣?
+            // 匹配中动画容器
             _matchingAnimGo = new GameObject("MatchingAnim", typeof(RectTransform));
             _matchingAnimGo.transform.SetParent(transform, false);
             var animRt = _matchingAnimGo.GetComponent<RectTransform>();
@@ -332,14 +332,14 @@ namespace Jx3.UI.Panels
             animRt.anchoredPosition = new Vector2(0, 60);
             _matchingAnimGo.SetActive(false);
 
-            // 鏃嬭浆鐜?
+            // 旋转环
             _matchingRing = CreateImage(animRt, "Ring", ColorAccent);
             _matchingRing.rectTransform.anchorMin = Vector2.zero;
             _matchingRing.rectTransform.anchorMax = Vector2.one;
             _matchingRing.rectTransform.sizeDelta = new Vector2(-8, -8);
 
-            // 涓績鏂囧瓧
-            _matchingLabel = CreateText(animRt, "Label", "鍖归厤涓?, 22);
+            // 中心文字
+            _matchingLabel = CreateText(animRt, "Label", "匹配中", 22);
             _matchingLabel.fontStyle = FontStyle.Bold;
             _matchingLabel.color = ColorTextBright;
             _matchingLabel.rectTransform.anchorMin = Vector2.zero;
@@ -349,7 +349,7 @@ namespace Jx3.UI.Panels
 
         private void BuildOpponentPreview()
         {
-            // 瀵规墜棰勮(鍖归厤鎴愬姛鍚庢樉绀哄湪鍖归厤鎸夐挳涓婃柟)
+            // 对手预览(匹配成功后显示在匹配按钮上方)
             _opponentPreviewGo = new GameObject("OpponentPreview", typeof(RectTransform));
             _opponentPreviewGo.transform.SetParent(transform, false);
             var prevRt = _opponentPreviewGo.GetComponent<RectTransform>();
@@ -359,7 +359,7 @@ namespace Jx3.UI.Panels
             prevRt.anchoredPosition = new Vector2(0, -340);
             _opponentPreviewGo.SetActive(false);
 
-            // 瀵规墜鍗＄墖鑳屾櫙
+            // 对手卡片背景
             var card = new GameObject("Card", typeof(RectTransform), typeof(Image));
             card.transform.SetParent(prevRt, false);
             var cardImg = card.GetComponent<Image>();
@@ -369,7 +369,7 @@ namespace Jx3.UI.Panels
             cardRt.anchorMax = Vector2.one;
             cardRt.sizeDelta = Vector2.zero;
 
-            // 杈规
+            // 边框
             var border = new GameObject("Border", typeof(RectTransform), typeof(Image));
             border.transform.SetParent(cardRt, false);
             border.GetComponent<Image>().color = ColorAccentDim;
@@ -378,8 +378,8 @@ namespace Jx3.UI.Panels
             borderRt.anchorMax = Vector2.one;
             borderRt.sizeDelta = new Vector2(-4, -4);
 
-            // "宸插尮閰嶅埌瀵规墜" 鏍囩
-            var matchLabel = CreateText(cardRt, "MatchLabel", "鈿?宸插尮閰嶅埌瀵规墜 鈿?, 20);
+            // "已匹配到对手" 标签
+            var matchLabel = CreateText(cardRt, "MatchLabel", "⚔ 已匹配到对手 ⚔", 20);
             matchLabel.color = ColorGold;
             matchLabel.fontStyle = FontStyle.Bold;
             matchLabel.rectTransform.anchorMin = new Vector2(0, 1);
@@ -387,8 +387,8 @@ namespace Jx3.UI.Panels
             matchLabel.rectTransform.sizeDelta = new Vector2(0, 28);
             matchLabel.rectTransform.anchoredPosition = new Vector2(0, -14);
 
-            // 瀵规墜鍚?
-            _opponentNameText = CreateText(cardRt, "OpponentName", "瀵规墜", 22);
+            // 对手名
+            _opponentNameText = CreateText(cardRt, "OpponentName", "对手", 22);
             _opponentNameText.fontStyle = FontStyle.Bold;
             _opponentNameText.color = ColorTextBright;
             _opponentNameText.alignment = TextAnchor.MiddleLeft;
@@ -397,8 +397,8 @@ namespace Jx3.UI.Panels
             _opponentNameText.rectTransform.sizeDelta = new Vector2(-10, 0);
             _opponentNameText.rectTransform.anchoredPosition = new Vector2(10, 0);
 
-            // 瀵规墜娈典綅
-            _opponentRankText = CreateText(cardRt, "OpponentRank", "闈掗摐 I", 18);
+            // 对手段位
+            _opponentRankText = CreateText(cardRt, "OpponentRank", "青铜 I", 18);
             _opponentRankText.color = ColorTextDim;
             _opponentRankText.alignment = TextAnchor.MiddleLeft;
             _opponentRankText.rectTransform.anchorMin = new Vector2(0.5f, 0.3f);
@@ -406,8 +406,8 @@ namespace Jx3.UI.Panels
             _opponentRankText.rectTransform.sizeDelta = new Vector2(-10, 0);
             _opponentRankText.rectTransform.anchoredPosition = new Vector2(10, 0);
 
-            // 瀵规墜闂ㄦ淳
-            _opponentClassText = CreateText(cardRt, "OpponentClass", "绾槼", 18);
+            // 对手门派
+            _opponentClassText = CreateText(cardRt, "OpponentClass", "纯阳", 18);
             _opponentClassText.color = new Color(0.5f, 0.8f, 1f);
             _opponentClassText.alignment = TextAnchor.MiddleLeft;
             _opponentClassText.rectTransform.anchorMin = new Vector2(0.7f, 0.3f);
@@ -418,8 +418,8 @@ namespace Jx3.UI.Panels
 
         private void BuildBottomButtons()
         {
-            // 鎺掕姒滄寜閽?
-            _rankBtn = CreateButton(transform as RectTransform, "RankBtn", "馃弳 鎺掕姒?, () =>
+            // 排行榜按钮
+            _rankBtn = CreateButton(transform as RectTransform, "RankBtn", "🏳 排行榜", () =>
             {
                 UIManager.Instance.Show<PvpRankPanel>();
                 PvpManager.Instance.RequestRankInfo();
@@ -432,7 +432,7 @@ namespace Jx3.UI.Panels
         }
 
         // =====================================================================
-        // 浜や簰閫昏緫
+        // 交互逻辑
         // =====================================================================
 
         private void OnMatchBtnClick()
@@ -462,8 +462,8 @@ namespace Jx3.UI.Panels
             if (_isMatching)
             {
                 _queueStatusText.text = size > 0
-                    ? $"闃熷垪涓? {size} 浜虹瓑寰?.."
-                    : "姝ｅ湪鍖归厤...";
+                    ? $"队列中 {size} 人等待.."
+                    : "正在匹配...";
             }
         }
 
@@ -471,12 +471,12 @@ namespace Jx3.UI.Panels
         {
             _tierNameText.text = rank.TierName;
             _tierNameText.color = TierColors[(int)rank.Tier];
-            _pointsText.text = $"{rank.Points} 鍒?;
+            _pointsText.text = $"{rank.Points} 分";
             _winRateText.text = $"{rank.WinRate * 100:F1}%";
             _streakText.text = rank.Streak > 0
-                ? $"馃敟 {rank.Streak}杩炶儨"
+                ? $"🔥 {rank.Streak}连胜"
                 : rank.Streak < 0
-                    ? $"馃挧 {Math.Abs(rank.Streak)}杩炶触"
+                    ? $"💧 {Math.Abs(rank.Streak)}连败"
                     : "-";
             _streakText.color = rank.Streak > 0 ? ColorGreen : rank.Streak < 0 ? ColorRed : ColorTextDim;
             _rankPosText.text = rank.RankPosition > 0 ? $"# {rank.RankPosition}" : "";
@@ -487,9 +487,9 @@ namespace Jx3.UI.Panels
         {
             _opponentPreviewGo.SetActive(true);
             _opponentNameText.text = opponent.Name;
-            _opponentRankText.text = $"{opponent.Rank.TierName} {opponent.Rank.Points}鍒?;
+            _opponentRankText.text = $"{opponent.Rank.TierName} {opponent.Rank.Points}分";
             _opponentClassText.text = opponent.ClassName;
-            _matchBtnText.text = "绛?寰?纭?璁?;
+            _matchBtnText.text = "等 待 确 认";
         }
 
         private void SyncModeToggle()
@@ -507,14 +507,14 @@ namespace Jx3.UI.Panels
 
             if (_isMatching)
             {
-                _matchBtnText.text = "鍙?娑?鍖?閰?;
+                _matchBtnText.text = "取 消 匹 配";
                 _matchBtn.GetComponent<Image>().color = ColorBtnCancel;
                 _matchingAnimGo?.SetActive(true);
-                _queueStatusText.text = "姝ｅ湪鍖归厤...";
+                _queueStatusText.text = "正在匹配...";
             }
             else
             {
-                _matchBtnText.text = "寮€ 濮?鍖?閰?;
+                _matchBtnText.text = "开 始 匹 配";
                 _matchBtn.GetComponent<Image>().color = ColorBtnMatch;
                 _matchingAnimGo?.SetActive(false);
                 _queueStatusText.text = "";
@@ -523,12 +523,12 @@ namespace Jx3.UI.Panels
 
         void Update()
         {
-            // 鍖归厤涓棆杞姩鐢?
+            // 匹配中旋转动画
             if (_isMatching && _matchingAnimGo.activeSelf)
             {
                 _animAngle += Time.deltaTime * 180f;
                 _matchingRing.rectTransform.localRotation = Quaternion.Euler(0, 0, _animAngle);
-                // 閫忔槑搴﹁剦鍐?
+                // 透明度脉搏
                 float pulse = 0.6f + Mathf.Sin(Time.time * 4f) * 0.4f;
                 _matchingRing.color = new Color(ColorAccent.r, ColorAccent.g, ColorAccent.b, pulse);
             }
@@ -550,7 +550,7 @@ namespace Jx3.UI.Panels
         {
             base.OnShow();
             Refresh();
-            // 璇锋眰娈典綅淇℃伅
+            // 请求段位信息
             PvpManager.Instance.RequestRankInfo();
         }
 
