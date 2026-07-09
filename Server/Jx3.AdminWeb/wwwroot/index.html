@@ -1,0 +1,553 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>指尖江湖2 - 管理后台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0a0a14;color:#c8c8d4;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#0a0a14}
+::-webkit-scrollbar-thumb{background:#2a2a3e;border-radius:3px}
+a{color:#b088ff;text-decoration:none}
+
+/* Layout */
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;background:#0f0f1e;padding:20px 0;border-right:1px solid #1a1a2e;position:fixed;height:100vh;overflow-y:auto;z-index:10}
+.sidebar .logo{padding:0 20px 24px;border-bottom:1px solid #1a1a2e;margin-bottom:8px}
+.sidebar .logo h1{font-size:20px;color:#b088ff;font-weight:700}
+.sidebar .logo p{font-size:11px;color:#555;margin-top:4px}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:#777;text-decoration:none;font-size:13px;transition:all .2s;border-left:3px solid transparent}
+.sidebar a:hover,.sidebar a.active{color:#b088ff;background:rgba(176,136,255,.06);border-left-color:#b088ff}
+.sidebar a .icon{width:20px;text-align:center;font-size:15px}
+.main{margin-left:220px;flex:1;padding:24px 32px}
+.main .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid #1a1a2e}
+.main .header h2{font-size:20px;color:#e8e8f0;font-weight:600}
+.main .header .server-time{font-size:12px;color:#555;font-family:monospace}
+.page{display:none}
+.page.active{display:block}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+.card{background:#12121e;border-radius:10px;padding:18px 20px;border:1px solid #1e1e30;position:relative;overflow:hidden;transition:border-color .2s}
+.card:hover{border-color:#2a2a44}
+.card .label{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.card .value{font-size:26px;font-weight:700;color:#f0f0ff}
+.card .sub{font-size:11px;color:#555;margin-top:3px}
+.card .icon-bg{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:40px;opacity:.06;color:#b088ff}
+
+/* Tables */
+.table-wrap{background:#12121e;border-radius:10px;border:1px solid #1e1e30;overflow:hidden;margin-bottom:20px}
+.table-wrap .title{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #1e1e30;background:#0f0f1c}
+.table-wrap .title h3{font-size:14px;color:#d0d0e0;font-weight:500}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #18182a;font-size:13px}
+th{color:#666;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;background:#0c0c18}
+td{color:#c0c0d0}
+tr:nth-child(even){background:rgba(255,255,255,.015)}
+tr:hover{background:rgba(176,136,255,.04)}
+
+/* Forms */
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;color:#666;margin-bottom:5px;letter-spacing:.3px}
+input,textarea,select{width:100%;max-width:400px;padding:9px 12px;border:1px solid #22223a;border-radius:6px;background:#0f0f1e;color:#c8c8d4;font-size:13px;outline:none;transition:border-color .2s}
+input:focus,textarea:focus,select:focus{border-color:#b088ff}
+textarea{resize:vertical;min-height:70px}
+
+/* Buttons */
+button{padding:8px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;transition:all .2s;font-weight:500}
+button:active{transform:scale(.97)}
+.btn-primary{background:#b088ff;color:#fff}
+.btn-primary:hover{background:#9a6fef;box-shadow:0 4px 16px rgba(176,136,255,.25)}
+.btn-danger{background:#e74c5e;color:#fff}
+.btn-danger:hover{background:#d43c4e;box-shadow:0 4px 16px rgba(231,76,94,.25)}
+.btn-success{background:#2ecc71;color:#fff}
+.btn-success:hover{background:#27ae60;box-shadow:0 4px 16px rgba(46,204,113,.25)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-outline{background:transparent;border:1px solid #333;color:#999}
+.btn-outline:hover{border-color:#b088ff;color:#b088ff}
+
+/* Search bar */
+.search-bar{display:flex;gap:8px;margin-bottom:16px;align-items:center}
+.search-bar input{max-width:280px}
+.search-bar .info{font-size:12px;color:#555;margin-left:auto}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(46,204,113,.12);color:#2ecc71}
+.badge-red{background:rgba(231,76,94,.12);color:#e74c5e}
+.badge-yellow{background:rgba(241,196,15,.12);color:#f1c40f}
+.badge-blue{background:rgba(52,152,219,.12);color:#3498db}
+.badge-purple{background:rgba(176,136,255,.12);color:#b088ff}
+
+/* Quality colors */
+.q1{color:#b0b0b0}
+.q2{color:#2ecc71}
+.q3{color:#3498db}
+.q4{color:#b088ff}
+.q5{color:#f39c12}
+
+/* Toast */
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-size:13px;z-index:9999;transform:translateX(120%);transition:transform .3s;max-width:360px}
+.toast.show{transform:translateX(0)}
+.toast.success{background:#2ecc71}
+.toast.error{background:#e74c5e}
+.toast.info{background:#3498db}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:#12121e;border-radius:12px;padding:28px;width:460px;max-width:90vw;border:1px solid #1e1e30;max-height:80vh;overflow-y:auto}
+.modal h3{color:#e8e8f0;margin-bottom:16px;font-size:16px}
+.modal .form-group{margin-bottom:12px}
+.modal .form-group label{font-size:12px}
+.modal .btns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+
+/* Pagination */
+.pagination{display:flex;gap:6px;align-items:center;justify-content:center;padding:12px 0}
+.pagination button{padding:5px 12px;font-size:12px;background:#1a1a2e;color:#888;border:1px solid #2a2a3e}
+.pagination button:hover{background:#2a2a3e;color:#b088ff}
+.pagination button.active{background:#b088ff;color:#fff;border-color:#b088ff}
+.pagination span{color:#555;font-size:12px;margin:0 6px}
+
+/* Announcement list */
+.ann-item{background:#0f0f1e;border:1px solid #1e1e30;border-radius:8px;padding:14px 16px;margin-bottom:10px}
+.ann-item .ann-title{color:#d0d0e0;font-weight:500;font-size:14px;margin-bottom:4px}
+.ann-item .ann-meta{font-size:11px;color:#555}
+.ann-item .ann-content{color:#999;font-size:13px;margin-top:8px;line-height:1.6;white-space:pre-wrap}
+.ann-item .ann-actions{margin-top:8px}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.page.active{animation:fadeIn .25s ease}
+
+@media(max-width:768px){
+  .sidebar{width:60px}
+  .sidebar .logo h1,.sidebar .logo p,.sidebar a span{display:none}
+  .sidebar a{justify-content:center;padding:14px;border-left:none}
+  .sidebar a .icon{font-size:18px}
+  .main{margin-left:60px;padding:16px}
+  .cards{grid-template-columns:repeat(2,1fr)}
+  .search-bar{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="logo"><h1>✦ 管理</h1><p>指尖江湖2 后台</p></div>
+    <a class="active" onclick="switchPage('dashboard')"><span class="icon">📊</span><span>总览</span></a>
+    <a onclick="switchPage('users')"><span class="icon">👥</span><span>用户管理</span></a>
+    <a onclick="switchPage('announcements')"><span class="icon">📢</span><span>公告管理</span></a>
+    <a onclick="switchPage('trade')"><span class="icon">🏪</span><span>交易监控</span></a>
+    <a onclick="switchPage('dungeon')"><span class="icon">⚔️</span><span>副本统计</span></a>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="header">
+      <h2 id="pageTitle">总览仪表盘</h2>
+      <span class="server-time" id="serverTime">--</span>
+    </div>
+
+    <!-- ═══ Dashboard ═══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="cards" id="dashCards"></div>
+      <div class="table-wrap">
+        <div class="title"><h3>服务器状态</h3></div>
+        <div style="padding:16px;font-size:13px;color:#888;line-height:2" id="serverStatus"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Users ═══ -->
+    <div class="page" id="page-users">
+      <div class="search-bar">
+        <input id="userSearch" placeholder="搜索用户昵称..." onkeyup="if(event.key==='Enter')loadUsers(1)">
+        <button class="btn-primary btn-sm" onclick="loadUsers(1)">🔍 搜索</button>
+        <span class="info" id="userTotal">共 0 人</span>
+      </div>
+      <div class="table-wrap">
+        <div class="title"><h3>用户列表</h3></div>
+        <table><thead><tr>
+          <th>ID</th><th>昵称</th><th>等级</th><th>金币</th><th>VIP</th><th>状态</th><th>操作</th>
+        </tr></thead><tbody id="userTable"></tbody></table>
+        <div class="pagination" id="userPagination"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Announcements ═══ -->
+    <div class="page" id="page-announcements">
+      <div class="table-wrap">
+        <div class="title"><h3>发布新公告</h3></div>
+        <div style="padding:16px">
+          <div class="form-group"><label>公告标题</label><input id="annTitle" placeholder="输入公告标题" maxlength="50"></div>
+          <div class="form-group"><label>公告内容</label><textarea id="annContent" placeholder="输入公告内容..." rows="3"></textarea></div>
+          <button class="btn-primary" onclick="postAnnouncement()">📢 发布公告</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="title"><h3>已发布公告</h3></div>
+        <div style="padding:12px 16px" id="annList"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Trade ═══ -->
+    <div class="page" id="page-trade">
+      <div class="search-bar">
+        <span class="info" id="tradeTotal">加载中...</span>
+      </div>
+      <div class="table-wrap">
+        <div class="title"><h3>交易行上架列表</h3></div>
+        <table><thead><tr>
+          <th>ID</th><th>物品</th><th>品质</th><th>数量</th><th>单价</th><th>总额</th><th>卖家</th><th>剩余</th><th>上架时间</th>
+        </tr></thead><tbody id="tradeTable"></tbody></table>
+        <div class="pagination" id="tradePagination"></div>
+      </div>
+    </div>
+
+    <!-- ═══ Dungeon ═══ -->
+    <div class="page" id="page-dungeon">
+      <div class="cards" id="dungeonSummaryCards"></div>
+      <div class="table-wrap">
+        <div class="title"><h3>副本通关统计</h3></div>
+        <table><thead><tr>
+          <th>副本名称</th><th>难度</th><th>通关次数</th><th>平均用时</th><th>总死亡</th><th>参与人数</th><th>掉落率</th>
+        </tr></thead><tbody id="dungeonTable"></tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <h3 id="modalTitle">用户详情</h3>
+    <div id="modalBody"></div>
+    <div class="btns">
+      <button class="btn-outline" onclick="closeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── API base ──
+const API = '';
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  clearTimeout(toastTimer); toastTimer = setTimeout(function() { t.className = 'toast ' + type; }, 3000);
+}
+
+// ── Page switching ──
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.sidebar a').forEach(function(a) { a.classList.remove('active'); });
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelector('.sidebar a[onclick*="' + name + '"]').classList.add('active');
+  var titles = { dashboard: '总览仪表盘', users: '用户管理', announcements: '公告管理', trade: '交易监控', dungeon: '副本统计' };
+  document.getElementById('pageTitle').textContent = titles[name] || name;
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'users') loadUsers(1);
+  if (name === 'announcements') loadAnnouncements();
+  if (name === 'trade') loadTrade(1);
+  if (name === 'dungeon') loadDungeonStats();
+}
+
+// ── API call ──
+function api(path, opts) {
+  var url = API + '/api' + path;
+  var opt = opts || {};
+  var fetchOpts = { method: opt.method || 'GET', headers: { 'Content-Type': 'application/json' } };
+  if (opt.body) fetchOpts.body = JSON.stringify(opt.body);
+  return fetch(url, fetchOpts).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+}
+
+// ═══════════════════════════════════════════
+//  Dashboard
+// ═══════════════════════════════════════════
+var dashTimer;
+function loadDashboard() {
+  clearInterval(dashTimer);
+  api('/dashboard').then(function(d) {
+    var cards = [
+      { label: '在线玩家', value: d.onlinePlayers, sub: '当前在线', icon: '👤' },
+      { label: '总用户数', value: d.totalUsers, sub: '注册账号', icon: '👥' },
+      { label: '交易笔数', value: d.totalTrades, sub: '累计上架', icon: '💰' },
+      { label: '交易总额', value: fmtGold(d.tradeVolume), sub: '手续费收入 ' + fmtGold(Math.floor(d.tradeVolume * 0.05)), icon: '📈' },
+      { label: '副本通关', value: d.dungeonClears, sub: '累计次数', icon: '⚔️' },
+      { label: '封禁用户', value: d.bannedCount, sub: '已封禁', icon: '🔒' }
+    ];
+    var h = '';
+    cards.forEach(function(c) { h += '<div class="card"><div class="label">' + c.label + '</div><div class="value">' + c.value + '</div><div class="sub">' + c.sub + '</div><div class="icon-bg">' + c.icon + '</div></div>'; });
+    document.getElementById('dashCards').innerHTML = h;
+    document.getElementById('serverStatus').innerHTML =
+      '服务器时间: ' + d.serverTime + '<br>后端框架: .NET 9 Minimal API<br>数据源: MockServer 内存存储';
+    document.getElementById('serverTime').textContent = '🕐 ' + d.serverTime;
+  }).catch(function() { showToast('加载仪表盘失败', 'error'); });
+
+  dashTimer = setInterval(function() {
+    api('/dashboard').then(function(d) {
+      document.getElementById('serverTime').textContent = '🕐 ' + d.serverTime;
+      // Update card values
+      var vals = document.querySelectorAll('#dashCards .value');
+      if (vals.length >= 6) {
+        vals[0].textContent = d.onlinePlayers;
+        vals[3].textContent = fmtGold(d.tradeVolume);
+        vals[5].textContent = d.bannedCount;
+      }
+    }).catch(function() {});
+  }, 30000);
+}
+
+// ═══════════════════════════════════════════
+//  Users
+// ═══════════════════════════════════════════
+var userPage = 1;
+
+function loadUsers(page) {
+  userPage = page || 1;
+  var search = document.getElementById('userSearch').value;
+  var url = '/users?page=' + userPage;
+  if (search) url += '&search=' + encodeURIComponent(search);
+
+  api(url).then(function(d) {
+    document.getElementById('userTotal').textContent = '共 ' + d.total + ' 人';
+    var h = '';
+    (d.items || []).forEach(function(u) {
+      var status = u.isBanned
+        ? '<span class="badge badge-red">封禁</span>'
+        : '<span class="badge badge-green">正常</span>';
+      var vipBadge = u.vip ? '<span class="badge badge-purple">VIP</span>' : '-';
+      h += '<tr><td>' + u.playerId + '</td>' +
+        '<td><a href="#" onclick="showUserDetail(' + u.playerId + ');return false">' + u.playerName + '</a></td>' +
+        '<td>' + u.level + '</td>' +
+        '<td>' + fmtGold(u.gold) + '</td>' +
+        '<td>' + vipBadge + '</td>' +
+        '<td>' + status + '</td>' +
+        '<td>' +
+          (u.isBanned
+            ? '<button class="btn-success btn-sm" onclick="unbanUser(' + u.playerId + ')">解封</button>'
+            : '<button class="btn-danger btn-sm" onclick="banUser(' + u.playerId + ')">封禁</button>') +
+        '</td></tr>';
+    });
+    if (!h) h = '<tr><td colspan="7" style="text-align:center;color:#555;padding:20px">暂无用户数据</td></tr>';
+    document.getElementById('userTable').innerHTML = h;
+
+    // Pagination
+    var totalPages = Math.ceil(d.total / d.pageSize);
+    var ph = '';
+    if (totalPages > 1) {
+      if (userPage > 1) ph += '<button onclick="loadUsers(' + (userPage-1) + ')">‹</button>';
+      for (var i = Math.max(1, userPage-2); i <= Math.min(totalPages, userPage+2); i++) {
+        ph += '<button class="' + (i===userPage?'active':'') + '" onclick="loadUsers(' + i + ')">' + i + '</button>';
+      }
+      if (userPage < totalPages) ph += '<button onclick="loadUsers(' + (userPage+1) + ')">›</button>';
+      ph += '<span>第 ' + userPage + '/' + totalPages + ' 页</span>';
+    }
+    document.getElementById('userPagination').innerHTML = ph;
+  }).catch(function() { showToast('加载用户列表失败', 'error'); });
+}
+
+function showUserDetail(pid) {
+  api('/users/' + pid).then(function(u) {
+    var html = '<div style="font-size:13px;line-height:2">';
+    html += '<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 16px">';
+    html += '<span style="color:#666">ID</span><span>' + u.playerId + '</span>';
+    html += '<span style="color:#666">昵称</span><span>' + u.playerName + '</span>';
+    html += '<span style="color:#666">等级</span><span>' + u.level + '</span>';
+    html += '<span style="color:#666">经验</span><span>' + (u.exp || 0) + '</span>';
+    html += '<span style="color:#666">金币</span><span>' + fmtGold(u.gold) + '</span>';
+    html += '<span style="color:#666">元宝</span><span>' + fmtGold(u.gem) + '</span>';
+    html += '<span style="color:#666">贡献</span><span>' + (u.tribute || 0) + '</span>';
+    html += '<span style="color:#666">PVP分数</span><span>' + (u.pvpScore || 0) + '</span>';
+    html += '<span style="color:#666">PVP排名</span><span>' + (u.pvpRank || 0) + '</span>';
+    html += '<span style="color:#666">VIP</span><span>' + (u.vip ? '<span class="badge badge-purple">VIP</span>' : '-') + '</span>';
+    html += '<span style="color:#666">状态</span><span>' + (u.isBanned ? '<span class="badge badge-red">封禁</span>' : '<span class="badge badge-green">正常</span>') + '</span>';
+    if (u.isBanned) html += '<span style="color:#666">封禁原因</span><span style="color:#e74c5e">' + u.banReason + '</span>';
+    html += '<span style="color:#666">帮会</span><span>' + (u.guildName || '无') + '</span>';
+    html += '<span style="color:#666">注册时间</span><span>' + (u.createdAt || '-') + '</span>';
+    html += '<span style="color:#666">最后登录</span><span>' + (u.lastLogin || '-') + '</span>';
+    html += '</div></div>';
+    html += '<div style="margin-top:14px;display:flex;gap:8px">';
+    if (u.isBanned) {
+      html += '<button class="btn-success btn-sm" onclick="unbanUser(' + pid + ');closeModal()">解封用户</button>';
+    } else {
+      html += '<button class="btn-danger btn-sm" onclick="banUser(' + pid + ');closeModal()">封禁用户</button>';
+    }
+    html += '</div>';
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modalTitle').textContent = '用户详情 - ' + u.playerName;
+    document.getElementById('userModal').classList.add('show');
+  }).catch(function() { showToast('加载用户详情失败', 'error'); });
+}
+
+function closeModal() { document.getElementById('userModal').classList.remove('show'); }
+
+function banUser(pid) {
+  if (!confirm('确定封禁该用户吗？')) return;
+  api('/users/' + pid + '/ban', { method: 'POST', body: { reason: '违规操作' } }).then(function(d) {
+    showToast(d.msg || '已封禁', 'success');
+    loadUsers(userPage);
+  }).catch(function() { showToast('封禁失败', 'error'); });
+}
+
+function unbanUser(pid) {
+  if (!confirm('确定解封该用户吗？')) return;
+  api('/users/' + pid + '/unban', { method: 'POST' }).then(function(d) {
+    showToast(d.msg || '已解封', 'success');
+    loadUsers(userPage);
+  }).catch(function() { showToast('解封失败', 'error'); });
+}
+
+// ═══════════════════════════════════════════
+//  Announcements
+// ═══════════════════════════════════════════
+function postAnnouncement() {
+  var title = document.getElementById('annTitle').value;
+  var content = document.getElementById('annContent').value;
+  if (!title || !content) { showToast('请填写标题和内容', 'error'); return; }
+  api('/announcements', { method: 'POST', body: { title: title, content: content } }).then(function(d) {
+    showToast(d.msg || '公告已发布', 'success');
+    document.getElementById('annTitle').value = '';
+    document.getElementById('annContent').value = '';
+    loadAnnouncements();
+  }).catch(function() { showToast('发布失败', 'error'); });
+}
+
+function loadAnnouncements() {
+  api('/announcements').then(function(list) {
+    if (!list || list.length === 0) {
+      document.getElementById('annList').innerHTML = '<div style="text-align:center;color:#555;padding:20px;font-size:13px">暂无公告</div>';
+      return;
+    }
+    var h = '';
+    list.forEach(function(a) {
+      h += '<div class="ann-item">' +
+        '<div class="ann-title">' + escHtml(a.title) + '</div>' +
+        '<div class="ann-meta">' + a.author + ' · ' + a.createdAt + '</div>' +
+        '<div class="ann-content">' + escHtml(a.content) + '</div>' +
+        '<div class="ann-actions"><button class="btn-danger btn-sm" onclick="deleteAnnouncement(' + a.id + ')">删除</button></div>' +
+        '</div>';
+    });
+    document.getElementById('annList').innerHTML = h;
+  }).catch(function() { showToast('加载公告失败', 'error'); });
+}
+
+function deleteAnnouncement(id) {
+  if (!confirm('确定删除该公告吗？')) return;
+  api('/announcements/' + id, { method: 'DELETE' }).then(function(d) {
+    showToast(d.msg || '已删除', 'success');
+    loadAnnouncements();
+  }).catch(function() { showToast('删除失败', 'error'); });
+}
+
+// ═══════════════════════════════════════════
+//  Trade monitoring
+// ═══════════════════════════════════════════
+var tradePage = 1;
+
+function loadTrade(page) {
+  tradePage = page || 1;
+  api('/trade/listings?page=' + tradePage + '&pageSize=20').then(function(d) {
+    document.getElementById('tradeTotal').textContent = '共 ' + d.total + ' 件上架物品';
+    var h = '';
+    (d.items || []).forEach(function(l) {
+      var qClass = 'q' + l.itemQuality;
+      h += '<tr><td>' + l.id + '</td>' +
+        '<td class="' + qClass + '">' + escHtml(l.itemName) + '</td>' +
+        '<td>' + qualityStar(l.itemQuality) + '</td>' +
+        '<td>' + l.count + '</td>' +
+        '<td>' + fmtGold(l.unitPrice) + '</td>' +
+        '<td>' + fmtGold(l.totalPrice) + '</td>' +
+        '<td>' + escHtml(l.sellerName) + '</td>' +
+        '<td><span class="' + (l.remainingHours < 6 ? 'badge badge-red' : l.remainingHours < 24 ? 'badge badge-yellow' : '') + '">' + l.remainingHours + 'h</span></td>' +
+        '<td>' + l.listedAt + '</td></tr>';
+    });
+    if (!h) h = '<tr><td colspan="9" style="text-align:center;color:#555;padding:20px">暂无可监控的交易</td></tr>';
+    document.getElementById('tradeTable').innerHTML = h;
+
+    var totalPages = Math.ceil(d.total / d.pageSize);
+    var ph = '';
+    if (totalPages > 1) {
+      if (tradePage > 1) ph += '<button onclick="loadTrade(' + (tradePage-1) + ')">‹</button>';
+      for (var i = Math.max(1, tradePage-2); i <= Math.min(totalPages, tradePage+2); i++) {
+        ph += '<button class="' + (i===tradePage?'active':'') + '" onclick="loadTrade(' + i + ')">' + i + '</button>';
+      }
+      if (tradePage < totalPages) ph += '<button onclick="loadTrade(' + (tradePage+1) + ')">›</button>';
+      ph += '<span>第 ' + tradePage + '/' + totalPages + ' 页</span>';
+    }
+    document.getElementById('tradePagination').innerHTML = ph;
+  }).catch(function() { showToast('加载交易数据失败', 'error'); });
+}
+
+// ═══════════════════════════════════════════
+//  Dungeon stats
+// ═══════════════════════════════════════════
+function loadDungeonStats() {
+  api('/dungeon/stats').then(function(d) {
+    // Summary cards
+    var totalClears = 0, totalPlayers = 0;
+    (d.dungeons || []).forEach(function(s) { totalClears += s.totalClears; totalPlayers += s.totalPlayers; });
+    var cards = [
+      { label: '副本总数', value: d.totalDungeons, sub: '个副本' },
+      { label: '总通关', value: totalClears, sub: '累计通关' },
+      { label: '参与玩家', value: totalPlayers, sub: '累计人次' },
+      { label: '平均通关', value: Math.round(totalClears / (d.dungeons.length || 1)), sub: '次/副本' }
+    ];
+    var ch = '';
+    cards.forEach(function(c) { ch += '<div class="card"><div class="label">' + c.label + '</div><div class="value">' + c.value + '</div><div class="sub">' + c.sub + '</div></div>'; });
+    document.getElementById('dungeonSummaryCards').innerHTML = ch;
+
+    var h = '';
+    (d.dungeons || []).forEach(function(s) {
+      h += '<tr><td>' + escHtml(s.dungeonName) + '</td>' +
+        '<td>' + s.difficulty + '</td>' +
+        '<td><strong>' + s.totalClears + '</strong></td>' +
+        '<td>' + s.avgClearTime + '</td>' +
+        '<td>' + s.totalDeaths + '</td>' +
+        '<td>' + s.totalPlayers + '</td>' +
+        '<td>' + s.dropRate + '</td></tr>';
+    });
+    if (!h) h = '<tr><td colspan="7" style="text-align:center;color:#555;padding:20px">暂无副本数据</td></tr>';
+    document.getElementById('dungeonTable').innerHTML = h;
+  }).catch(function() { showToast('加载副本数据失败', 'error'); });
+}
+
+// ── Utilities ──
+function fmtGold(n) {
+  if (!n) return '0';
+  var s = n.toString();
+  var r = '';
+  for (var i = s.length - 1, j = 0; i >= 0; i--, j++) {
+    if (j > 0 && j % 3 === 0) r = ',' + r;
+    r = s[i] + r;
+  }
+  return r;
+}
+
+function qualityStar(q) {
+  var stars = '★★★★★';
+  var colors = {1:'#b0b0b0',2:'#2ecc71',3:'#3498db',4:'#b088ff',5:'#f39c12'};
+  return '<span style="color:' + (colors[q]||'#b0b0b0') + '">' + stars.slice(0, q) + '</span>';
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ──
+loadDashboard();
+</script>
+</body>
+</html>
