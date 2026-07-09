@@ -1,3 +1,4 @@
+﻿// LoginHandler.cs
 using Jx3.Common.Protocol;
 using Jx3.MockServer.Data;
 
@@ -23,6 +24,7 @@ public class LoginHandler : HandlerBase, IHandler
     {
         var phone = br.ReadString(); var pwd = br.ReadString();
         var user = UserStore.Instance.GetOrCreateUser(phone, pwd);
+        ActionLogStore.Instance.AddLog(user.PlayerId, user.PlayerName, "login", $"登录 phone={phone}");
         return BuildResponse((uint)MsgId.CSLoginAuth, seq, w => { w.Write(0); w.Write(user.Token); w.Write(user.PlayerId); });
     }
 
@@ -30,6 +32,7 @@ public class LoginHandler : HandlerBase, IHandler
     {
         var phone = br.ReadString(); var pwd = br.ReadString();
         var user = UserStore.Instance.GetOrCreateUser(phone, pwd);
+        ActionLogStore.Instance.AddLog(user.PlayerId, user.PlayerName, "login", $"注册 phone={phone}");
         return BuildResponse((uint)MsgId.CSLoginRegister, seq, w => { w.Write(0); w.Write(user.Token); });
     }
 
@@ -44,6 +47,7 @@ public class LoginHandler : HandlerBase, IHandler
         var pid = br.ReadUInt64(); var token = br.ReadString();
         var user = UserStore.Instance.GetByPid(pid);
         if (user == null) return Error((uint)MsgId.CSLoginEnterGame, seq, 1, "用户不存在");
+        ActionLogStore.Instance.AddLog(pid, user.PlayerName, "login", $"进入游戏");
         return BuildResponse((uint)MsgId.CSLoginEnterGame, seq, w => { w.Write(user.PlayerName); w.Write(user.Level); w.Write(1001u); w.Write(user.Gold); w.Write(user.Gem); });
     }
 }

@@ -1,3 +1,4 @@
+﻿// TradeHandler.cs
 using Jx3.Common.Protocol;
 using Jx3.MockServer.Data;
 
@@ -40,6 +41,7 @@ public class TradeHandler : HandlerBase, IHandler
         var def = ItemStore.Instance.GetDef(itemId); var user = UserStore.Instance.GetByPid(pid);
         if (def == null || user == null) return Error((uint)MsgId.CSTradeSell, seq, 1, "物品或用户不存在");
         var listing = TradeStore.Instance.AddListing(pid, user.PlayerName, itemId, def.Name, def.Quality, count, price);
+        ActionLogStore.Instance.AddLog(pid, user.PlayerName, "trade_sell", $"上架 itemId={itemId} name={def.Name} count={count} price={price}");
         return BuildResponse((uint)MsgId.CSTradeSell, seq, w => { w.Write(0); w.Write(listing!.Id); });
     }
 
@@ -51,10 +53,12 @@ public class TradeHandler : HandlerBase, IHandler
         var cost = listing.UnitPrice * (ulong)count;
         if (!UserStore.Instance.SpendGold(pid, cost)) return Error((uint)MsgId.CSTradeBuy, seq, 2, "金币不足");
         TradeStore.Instance.TryBuy(lid); UserStore.Instance.AddGold(listing.SellerPid, cost);
+        var buyer = UserStore.Instance.GetByPid(pid);
+        ActionLogStore.Instance.AddLog(pid, buyer?.PlayerName ?? "?", "trade_buy", $"购买 listingId={lid} item={listing.ItemName} count={count} cost={cost}");
         return BuildResponse((uint)MsgId.CSTradeBuy, seq, w => { w.Write(0); w.Write(listing.ItemId); w.Write(count); w.Write(cost); });
     }
 
-    byte[] HandleCancel(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); var lid = br.ReadUInt64(); var ok = TradeStore.Instance.CancelListing(lid, pid); return BuildResponse((uint)MsgId.CSTradeCancel, seq, w => { w.Write(ok ? 0 : 1); w.Write(lid); }); }
+    byte[] HandleCancel(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); var lid = br.ReadUInt64(); var ok = TradeStore.Instance.CancelListing(lid, pid); var u = UserStore.Instance.GetByPid(pid); ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "trade_sell", $"取消上架 listingId={lid}"); return BuildResponse((uint)MsgId.CSTradeCancel, seq, w => { w.Write(ok ? 0 : 1); w.Write(lid); }); }
 
     byte[] HandleMyListings(BinaryReader br, uint seq)
     {

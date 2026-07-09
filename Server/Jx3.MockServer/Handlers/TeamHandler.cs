@@ -1,3 +1,4 @@
+﻿// TeamHandler.cs
 using Jx3.Common.Protocol;
 using Jx3.MockServer.Data;
 
@@ -38,16 +39,18 @@ public class TeamHandler : HandlerBase, IHandler
         var pid = br.ReadUInt64(); var u = UserStore.Instance.GetByPid(pid);
         if (u == null) return Error((uint)MsgId.CSTeamCreate, seq, 1, "用户不存在");
         var t = TeamStore.Instance.Create(pid, u.PlayerName, u.Level);
-        return BuildResponse((uint)MsgId.CSTeamCreate, seq, w => { w.Write(0); w.Write(t!.TeamId); w.Write(1); });
+        ActionLogStore.Instance.AddLog(pid, u.PlayerName, "team", $"创建队伍 tid={t!.TeamId}");
+        return BuildResponse((uint)MsgId.CSTeamCreate, seq, w => { w.Write(0); w.Write(t.TeamId); w.Write(1); });
     }
 
-    byte[] HandleLeave(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); var t = TeamStore.Instance.GetByPlayer(pid); if (t != null) TeamStore.Instance.RemoveMember(t.TeamId, pid); return BuildResponse((uint)MsgId.CSTeamLeave, seq, w => w.Write(0)); }
+    byte[] HandleLeave(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); var t = TeamStore.Instance.GetByPlayer(pid); if (t != null) TeamStore.Instance.RemoveMember(t.TeamId, pid); var u = UserStore.Instance.GetByPid(pid); ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "team", $"离开队伍"); return BuildResponse((uint)MsgId.CSTeamLeave, seq, w => w.Write(0)); }
 
     byte[] HandleInviteAccept(BinaryReader br, uint seq)
     {
         var pid = br.ReadUInt64(); var tid = br.ReadUInt64(); var u = UserStore.Instance.GetByPid(pid);
         if (u == null) return Error((uint)MsgId.CSTeamInviteAccept, seq, 1, "用户不存在");
         TeamStore.Instance.AddMember(tid, pid, u.PlayerName, u.Level);
+        ActionLogStore.Instance.AddLog(pid, u.PlayerName, "team", $"接受组队邀请 tid={tid}");
         return BuildResponse((uint)MsgId.CSTeamInviteAccept, seq, w => w.Write(0));
     }
 

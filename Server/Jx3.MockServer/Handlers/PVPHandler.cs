@@ -1,3 +1,4 @@
+﻿// PVPHandler.cs
 using Jx3.Common.Protocol;
 using Jx3.MockServer.Data;
 
@@ -24,7 +25,9 @@ public class PVPHandler : HandlerBase, IHandler
 
     byte[] HandleMatchStart(BinaryReader br, uint seq)
     {
-        br.ReadUInt64(); var mt = br.ReadInt32();
+        var pid = br.ReadUInt64(); var mt = br.ReadInt32();
+        var u = UserStore.Instance.GetByPid(pid);
+        ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "pvp", $"匹配开始 matchType={mt}");
         return BuildResponse((uint)MsgId.CSPVPMatchStart, seq, w => { w.Write(0); w.Write(mt); w.Write(_rng.Next(1, 5)); });
     }
 

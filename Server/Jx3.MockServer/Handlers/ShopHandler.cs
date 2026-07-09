@@ -1,4 +1,5 @@
-﻿using Jx3.Common.Protocol;
+﻿// ShopHandler.cs
+using Jx3.Common.Protocol;
 using Jx3.MockServer.Data;
 
 namespace Jx3.MockServer.Handlers;
@@ -46,11 +47,13 @@ public class ShopHandler : HandlerBase, IHandler
         var cost = item.price * (uint)cnt;
         if (!UserStore.Instance.SpendGold(pid, cost)) return Error((uint)MsgId.CSShopBuy, seq, 2, "货币不足");
         ItemStore.Instance.AddItem(pid, sid, cnt);
+        var u = UserStore.Instance.GetByPid(pid);
+        ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "shop", $"购买商店 sid={sid} name={item.name} count={cnt} cost={cost}");
         return BuildResponse((uint)MsgId.CSShopBuy, seq, w => { w.Write(0); w.Write(sid); w.Write(cnt); w.Write(cost); });
     }
 
-    byte[] HandleRecharge(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); var amt = br.ReadUInt32(); UserStore.Instance.AddGold(pid, amt); return BuildResponse((uint)MsgId.CSShopRecharge, seq, w => { w.Write(0); w.Write(amt); w.Write(UserStore.Instance.GetByPid(pid)?.Gold ?? 0); }); }
+    byte[] HandleRecharge(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); var amt = br.ReadUInt32(); UserStore.Instance.AddGold(pid, amt); var u = UserStore.Instance.GetByPid(pid); ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "shop", $"充值 amt={amt}"); return BuildResponse((uint)MsgId.CSShopRecharge, seq, w => { w.Write(0); w.Write(amt); w.Write(u?.Gold ?? 0); }); }
     byte[] HandleGift(BinaryReader br, uint seq) { br.ReadUInt64(); br.ReadString(); return BuildResponse((uint)MsgId.CSShopGiftCode, seq, w => { w.Write(0); w.Write(1000UL); w.Write(100UL); }); }
     byte[] HandleMonthly(BinaryReader br, uint seq) { br.ReadUInt64(); return BuildResponse((uint)MsgId.CSShopMonthlyClaim, seq, w => { w.Write(0); w.Write(true); w.Write(2000UL); }); }
-    byte[] HandleExchange(BinaryReader br, uint seq) { var pid2 = br.ReadUInt64(); br.ReadString(); br.ReadString(); var amt = br.ReadUInt64(); UserStore.Instance.AddGold(pid2, amt * 10); return BuildResponse((uint)MsgId.CSShopCurrencyExchange, seq, w => { w.Write(0); w.Write(amt * 10); }); }
+    byte[] HandleExchange(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); br.ReadString(); br.ReadString(); var amt = br.ReadUInt64(); UserStore.Instance.AddGold(pid, amt * 10); var u = UserStore.Instance.GetByPid(pid); ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "shop", $"货币兑换 amt={amt}"); return BuildResponse((uint)MsgId.CSShopCurrencyExchange, seq, w => { w.Write(0); w.Write(amt * 10); }); }
 }

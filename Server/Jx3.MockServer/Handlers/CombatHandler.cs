@@ -1,4 +1,6 @@
+﻿// CombatHandler.cs
 using Jx3.Common.Protocol;
+using Jx3.MockServer.Data;
 
 namespace Jx3.MockServer.Handlers;
 
@@ -26,11 +28,13 @@ public class CombatHandler : HandlerBase, IHandler
 
     byte[] HandleCastSkill(BinaryReader br, uint seq)
     {
-        br.ReadUInt64(); var skillId = br.ReadUInt32(); var targetId = br.ReadUInt64();
+        var pid = br.ReadUInt64(); var skillId = br.ReadUInt32(); var targetId = br.ReadUInt64();
+        var u = UserStore.Instance.GetByPid(pid);
+        ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "combat", $"释放技能 skillId={skillId} targetId={targetId}");
         return BuildResponse((uint)MsgId.CSCombatCastSkill, seq, w => { w.Write(0); w.Write(skillId); w.Write(targetId); w.Write((ulong)_rng.Next(100, 5000)); w.Write(_rng.Next(2) == 0); });
     }
 
     byte[] HandleSwitch(BinaryReader br, uint seq) { br.ReadUInt64(); var hid = br.ReadUInt32(); return BuildResponse((uint)MsgId.CSCombatSwitchHero, seq, w => { w.Write(0); w.Write(hid); }); }
 
-    byte[] HandleAttack(BinaryReader br, uint seq) { br.ReadUInt64(); var tid = br.ReadUInt64(); return BuildResponse((uint)MsgId.CSCombatAttack, seq, w => { w.Write(0); w.Write(tid); w.Write((ulong)_rng.Next(50, 2000)); }); }
+    byte[] HandleAttack(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); var tid = br.ReadUInt64(); var u = UserStore.Instance.GetByPid(pid); ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "combat", $"普攻 targetId={tid}"); return BuildResponse((uint)MsgId.CSCombatAttack, seq, w => { w.Write(0); w.Write(tid); w.Write((ulong)_rng.Next(50, 2000)); }); }
 }

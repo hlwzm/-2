@@ -1,4 +1,6 @@
+﻿// QuestHandler.cs
 using Jx3.Common.Protocol;
+using Jx3.MockServer.Data;
 
 namespace Jx3.MockServer.Handlers;
 
@@ -35,11 +37,19 @@ public class QuestHandler : HandlerBase, IHandler
         });
     }
 
-    byte[] HandleAccept(BinaryReader br, uint seq) { br.ReadUInt64(); var qid = br.ReadUInt32(); return BuildResponse((uint)MsgId.CSQuestAccept, seq, w => { w.Write(0); w.Write(qid); w.Write(1); }); }
+    byte[] HandleAccept(BinaryReader br, uint seq)
+    {
+        var pid = br.ReadUInt64(); var qid = br.ReadUInt32();
+        var u = UserStore.Instance.GetByPid(pid);
+        ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "quest", $"接受任务 qid={qid}");
+        return BuildResponse((uint)MsgId.CSQuestAccept, seq, w => { w.Write(0); w.Write(qid); w.Write(1); });
+    }
 
     byte[] HandleSubmit(BinaryReader br, uint seq)
     {
-        br.ReadUInt64(); var qid = br.ReadUInt32();
+        var pid = br.ReadUInt64(); var qid = br.ReadUInt32();
+        var u = UserStore.Instance.GetByPid(pid);
+        ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "quest", $"提交任务 qid={qid}");
         return BuildResponse((uint)MsgId.CSQuestSubmit, seq, w =>
         {
             w.Write(0); w.Write(qid);

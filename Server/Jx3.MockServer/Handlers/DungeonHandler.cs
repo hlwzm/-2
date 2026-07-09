@@ -1,10 +1,12 @@
+﻿// DungeonHandler.cs
 using Jx3.Common.Protocol;
+using Jx3.MockServer.Data;
 
 namespace Jx3.MockServer.Handlers;
 
 public class DungeonHandler : HandlerBase, IHandler
 {
-    static readonly string[] DUNGEONS = ["风雨稻香村", "天子峰", "莣花宫", "战宝迦兰", "持国天王殿"];
+    static readonly string[] DUNGEONS = ["风雨稻香村", "天子峰", "荻花宫", "战宝迦兰", "持国天王殿"];
 
     public byte[]? Handle(uint msgId, uint seq, byte[] body)
     {
@@ -23,7 +25,7 @@ public class DungeonHandler : HandlerBase, IHandler
         };
     }
 
-    byte[] Simple(BinaryReader br, uint seq, uint msgId) { br.ReadUInt64(); return BuildResponse(msgId, seq, w => w.Write(0)); }
+    byte[] Simple(BinaryReader br, uint seq, uint msgId) { var pid = br.ReadUInt64(); return BuildResponse(msgId, seq, w => w.Write(0)); }
 
     byte[] HandleList(BinaryReader br, uint seq)
     {
@@ -37,7 +39,9 @@ public class DungeonHandler : HandlerBase, IHandler
 
     byte[] HandleEnter(BinaryReader br, uint seq)
     {
-        br.ReadUInt64(); var did = br.ReadUInt32(); var diff = br.ReadInt32();
+        var pid = br.ReadUInt64(); var did = br.ReadUInt32(); var diff = br.ReadInt32();
+        var u = UserStore.Instance.GetByPid(pid);
+        ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "dungeon", $"进入副本 {DUNGEONS[did - 1]} 难度={diff}");
         return BuildResponse((uint)MsgId.CSDungeonEnter, seq, w =>
         {
             w.Write(0); w.Write(did); w.Write(DUNGEONS[did - 1]); w.Write(diff); w.Write((uint)(1000000 + did * 1000));

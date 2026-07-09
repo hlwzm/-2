@@ -1,3 +1,4 @@
+﻿// FriendHandler.cs
 using Jx3.Common.Protocol;
 using Jx3.MockServer.Data;
 
@@ -24,11 +25,13 @@ public class FriendHandler : HandlerBase, IHandler
     {
         var pid = br.ReadUInt64(); var tpid = br.ReadUInt64();
         FriendStore.Instance.SendRequest(pid, tpid);
+        var u = UserStore.Instance.GetByPid(pid);
         var tu = UserStore.Instance.GetByPid(tpid);
+        ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "friend", $"添加好友 tpid={tpid} name={tu?.PlayerName ?? "?"}");
         return BuildResponse((uint)MsgId.CSFriendAdd, seq, w => { w.Write(0); w.Write(tpid); w.Write(tu?.PlayerName ?? "?"); });
     }
 
-    byte[] HandleRemove(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); var tpid = br.ReadUInt64(); FriendStore.Instance.RemoveFriend(pid, tpid); return BuildResponse((uint)MsgId.CSFriendRemove, seq, w => w.Write(0)); }
+    byte[] HandleRemove(BinaryReader br, uint seq) { var pid = br.ReadUInt64(); var tpid = br.ReadUInt64(); FriendStore.Instance.RemoveFriend(pid, tpid); var u = UserStore.Instance.GetByPid(pid); ActionLogStore.Instance.AddLog(pid, u?.PlayerName ?? "?", "friend", $"删除好友 tpid={tpid}"); return BuildResponse((uint)MsgId.CSFriendRemove, seq, w => w.Write(0)); }
 
     byte[] HandleList(BinaryReader br, uint seq)
     {
@@ -49,6 +52,7 @@ public class FriendHandler : HandlerBase, IHandler
         var fu = UserStore.Instance.GetByPid(fpid); var su = UserStore.Instance.GetByPid(pid);
         if (fu != null) FriendStore.Instance.AddFriend(pid, fpid, fu.PlayerName, fu.Level);
         if (su != null) FriendStore.Instance.AddFriend(fpid, pid, su.PlayerName, su.Level);
+        ActionLogStore.Instance.AddLog(pid, su?.PlayerName ?? "?", "friend", $"接受好友请求 fpid={fpid}");
         return BuildResponse((uint)MsgId.CSFriendAccept, seq, w => w.Write(0));
     }
 
