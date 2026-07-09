@@ -67,7 +67,7 @@ namespace Jx3.UI.Panels
 
             // Login card title
             var loginTitle = UIComponentFactory.CreateText(card, "LoginTitle", "账 号 登 录",
-                ThemeColors.FontTitleSmall, Color.white); loginTitle.fontStyle = FontStyle.Bold;
+                ThemeColors.FontPanelTitle, Color.white); loginTitle.fontStyle = FontStyle.Bold;
             loginTitle.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             loginTitle.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             loginTitle.rectTransform.sizeDelta = new Vector2(300, 30);
