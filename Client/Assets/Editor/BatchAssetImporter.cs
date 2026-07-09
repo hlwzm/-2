@@ -84,7 +84,7 @@ namespace Jx3.Editor
             if (GUILayout.Button("全不选", GUILayout.Width(60)))
                 for (int i = 0; i < selected.Count; i++) selected[i] = false;
             GUILayout.Label($"共 {packages.Count} 个包", EditorStyles.miniLabel);
-            GUILayout.EndGUILayout();
+            GUILayout.EndHorizontal();
 
             GUILayout.Space(5);
 
