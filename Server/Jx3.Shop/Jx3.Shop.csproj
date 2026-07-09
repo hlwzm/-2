@@ -4,6 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>Jx3.Shop</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Jx3.Common\Jx3.Common.csproj" />

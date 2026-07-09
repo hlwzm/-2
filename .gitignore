@@ -1,29 +1,26 @@
-# ========== Unity ==========
-[Ll]ibrary/
-[Tt]emp/
-[Ll]ogs/
-[Uu]ser[S]ettings/
-*.csproj
-*.sln
-*.userprefs
-*.unitypackage
-*.booproj
-*.pidb
-*.suo
-*.user
+﻿# ========== Unity ==========
+Client/[Ll]ibrary/
+Client/[Tt]emp/
+Client/[Ll]ogs/
+Client/[Uu]ser[S]ettings/
+Client/*.csproj
+Client/*.sln
+Client/*.userprefs
+Client/*.unitypackage
+Client/*.booproj
+Client/*.pidb
+Client/*.suo
+Client/*.user
 
 # ========== Build Output ==========
 bin/
 obj/
 [Bb]uild/
-[Dd]eploy/
 *.exe
 
 # ========== Server ==========
 Server/**/bin/
 Server/**/obj/
-Server/Jx3.MockServer/bin/
-Server/Jx3.MockServer/obj/
 
 # ========== IDE ==========
 .vs/
@@ -35,7 +32,9 @@ Server/Jx3.MockServer/obj/
 Thumbs.db
 desktop.ini
 
-# ========== Generated ==========
+# ========== Temp ==========
+_temp_*
 *.dotCover*
-# Build logs
+
+# ========== Logs ==========
 BuildLogs/

@@ -4,6 +4,24 @@
 CREATE DATABASE IF NOT EXISTS jx3 DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE jx3;
 
+-- 英雄模板表
+CREATE TABLE IF NOT EXISTS hero_template (
+  template_id  INT UNSIGNED PRIMARY KEY,
+  name         VARCHAR(32) NOT NULL,
+  quality      TINYINT NOT NULL DEFAULT 1,
+  role_type    TINYINT NOT NULL DEFAULT 1,
+  attack_type  TINYINT NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 物品模板表
+CREATE TABLE IF NOT EXISTS item_template (
+  item_id      INT UNSIGNED PRIMARY KEY,
+  name         VARCHAR(64) NOT NULL,
+  quality      TINYINT NOT NULL DEFAULT 1,
+  item_type    TINYINT NOT NULL DEFAULT 1,
+  sell_price   INT NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 账号表
 CREATE TABLE IF NOT EXISTS account (
   account_id   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

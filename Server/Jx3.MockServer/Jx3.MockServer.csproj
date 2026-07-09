@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>Jx3.Hero</RootNamespace>
+    <RootNamespace>Jx3.MockServer</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Jx3.Common\Jx3.Common.csproj" />
