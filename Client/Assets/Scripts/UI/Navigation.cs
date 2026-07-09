@@ -113,7 +113,7 @@ namespace Jx3.UI
             _levelText.text = "Lv." + p.Level;
             _goldText.text = $"💰 {p.Gold:N0}";
             _tongbaoText.text = $"💎 {p.Tongbao:N0}";
-            _staminaText.text = $"⚡ {p.Vitality}/120";
+            _staminaText.text = "⚡ 120/120";
         }
 
         // ═══════════════════════════════════════════════
