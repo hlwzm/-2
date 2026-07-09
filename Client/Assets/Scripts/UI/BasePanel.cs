@@ -7,7 +7,19 @@ namespace Jx3.UI
         public string PanelName { get; protected set; } = "";
         public bool IsVisible => gameObject.activeSelf;
 
-        protected virtual void Awake() { PanelName = GetType().Name; }
+        protected virtual void Awake()
+        {
+            PanelName = GetType().Name;
+            var rt = transform as RectTransform;
+            if (rt != null)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.sizeDelta = Vector2.zero;
+                rt.anchoredPosition = Vector2.zero;
+            }
+        }
+
         protected virtual void Start() { }
         public virtual void Show() { gameObject.SetActive(true); OnShow(); }
         public virtual void Hide() { gameObject.SetActive(false); OnHide(); }

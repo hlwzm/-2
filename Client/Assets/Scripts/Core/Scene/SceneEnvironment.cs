@@ -13,6 +13,18 @@ namespace Jx3.Core.Scene
         public Color ambientColor = new Color(0.15f, 0.12f, 0.2f);
         public Color fogColor = new Color(0.08f, 0.06f, 0.12f);
 
+        void Awake()
+        {
+            var cam = Camera.main;
+            if (cam == null)
+            {
+                var camGo = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
+                cam = camGo.GetComponent<Camera>();
+            }
+            cam.clearFlags = CameraClearFlags.Color;
+            cam.backgroundColor = new Color(0.047f, 0.039f, 0.031f);
+        }
+
         void Start()
         {
             SetupLighting();

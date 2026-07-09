@@ -187,7 +187,14 @@ namespace Jx3.UI
             bg.GetComponent<Image>().color = ThemeColors.BgInput;
 
             var input = bg.AddComponent<InputField>();
-            var text = bg.AddComponent<Text>();
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(rt, false);
+            var textRt = textGo.GetComponent<RectTransform>();
+            textRt.anchorMin = Vector2.zero; textRt.anchorMax = Vector2.one;
+            textRt.sizeDelta = new Vector2(-20, 0);
+            textRt.anchoredPosition = Vector2.zero;
+            var text = textGo.AddComponent<Text>();
             text.font = Font; text.fontSize = ThemeColors.FontBody;
             text.color = ThemeColors.TextBright;
             text.alignment = TextAnchor.MiddleLeft;
@@ -199,6 +206,7 @@ namespace Jx3.UI
             var phrt = ph.GetComponent<RectTransform>();
             phrt.anchorMin = Vector2.zero; phrt.anchorMax = Vector2.one;
             phrt.sizeDelta = new Vector2(-20, 0);
+            phrt.anchoredPosition = Vector2.zero;
             var phText = ph.AddComponent<Text>();
             phText.text = placeholder; phText.font = Font;
             phText.fontSize = ThemeColors.FontBody;

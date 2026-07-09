@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using Jx3.Core;
 using Jx3.Core.Scene;
 using Jx3.UI;
@@ -12,6 +13,10 @@ namespace Jx3.Game
         {
             Application.targetFrameRate = 60;
             QualitySettings.vSyncCount = 1;
+
+            // EventSystem 必须存在，否则 InputField 和 Button 无法交互
+            if (FindObjectOfType<EventSystem>() == null)
+                new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
             Debug.Log("[Boot] Creating GameManager");
             var gmGo = new GameObject("GameManager", typeof(GameManager));
@@ -30,14 +35,11 @@ namespace Jx3.Game
             Object.DontDestroyOnLoad(uiGo);
 
             Object.DontDestroyOnLoad(gameObject);
-            Debug.Log("[Boot] Awake done, UIRoot.Instance=" + (UIRoot.Instance != null ? "OK" : "NULL"));
         }
 
         void Start()
         {
-            Debug.Log("[Boot] Start - showing LoginPanel");
             UIManager.Instance.Show<LoginPanel>();
-            Debug.Log("[Boot] Start - loading Login scene");
             SceneManager.Instance.LoadScene(GameScene.Login);
         }
     }
