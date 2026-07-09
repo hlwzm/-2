@@ -1,541 +1,422 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
-using System.Linq;
 using Jx3.Core;
-using Jx3.UI;
-using Jx3.UI.Panels;
 
 namespace Jx3.UI.Panels
 {
+    /// <summary>
+    /// 同盟面板
+    /// 未加入同盟：展示同盟列表，可搜索 / 创建 / 查看申请列表
+    /// 已加入同盟：展示同盟信息、成员列表、同盟任务，可退出同盟
+    /// 金墨武侠风格 · 全程序化生成
+    /// </summary>
     public class GuildPanel : BasePanel
     {
-        private static readonly Color ColorAccent = new Color(0.54f, 0.42f, 0.16f, 0.8f);
-        private static readonly Color ColorDimText = new Color(0.6f, 0.6f, 0.7f);
-        private static readonly Color ColorTabNormal = new Color(0.15f, 0.15f, 0.28f, 0.8f);
-        private static readonly Color ColorTabActive = new Color(0.54f, 0.42f, 0.16f, 0.8f);
-        private static readonly Color ColorGold = new Color(1f, 0.8f, 0.2f);
-        private static readonly Color ColorGreen = new Color(0.4f, 0.9f, 0.4f);
-        private static readonly Color ColorRed = new Color(0.9f, 0.3f, 0.3f);
-        private static readonly Color ColorBlue = new Color(0.4f, 0.6f, 1f);
-        private static readonly string[] SubTabNames = { "甯細淇℃伅", "鎴愬憳鍒楄〃", "甯細鎶€鑳?, "甯細浠诲姟", "甯細鏃ュ織" };
+        private bool _hasGuild = false;
+        private GameObject _noGuildView;
+        private GameObject _inGuildView;
 
-        private RectTransform _notJoinedRoot;
-        private RectTransform _joinedRoot;
-        private RectTransform _subTabRoot;
-        private RectTransform _detailContent;
-        private RectTransform _guildListContent;
-        private List<GameObject> _guildListItems = new();
-        private Text _titleText;
-        private Text _subTitleText;
-        private readonly List<GameObject> _subTabButtons = new();
-        private int _currentSubTab = 0;
+        // ── Demo Guilds (for the apply list) ──
+        private static readonly string[][] DemoGuilds = {
+            new[] { "剑指苍穹", "3", "23", "50" },
+            new[] { "风云再起", "5", "45", "50" },
+            new[] { "笑傲江湖", "2", "12", "50" },
+            new[] { "龙吟九天", "4", "38", "50" },
+            new[] { "一剑霜寒", "6", "50", "50" },
+            new[] { "醉卧沙场", "7", "47", "50" },
+        };
 
+        // ── Demo Members (when in guild) ──
+        private static readonly string[][] DemoMembers = {
+            new[] { "盟主",   "剑破苍穹", "Lv.50", "今日活跃" },
+            new[] { "副盟主", "风轻云淡", "Lv.48", "今日活跃" },
+            new[] { "长老",   "一剑封喉", "Lv.45", "3天前"   },
+            new[] { "精英",   "白云城主", "Lv.42", "今日活跃" },
+            new[] { "精英",   "天涯过客", "Lv.40", "1天前"   },
+            new[] { "成员",   "落花有意", "Lv.35", "今日活跃" },
+            new[] { "成员",   "清风明月", "Lv.33", "2天前"   },
+            new[] { "成员",   "醉卧沙场", "Lv.30", "今日活跃" },
+        };
+
+        // ── Demo Tasks ──
+        private static readonly string[][] DemoTasks = {
+            new[] { "同盟捐献", "捐献金币或元宝为同盟积累资金", "500/1000" },
+            new[] { "组队副本", "完成3次副本挑战",               "2/3"     },
+            new[] { "同盟争霸", "参与本周同盟战",                 "0/1"     },
+        };
+
+        // =============================================================
+        // Lifecycle
+        // =============================================================
         protected override void Awake()
         {
             base.Awake();
-            BuildBackground();
-            BuildTopBar();
-            BuildNotJoinedUI();
-            BuildJoinedUI();
-            RefreshState();
-            GuildManager.Instance.OnGuildDataChanged += OnGuildChanged;
+            var root = transform as RectTransform;
 
-            // 杩斿洖涓诲煄鎸夐挳
-            var backBtn = CreateButton(transform as RectTransform, "BackToMainCityBtn", "杩斿洖涓诲煄", () =>
-            {
-                UIManager.Instance.Hide<GuildPanel>();
-                UIManager.Instance.Show<MainCityPanel>();
-            });
-            var backRt = (RectTransform)backBtn.transform;
-            backRt.anchorMin = new Vector2(1, 1);
-            backRt.anchorMax = new Vector2(1, 1);
-            backRt.sizeDelta = new Vector2(100, 40);
-            backRt.anchoredPosition = new Vector2(-60, -25);
-        }
-        void OnDestroy()
-        {
-            if (GuildManager.Instance != null)
-                GuildManager.Instance.OnGuildDataChanged -= OnGuildChanged;
-        }
-        private void OnGuildChanged(Core.GuildData guild)
-        {
-            if (gameObject.activeInHierarchy) RefreshState();
-        }
-        private void BuildBackground()
-        {
-            var bg = CreateImage(transform as RectTransform, "Bg", new Color(0.04f, 0.04f, 0.1f, 0.92f));
-            bg.rectTransform.anchorMin = Vector2.zero; bg.rectTransform.anchorMax = Vector2.one;
-            bg.rectTransform.sizeDelta = Vector2.zero;
-        }
-        private void BuildTopBar()
-        {
-            _titleText = CreateText(transform as RectTransform, "Title", "甯細", 32);
-            var titleRt = (RectTransform)_titleText.transform;
-            titleRt.anchorMin = new Vector2(0, 1); titleRt.anchorMax = new Vector2(0, 1);
-            titleRt.sizeDelta = new Vector2(100, 40); titleRt.anchoredPosition = new Vector2(40, -40);
-            _subTitleText = CreateText(transform as RectTransform, "SubTitle", "", 18);
-            var subRt = (RectTransform)_subTitleText.transform;
-            subRt.anchorMin = new Vector2(0, 1); subRt.anchorMax = new Vector2(0, 1);
-            subRt.sizeDelta = new Vector2(400, 30); subRt.anchoredPosition = new Vector2(150, -40);
-            _subTitleText.alignment = TextAnchor.MiddleLeft; _subTitleText.color = ColorDimText;
-            var line = new GameObject("TitleLine", typeof(RectTransform), typeof(Image));
-            line.transform.SetParent(transform, false);
-            var lineRt = line.GetComponent<RectTransform>();
-            lineRt.anchorMin = new Vector2(0, 1); lineRt.anchorMax = new Vector2(1, 1);
-            lineRt.sizeDelta = new Vector2(0, 2); lineRt.anchoredPosition = new Vector2(0, -70);
-            line.GetComponent<Image>().color = ColorAccent;
-        }
-        private void BuildNotJoinedUI()
-        {
-            _notJoinedRoot = new GameObject("NotJoinedRoot", typeof(RectTransform)).GetComponent<RectTransform>();
-            _notJoinedRoot.SetParent(transform, false);
-            _notJoinedRoot.anchorMin = Vector2.zero; _notJoinedRoot.anchorMax = Vector2.one;
-            _notJoinedRoot.sizeDelta = new Vector2(0, -80); _notJoinedRoot.anchoredPosition = new Vector2(0, -10);
+            UIComponentFactory.CreateBackground(root);
+            UIComponentFactory.CreateTitleBar(root, "同盟", () => BackToMain());
 
-            var searchBg = new GameObject("SearchBg", typeof(RectTransform), typeof(Image));
-            searchBg.transform.SetParent(_notJoinedRoot, false);
-            var sBgRt = searchBg.GetComponent<RectTransform>();
-            sBgRt.anchorMin = new Vector2(0.02f, 1); sBgRt.anchorMax = new Vector2(0.98f, 1);
-            sBgRt.sizeDelta = new Vector2(0, 50); sBgRt.anchoredPosition = new Vector2(0, -20);
-            searchBg.GetComponent<Image>().color = new Color(0.1f, 0.1f, 0.2f, 0.7f);
-            var searchInput = CreateText(sBgRt, "SearchHint", "  鎼滅储甯細鍚嶇О...", 18);
-            var siRt = (RectTransform)searchInput.transform;
-            siRt.anchorMin = new Vector2(0, 0.5f); siRt.anchorMax = new Vector2(0, 0.5f);
-            siRt.sizeDelta = new Vector2(400, 30); siRt.anchoredPosition = new Vector2(20, 0);
-            searchInput.alignment = TextAnchor.MiddleLeft; searchInput.color = ColorDimText;
-            var createBtn = CreateButton(sBgRt, "CreateBtn", "鍒涘缓甯細", () => ShowCreateDialog());
-            var cbRt = (RectTransform)createBtn.transform;
-            cbRt.anchorMin = new Vector2(1, 0.5f); cbRt.anchorMax = new Vector2(1, 0.5f);
-            cbRt.sizeDelta = new Vector2(130, 40); cbRt.anchoredPosition = new Vector2(-20, 0);
-            createBtn.GetComponent<Image>().color = ColorAccent;
+            // No-guild view container (stretches to fill root)
+            _noGuildView = CreateContainer(root, "NoGuildView");
+            BuildNoGuildView(_noGuildView.GetComponent<RectTransform>());
 
-            var scroll = new GameObject("GuildScroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
-            scroll.transform.SetParent(_notJoinedRoot, false);
-            var scRt = scroll.GetComponent<RectTransform>();
-            scRt.anchorMin = new Vector2(0.02f, 0); scRt.anchorMax = new Vector2(0.98f, 0.9f);
-            scRt.sizeDelta = Vector2.zero; scRt.anchoredPosition = new Vector2(0, -20);
-            scroll.GetComponent<Image>().color = new Color(0.05f, 0.05f, 0.1f, 0.5f);
-            var scrollRect = scroll.GetComponent<ScrollRect>();
-            scrollRect.horizontal = false; scrollRect.vertical = true;
-            var viewport = new GameObject("Viewport", typeof(RectTransform), typeof(Mask), typeof(Image));
-            viewport.transform.SetParent(scroll.transform, false);
-            var vpRt = viewport.GetComponent<RectTransform>();
-            vpRt.anchorMin = Vector2.zero; vpRt.anchorMax = Vector2.one;
-            vpRt.sizeDelta = Vector2.zero; viewport.GetComponent<Image>().color = Color.clear;
-            scrollRect.viewport = vpRt;
+            // In-guild view container (stretches to fill root)
+            _inGuildView = CreateContainer(root, "InGuildView");
+            BuildInGuildView(_inGuildView.GetComponent<RectTransform>());
 
-            _guildListContent = new GameObject("Content", typeof(RectTransform)).GetComponent<RectTransform>();
-            _guildListContent.SetParent(viewport.transform, false);
-            _guildListContent.anchorMin = new Vector2(0, 1); _guildListContent.anchorMax = new Vector2(1, 1);
-            _guildListContent.sizeDelta = new Vector2(0, 0); _guildListContent.anchoredPosition = Vector2.zero;
-            scrollRect.content = _guildListContent;
+            // Shared back button
+            var backBtn = UIComponentFactory.CreateSecondaryButton(root, "Back", "返回主城", () => BackToMain());
+            PlaceBottomCenter(backBtn.GetComponent<RectTransform>(), 180, 44, 0, 30);
+
+            UpdateView();
         }
-        private void BuildJoinedUI()
+
+        // =============================================================
+        // 1. No-Guild View
+        // =============================================================
+        private void BuildNoGuildView(RectTransform parent)
         {
-            _joinedRoot = new GameObject("JoinedRoot", typeof(RectTransform)).GetComponent<RectTransform>();
-            _joinedRoot.SetParent(transform, false);
-            _joinedRoot.anchorMin = Vector2.zero; _joinedRoot.anchorMax = Vector2.one;
-            _joinedRoot.sizeDelta = new Vector2(0, -80); _joinedRoot.anchoredPosition = new Vector2(0, -10);
+            // "未加入同盟" message
+            var msg = UIComponentFactory.CreateText(parent, "NoGuildMsg",
+                "未加入同盟", ThemeColors.FontPanelTitle, ThemeColors.Accent);
+            msg.fontStyle = FontStyle.Bold;
+            msg.alignment = TextAnchor.MiddleCenter;
+            PlaceTopCenter(msg.rectTransform, 500, 40, 0, -90);
 
-            _subTabRoot = new GameObject("SubTabRoot", typeof(RectTransform)).GetComponent<RectTransform>();
-            _subTabRoot.SetParent(_joinedRoot, false);
-            _subTabRoot.anchorMin = new Vector2(0, 1); _subTabRoot.anchorMax = new Vector2(1, 1);
-            _subTabRoot.sizeDelta = new Vector2(0, 40); _subTabRoot.anchoredPosition = new Vector2(0, -15);
-            float tabX = 20;
-            for (int i = 0; i < SubTabNames.Length; i++)
-            {
-                var idx = i;
-                var btn = CreateButton(_subTabRoot, "Tab" + i, SubTabNames[i], () => SwitchSubTab(idx));
-                var btRt = (RectTransform)btn.transform;
-                btRt.anchorMin = new Vector2(0, 0.5f); btRt.anchorMax = new Vector2(0, 0.5f);
-                btRt.sizeDelta = new Vector2(140, 36); btRt.anchoredPosition = new Vector2(tabX, 0);
-                tabX += 148; _subTabButtons.Add(btn.gameObject);
-            }
-            var detailBg = new GameObject("DetailBg", typeof(RectTransform), typeof(Image));
-            detailBg.transform.SetParent(_joinedRoot, false);
-            var dBgRt = detailBg.GetComponent<RectTransform>();
-            dBgRt.anchorMin = new Vector2(0.02f, 0.02f); dBgRt.anchorMax = new Vector2(0.98f, 0.9f);
-            dBgRt.sizeDelta = Vector2.zero;
-            detailBg.GetComponent<Image>().color = new Color(0.05f, 0.05f, 0.1f, 0.5f);
+            var subMsg = UIComponentFactory.CreateText(parent, "NoGuildSubMsg",
+                "浏览同盟列表，找到属于你的江湖归属",
+                ThemeColors.FontSmall, ThemeColors.TextDim);
+            subMsg.alignment = TextAnchor.MiddleCenter;
+            PlaceTopCenter(subMsg.rectTransform, 600, 24, 0, -132);
 
-            var detailScroll = new GameObject("DetailScroll", typeof(RectTransform), typeof(ScrollRect), typeof(Image));
-            detailScroll.transform.SetParent(dBgRt, false);
-            var dsRt = detailScroll.GetComponent<RectTransform>();
-            dsRt.anchorMin = Vector2.zero; dsRt.anchorMax = Vector2.one;
-            dsRt.sizeDelta = Vector2.zero; detailScroll.GetComponent<Image>().color = Color.clear;
-            var dsScrollRect = detailScroll.GetComponent<ScrollRect>();
-            dsScrollRect.horizontal = false; dsScrollRect.vertical = true;
-            var dVp = new GameObject("DViewport", typeof(RectTransform), typeof(Mask), typeof(Image));
-            dVp.transform.SetParent(detailScroll.transform, false);
-            var dVpRt = dVp.GetComponent<RectTransform>();
-            dVpRt.anchorMin = Vector2.zero; dVpRt.anchorMax = Vector2.one;
-            dVpRt.sizeDelta = Vector2.zero; dVp.GetComponent<Image>().color = Color.clear;
-            dsScrollRect.viewport = dVpRt;
+            // Search input + button row
+            var searchInput = UIComponentFactory.CreateInputField(parent, "SearchInput",
+                "🔍 输入同盟名称搜索...", new Vector2(460, 40), Vector2.zero);
+            var srt = searchInput.GetComponent<RectTransform>();
+            srt.anchorMin = new Vector2(0.5f, 1f);
+            srt.anchorMax = new Vector2(0.5f, 1f);
+            srt.anchoredPosition = new Vector2(-130, -178);
 
-            _detailContent = new GameObject("DContent", typeof(RectTransform)).GetComponent<RectTransform>();
-            _detailContent.SetParent(dVp.transform, false);
-            _detailContent.anchorMin = new Vector2(0, 1); _detailContent.anchorMax = new Vector2(1, 1);
-            _detailContent.sizeDelta = new Vector2(0, 800); _detailContent.anchoredPosition = Vector2.zero;
-            dsScrollRect.content = _detailContent;
+            var searchBtn = UIComponentFactory.CreatePrimaryButton(parent, "SearchBtn",
+                "搜索", () => Debug.Log("[Guild] 搜索同盟"));
+            PlaceTopCenter(searchBtn.GetComponent<RectTransform>(), 100, 40, 130, -178);
+
+            // Three action buttons: [🔍 搜索同盟] [创建同盟] [申请列表]
+            float btnY = -228;
+            var searchActionBtn = UIComponentFactory.CreatePrimaryButton(parent, "SearchActionBtn",
+                "🔍 搜索同盟", () => Debug.Log("[Guild] 搜索同盟"));
+            PlaceTopCenter(searchActionBtn.GetComponent<RectTransform>(), 160, 40, -170, btnY);
+
+            var createBtn = UIComponentFactory.CreatePrimaryButton(parent, "CreateBtn",
+                "创建同盟", () => JoinDemoGuild());
+            PlaceTopCenter(createBtn.GetComponent<RectTransform>(), 160, 40, 0, btnY);
+
+            var applyListBtn = UIComponentFactory.CreateSecondaryButton(parent, "ApplyListBtn",
+                "申请列表", () => Debug.Log("[Guild] 查看申请列表"));
+            PlaceTopCenter(applyListBtn.GetComponent<RectTransform>(), 160, 40, 170, btnY);
+
+            // Section header
+            var header = UIComponentFactory.CreateText(parent, "ListHeader",
+                "── 同盟列表 ──", ThemeColors.FontSmall, ThemeColors.TextDim);
+            PlaceTopCenter(header.rectTransform, 200, 30, 0, -278);
+
+            // ScrollView with guild cards
+            var content = UIComponentFactory.CreateScrollView(parent, "GuildList",
+                new Vector2(880, 640), new Vector2(0, -100));
+
+            foreach (var g in DemoGuilds)
+                CreateGuildCard(content, g[0], int.Parse(g[1]), int.Parse(g[2]), int.Parse(g[3]));
         }
-        private void RefreshState()
-        {
-            var hasGuild = GuildManager.Instance.HasGuild;
-            if (_notJoinedRoot != null) _notJoinedRoot.gameObject.SetActive(!hasGuild);
-            if (_joinedRoot != null) _joinedRoot.gameObject.SetActive(hasGuild);
-            if (!hasGuild) {
-                _titleText.text = "甯細"; _subTitleText.text = "閫夋嫨鎴栧垱寤轰竴涓府浼?; RefreshGuildList();
-            } else {
-                var g = GuildManager.Instance.MyGuild;
-                _titleText.text = g.Name;
-                _subTitleText.text = $"Lv.{g.Level} 鎴愬憳 {g.MemberCount}/{g.MaxMembers}";
-                SwitchSubTab(_currentSubTab);
-            }
-        }
-        private void RefreshGuildList()
-        {
-            foreach (var item in _guildListItems) Destroy(item);
-            _guildListItems.Clear();
-            float y = -10;
-            foreach (var g in GuildManager.Instance.GuildList) {
-                var item = BuildGuildListItem(g, y); _guildListItems.Add(item); y -= 80;
-            }
-            _guildListContent.sizeDelta = new Vector2(0, Mathf.Abs(y) + 10);
-        }
-        private GameObject BuildGuildListItem(Core.GuildData g, float y)
-        {
-            var item = new GameObject("GuildItem", typeof(RectTransform), typeof(Image));
-            item.transform.SetParent(_guildListContent, false);
-            var itemRt = item.GetComponent<RectTransform>();
-            itemRt.anchorMin = new Vector2(0, 1); itemRt.anchorMax = new Vector2(1, 1);
-            itemRt.sizeDelta = new Vector2(0, 70); itemRt.anchoredPosition = new Vector2(0, y);
-            item.GetComponent<Image>().color = new Color(0.12f, 0.10f, 0.09f, 0.6f);
 
-            var icon = CreateImage(itemRt, "Icon", new Color(0.54f, 0.42f, 0.16f, 0.5f));
-            var iconRt = icon.rectTransform;
-            iconRt.anchorMin = new Vector2(0, 0.5f); iconRt.anchorMax = new Vector2(0, 0.5f);
-            iconRt.sizeDelta = new Vector2(50, 50); iconRt.anchoredPosition = new Vector2(35, 0);
+        private void CreateGuildCard(RectTransform parent, string name, int level, int current, int max)
+        {
+            var card = UIComponentFactory.CreateCard(parent, "Guild_" + name,
+                new Vector2(840, 80), Vector2.zero);
+            card.GetComponent<Image>().color = ThemeColors.BgListItem;
 
-            var nameText = CreateText(itemRt, "Name", g.Name + "  Lv." + g.Level, 20);
-            var nRt = (RectTransform)nameText.transform;
-            nRt.anchorMin = new Vector2(0, 0.5f); nRt.anchorMax = new Vector2(0, 0.5f);
-            nRt.sizeDelta = new Vector2(250, 30); nRt.anchoredPosition = new Vector2(80, 10);
+            // Guild icon
+            var icon = UIComponentFactory.CreateText(card, "Icon", "🏯", 32, ThemeColors.Accent);
+            icon.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            icon.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            icon.rectTransform.sizeDelta = new Vector2(44, 44);
+            icon.rectTransform.anchoredPosition = new Vector2(20, 0);
+
+            // Guild name
+            var nameText = UIComponentFactory.CreateText(card, "Name", name,
+                ThemeColors.FontBody, ThemeColors.TextBright);
+            nameText.fontStyle = FontStyle.Bold;
             nameText.alignment = TextAnchor.MiddleLeft;
+            nameText.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            nameText.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            nameText.rectTransform.sizeDelta = new Vector2(220, 28);
+            nameText.rectTransform.anchoredPosition = new Vector2(72, 12);
 
-            var memberText = CreateText(itemRt, "Members", "鎴愬憳 " + g.MemberCount + "/" + g.MaxMembers, 16);
-            memberText.alignment = TextAnchor.MiddleLeft; memberText.color = ColorDimText;
-            var mRt = (RectTransform)memberText.transform;
-            mRt.anchorMin = new Vector2(0, 0.5f); mRt.anchorMax = new Vector2(0, 0.5f);
-            mRt.sizeDelta = new Vector2(150, 24); mRt.anchoredPosition = new Vector2(80, -14);
+            // Level + member count (X/50)
+            bool full = current >= max;
+            var info = UIComponentFactory.CreateText(card, "Info",
+                $"Lv.{level}  ·  成员 {current}/{max}",
+                ThemeColors.FontSmall, full ? ThemeColors.TextDim : ThemeColors.TextNormal);
+            info.alignment = TextAnchor.MiddleLeft;
+            info.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            info.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            info.rectTransform.sizeDelta = new Vector2(280, 24);
+            info.rectTransform.anchoredPosition = new Vector2(72, -14);
 
-            var leaderText = CreateText(itemRt, "Leader", "甯富: " + g.LeaderName, 16);
-            leaderText.alignment = TextAnchor.MiddleLeft; leaderText.color = ColorDimText;
-            var lRt = (RectTransform)leaderText.transform;
-            lRt.anchorMin = new Vector2(0, 0.5f); lRt.anchorMax = new Vector2(0, 0.5f);
-            lRt.sizeDelta = new Vector2(150, 24); lRt.anchoredPosition = new Vector2(240, -14);
-
-            var applyBtn = CreateButton(itemRt, "ApplyBtn", "鐢宠鍔犲叆", () => {
-                var p = GameManager.Instance.Player;
-                GuildManager.Instance.ApplyToGuild(g.GuildId, p.PlayerId, p.Name, p.Level);
-                GameManager.Instance.ShowNotice("宸插彂閫佺敵璇?);
-            });
-            var aRt = (RectTransform)applyBtn.transform;
-            aRt.anchorMin = new Vector2(1, 0.5f); aRt.anchorMax = new Vector2(1, 0.5f);
-            aRt.sizeDelta = new Vector2(100, 36); aRt.anchoredPosition = new Vector2(-20, 0);
-            applyBtn.GetComponent<Image>().color = ColorAccent;
-            return item;
-        }
-        private void SwitchSubTab(int index)
-        {
-            _currentSubTab = index;
-            for (int i = 0; i < _subTabButtons.Count; i++) {
-                var btnImg = _subTabButtons[i].GetComponent<Image>();
-                if (btnImg != null) btnImg.color = i == index ? ColorTabActive : ColorTabNormal;
+            // Apply button (disabled if full)
+            Button applyBtn;
+            if (full)
+            {
+                applyBtn = UIComponentFactory.CreateSecondaryButton(card, "Apply", "已满", () => { });
+                applyBtn.interactable = false;
             }
-            foreach (Transform child in _detailContent) Destroy(child.gameObject);
-            switch (index) {
-                case 0: ShowGuildInfo(); break;
-                case 1: ShowMemberList(); break;
-                case 2: ShowGuildSkills(); break;
-                case 3: ShowGuildQuests(); break;
-                case 4: ShowGuildLog(); break;
+            else
+            {
+                applyBtn = UIComponentFactory.CreatePrimaryButton(card, "Apply", "申请",
+                    () => ApplyToGuild(name));
             }
+            var art = applyBtn.GetComponent<RectTransform>();
+            art.anchorMin = new Vector2(1, 0.5f);
+            art.anchorMax = new Vector2(1, 0.5f);
+            art.sizeDelta = new Vector2(100, 36);
+            art.anchoredPosition = new Vector2(-20, 0);
         }
-        private void ShowGuildInfo()
+
+        // =============================================================
+        // 2. In-Guild View
+        // =============================================================
+        private void BuildInGuildView(RectTransform parent)
         {
-            var g = GuildManager.Instance.MyGuild; if (g == null) return;
-            float y = -20;
-            var rows = new (string, string)[] {
-                ("甯細鍚嶇О", g.Name),
-                ("甯細绛夌骇", "Lv." + g.Level + " (璐＄尞 " + g.TotalContribution + "/" + g.ContributionForNextLevel + ")"),
-                ("甯富", g.LeaderName),
-                ("鎴愬憳鏁?, g.MemberCount + "/" + g.MaxMembers),
-                ("甯細璧勯噾", g.Funds + " 閲戝竵"),
-                ("鍒涘缓鏃堕棿", g.CreateTime.ToString("yyyy-MM-dd")),
+            // Guild info card
+            var infoCard = UIComponentFactory.CreateCard(parent, "GuildInfo",
+                new Vector2(880, 110), new Vector2(0, 355));
+            infoCard.GetComponent<Image>().color = ThemeColors.BgCard;
+
+            // Guild icon
+            var icon = UIComponentFactory.CreateText(infoCard, "Icon", "🏯", 40, ThemeColors.Accent);
+            icon.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            icon.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            icon.rectTransform.sizeDelta = new Vector2(50, 50);
+            icon.rectTransform.anchoredPosition = new Vector2(20, 8);
+
+            // Guild name
+            var guildName = UIComponentFactory.CreateText(infoCard, "GuildName", "剑指苍穹",
+                ThemeColors.FontPanelTitle, ThemeColors.TextBright);
+            guildName.fontStyle = FontStyle.Bold;
+            guildName.alignment = TextAnchor.MiddleLeft;
+            guildName.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            guildName.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            guildName.rectTransform.sizeDelta = new Vector2(300, 36);
+            guildName.rectTransform.anchoredPosition = new Vector2(82, 18);
+
+            // Level + funds + member count
+            var guildDetail = UIComponentFactory.CreateText(infoCard, "GuildDetail",
+                "Lv.5  ·  同盟资金 12,580  ·  成员 45/50",
+                ThemeColors.FontSmall, ThemeColors.TextNormal);
+            guildDetail.alignment = TextAnchor.MiddleLeft;
+            guildDetail.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            guildDetail.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            guildDetail.rectTransform.sizeDelta = new Vector2(500, 24);
+            guildDetail.rectTransform.anchoredPosition = new Vector2(82, -16);
+
+            // Exit guild button (danger style)
+            var exitBtn = UIComponentFactory.CreateButton(infoCard, "ExitGuild", "退出同盟",
+                ThemeColors.BtnDanger, () => LeaveGuild(), ThemeColors.FontSmall);
+            var ert = exitBtn.GetComponent<RectTransform>();
+            ert.anchorMin = new Vector2(1, 0.5f);
+            ert.anchorMax = new Vector2(1, 0.5f);
+            ert.sizeDelta = new Vector2(110, 38);
+            ert.anchoredPosition = new Vector2(-16, 0);
+
+            // ScrollView with members + tasks
+            var content = UIComponentFactory.CreateScrollView(parent, "GuildDetail",
+                new Vector2(880, 640), new Vector2(0, -100));
+
+            // Members section
+            CreateSectionHeader(content, "── 成员列表 (45/50) ──");
+            foreach (var m in DemoMembers)
+                CreateMemberRow(content, m[0], m[1], m[2], m[3]);
+
+            // Tasks section
+            CreateSectionHeader(content, "── 同盟任务 ──");
+            foreach (var t in DemoTasks)
+                CreateTaskRow(content, t[0], t[1], t[2]);
+        }
+
+        private void CreateSectionHeader(RectTransform parent, string text)
+        {
+            var go = new GameObject("SectionHeader", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(840, 36);
+
+            var header = UIComponentFactory.CreateText(rt, "Text", text,
+                ThemeColors.FontSmall, ThemeColors.Accent);
+            header.fontStyle = FontStyle.Bold;
+            header.alignment = TextAnchor.MiddleCenter;
+            header.rectTransform.anchorMin = Vector2.zero;
+            header.rectTransform.anchorMax = Vector2.one;
+            header.rectTransform.sizeDelta = Vector2.zero;
+        }
+
+        private void CreateMemberRow(RectTransform parent, string role, string name,
+            string level, string lastActive)
+        {
+            var card = UIComponentFactory.CreateCard(parent, "Member_" + name,
+                new Vector2(840, 60), Vector2.zero);
+            card.GetComponent<Image>().color = ThemeColors.BgListItem;
+
+            // Role badge with quality color
+            Color roleColor = role switch
+            {
+                "盟主"   => ThemeColors.QualityLegend,
+                "副盟主" => ThemeColors.QualityEpic,
+                "长老"   => ThemeColors.QualityRare,
+                "精英"   => ThemeColors.QualityGood,
+                _         => ThemeColors.TextNormal
             };
-            foreach (var (label, value) in rows) {
-                var row = new GameObject("Row", typeof(RectTransform), typeof(Image));
-                row.transform.SetParent(_detailContent, false);
-                var rowRt = row.GetComponent<RectTransform>();
-                rowRt.anchorMin = new Vector2(0, 1); rowRt.anchorMax = new Vector2(1, 1);
-                rowRt.sizeDelta = new Vector2(0, 36); rowRt.anchoredPosition = new Vector2(0, y);
-                row.GetComponent<Image>().color = new Color(0.12f, 0.10f, 0.09f, 0.6f);
-                var lblTxt = CreateText(rowRt, "Label", label, 18);
-                var lRt = (RectTransform)lblTxt.transform;
-                lRt.anchorMin = new Vector2(0, 0.5f); lRt.anchorMax = new Vector2(0, 0.5f);
-                lRt.sizeDelta = new Vector2(120, 28); lRt.anchoredPosition = new Vector2(20, 0);
-                lblTxt.alignment = TextAnchor.MiddleLeft; lblTxt.color = ColorDimText;
-                var valTxt = CreateText(rowRt, "Value", value, 18);
-                var vRt = (RectTransform)valTxt.transform;
-                vRt.anchorMin = new Vector2(0, 0.5f); vRt.anchorMax = new Vector2(0, 0.5f);
-                vRt.sizeDelta = new Vector2(400, 28); vRt.anchoredPosition = new Vector2(150, 0);
-                valTxt.alignment = TextAnchor.MiddleLeft;
-                y -= 44;
-            }
-            y -= 10;
-            var noticeLabel = CreateText(_detailContent, "NoticeLabel", "鍏憡", 20);
-            var nlRt = (RectTransform)noticeLabel.transform;
-            nlRt.anchorMin = new Vector2(0, 1); nlRt.anchorMax = new Vector2(0, 1);
-            nlRt.sizeDelta = new Vector2(100, 28); nlRt.anchoredPosition = new Vector2(20, y);
-            noticeLabel.alignment = TextAnchor.MiddleLeft; noticeLabel.color = ColorGold;
-            y -= 35;
-            var noticeBg = new GameObject("NoticeBg", typeof(RectTransform), typeof(Image));
-            noticeBg.transform.SetParent(_detailContent, false);
-            var nbRt = noticeBg.GetComponent<RectTransform>();
-            nbRt.anchorMin = new Vector2(0, 1); nbRt.anchorMax = new Vector2(1, 1);
-            nbRt.sizeDelta = new Vector2(-40, 80); nbRt.anchoredPosition = new Vector2(20, y);
-            noticeBg.GetComponent<Image>().color = new Color(0.12f, 0.10f, 0.09f, 0.6f);
-            var noticeText = CreateText(nbRt, "Text", g.Notice, 16);
-            var ntRt = (RectTransform)noticeText.transform;
-            ntRt.anchorMin = new Vector2(0, 0); ntRt.anchorMax = new Vector2(1, 1);
-            ntRt.sizeDelta = new Vector2(-20, -20); ntRt.anchoredPosition = Vector2.zero;
-            noticeText.alignment = TextAnchor.UpperLeft; noticeText.color = ColorDimText;
-            y -= 100;
-            var pid = GameManager.Instance.Player.PlayerId;
-            var m = GuildManager.Instance.GetMember(pid);
-            if (m != null && m.Position >= Core.GuildPosition.Officer) {
-                var editBtn = CreateButton(_detailContent, "EditNotice", "缂栬緫鍏憡", () => {
-                    GuildManager.Instance.SetNotice("璇疯緭鍏ユ柊鍏憡", pid); SwitchSubTab(0);
-                });
-                var enRt = (RectTransform)editBtn.transform;
-                enRt.anchorMin = new Vector2(1, 1); enRt.anchorMax = new Vector2(1, 1);
-                enRt.sizeDelta = new Vector2(120, 36); enRt.anchoredPosition = new Vector2(-40, y);
-            }
-            _detailContent.sizeDelta = new Vector2(0, Mathf.Abs(y) + 40);
+            var roleText = UIComponentFactory.CreateText(card, "Role", role,
+                ThemeColors.FontTiny, roleColor);
+            roleText.fontStyle = FontStyle.Bold;
+            roleText.alignment = TextAnchor.MiddleCenter;
+            roleText.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            roleText.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            roleText.rectTransform.sizeDelta = new Vector2(56, 24);
+            roleText.rectTransform.anchoredPosition = new Vector2(12, 0);
+
+            // Name
+            var nameText = UIComponentFactory.CreateText(card, "Name", name,
+                ThemeColors.FontBody, ThemeColors.TextBright);
+            nameText.alignment = TextAnchor.MiddleLeft;
+            nameText.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            nameText.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            nameText.rectTransform.sizeDelta = new Vector2(200, 30);
+            nameText.rectTransform.anchoredPosition = new Vector2(76, 0);
+
+            // Level
+            var lvText = UIComponentFactory.CreateText(card, "Level", level,
+                ThemeColors.FontSmall, ThemeColors.Gold);
+            lvText.alignment = TextAnchor.MiddleLeft;
+            lvText.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            lvText.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            lvText.rectTransform.sizeDelta = new Vector2(80, 30);
+            lvText.rectTransform.anchoredPosition = new Vector2(280, 0);
+
+            // Last active
+            var activeText = UIComponentFactory.CreateText(card, "Active", lastActive,
+                ThemeColors.FontTiny, ThemeColors.TextDim);
+            activeText.alignment = TextAnchor.MiddleRight;
+            activeText.rectTransform.anchorMin = new Vector2(1, 0.5f);
+            activeText.rectTransform.anchorMax = new Vector2(1, 0.5f);
+            activeText.rectTransform.sizeDelta = new Vector2(120, 24);
+            activeText.rectTransform.anchoredPosition = new Vector2(-16, 0);
         }
-        private void ShowMemberList()
+
+        private void CreateTaskRow(RectTransform parent, string name, string desc, string progress)
         {
-            var g = GuildManager.Instance.MyGuild; if (g == null) return;
-            var members = GuildManager.Instance.GetSortedMembers();
-            float y = -20; float rowH = 50;
-            var header = new GameObject("Header", typeof(RectTransform), typeof(Image));
-            header.transform.SetParent(_detailContent, false);
-            var hRt = header.GetComponent<RectTransform>();
-            hRt.anchorMin = new Vector2(0, 1); hRt.anchorMax = new Vector2(1, 1);
-            hRt.sizeDelta = new Vector2(0, rowH); hRt.anchoredPosition = new Vector2(0, y);
-            header.GetComponent<Image>().color = new Color(0.15f, 0.15f, 0.3f, 0.8f);
-            var cols = new (string, float)[] { ("鎴愬憳", 180), ("绛夌骇", 60), ("鑱屼綅", 100), ("璐＄尞", 120), ("鐘舵€?, 80), ("鎿嶄綔", 100) };
-            float hx = 20;
-            foreach (var (cn, cw) in cols) {
-                var ht = CreateText(hRt, cn, cn, 16);
-                var htr = (RectTransform)ht.transform;
-                htr.anchorMin = new Vector2(0, 0.5f); htr.anchorMax = new Vector2(0, 0.5f);
-                htr.sizeDelta = new Vector2(cw, 24); htr.anchoredPosition = new Vector2(hx, 0);
-                ht.alignment = TextAnchor.MiddleLeft; ht.color = ColorGold; hx += cw;
-            }
-            y -= rowH + 4;
-            var pid = GameManager.Instance.Player.PlayerId;
-            var self = GuildManager.Instance.GetMember(pid);
-            var posNames = new string[] { "鎴愬憳", "绮捐嫳", "瀹樺憳", "鍓府涓?, "甯富" };
-            foreach (var m in members) {
-                var row = new GameObject("Row", typeof(RectTransform), typeof(Image));
-                row.transform.SetParent(_detailContent, false);
-                var rowRt = row.GetComponent<RectTransform>();
-                rowRt.anchorMin = new Vector2(0, 1); rowRt.anchorMax = new Vector2(1, 1);
-                rowRt.sizeDelta = new Vector2(0, rowH); rowRt.anchoredPosition = new Vector2(0, y);
-                row.GetComponent<Image>().color = m.PlayerId == pid ? new Color(0.30f, 0.26f, 0.22f, 0.6f) : new Color(0.12f, 0.10f, 0.09f, 0.6f);
-                var pc = m.Position == Core.GuildPosition.Leader ? ColorGold : m.Position >= Core.GuildPosition.Officer ? ColorAccent : Color.white;
-                float cx = 20;
-                var nt = CreateText(rowRt,"Name",m.Name,18); var ntr=(RectTransform)nt.transform; ntr.anchorMin=new Vector2(0,0.5f); ntr.anchorMax=new Vector2(0,0.5f); ntr.sizeDelta=new Vector2(180,28); ntr.anchoredPosition=new Vector2(cx,0); nt.alignment=TextAnchor.MiddleLeft; cx+=180;
-                var lt = CreateText(rowRt,"Lv",m.Level.ToString(),16); var ltr=(RectTransform)lt.transform; ltr.anchorMin=new Vector2(0,0.5f); ltr.anchorMax=new Vector2(0,0.5f); ltr.sizeDelta=new Vector2(60,24); ltr.anchoredPosition=new Vector2(cx,0); lt.alignment=TextAnchor.MiddleLeft; lt.color=ColorDimText; cx+=60;
-                var pt = CreateText(rowRt,"Pos",posNames[(int)m.Position],16); var ptr=(RectTransform)pt.transform; ptr.anchorMin=new Vector2(0,0.5f); ptr.anchorMax=new Vector2(0,0.5f); ptr.sizeDelta=new Vector2(100,24); ptr.anchoredPosition=new Vector2(cx,0); pt.color=pc; cx+=100;
-                var ct = CreateText(rowRt,"Contrib",m.Contribution.ToString(),16); var ctr=(RectTransform)ct.transform; ctr.anchorMin=new Vector2(0,0.5f); ctr.anchorMax=new Vector2(0,0.5f); ctr.sizeDelta=new Vector2(120,24); ctr.anchoredPosition=new Vector2(cx,0); ct.alignment=TextAnchor.MiddleLeft; ct.color=ColorDimText; cx+=120;
-                var ot = CreateText(rowRt,"Online",m.Online?"鍦ㄧ嚎":"绂荤嚎",16); var otr=(RectTransform)ot.transform; otr.anchorMin=new Vector2(0,0.5f); otr.anchorMax=new Vector2(0,0.5f); otr.sizeDelta=new Vector2(80,24); otr.anchoredPosition=new Vector2(cx,0); ot.color=m.Online?ColorGreen:ColorDimText; cx+=80;
-                if (self != null && self.Position >= Core.GuildPosition.Officer && m.PlayerId != pid && m.Position < self.Position) {
-                    var kb = CreateButton(rowRt,"KickBtn","韪㈠嚭",()=>{ GuildManager.Instance.KickMember(m.PlayerId,pid); SwitchSubTab(1); });
-                    var kr = (RectTransform)kb.transform; kr.anchorMin=new Vector2(0,0.5f); kr.anchorMax=new Vector2(0,0.5f);
-                    kr.sizeDelta=new Vector2(70,32); kr.anchoredPosition=new Vector2(cx+15,0); kb.GetComponent<Image>().color=ColorRed;
-                }
-                y -= rowH + 2;
-            }
-            _detailContent.sizeDelta = new Vector2(0, Mathf.Abs(y) + 20);
+            var card = UIComponentFactory.CreateCard(parent, "Task_" + name,
+                new Vector2(840, 76), Vector2.zero);
+            card.GetComponent<Image>().color = ThemeColors.BgListItem;
+
+            // Task name
+            var nameText = UIComponentFactory.CreateText(card, "Name", name,
+                ThemeColors.FontBody, ThemeColors.TextBright);
+            nameText.fontStyle = FontStyle.Bold;
+            nameText.alignment = TextAnchor.MiddleLeft;
+            nameText.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            nameText.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            nameText.rectTransform.sizeDelta = new Vector2(200, 28);
+            nameText.rectTransform.anchoredPosition = new Vector2(20, 14);
+
+            // Description
+            var descText = UIComponentFactory.CreateText(card, "Desc", desc,
+                ThemeColors.FontTiny, ThemeColors.TextDim);
+            descText.alignment = TextAnchor.MiddleLeft;
+            descText.rectTransform.anchorMin = new Vector2(0, 0.5f);
+            descText.rectTransform.anchorMax = new Vector2(0, 0.5f);
+            descText.rectTransform.sizeDelta = new Vector2(400, 20);
+            descText.rectTransform.anchoredPosition = new Vector2(20, -14);
+
+            // Progress
+            var progText = UIComponentFactory.CreateText(card, "Progress", progress,
+                ThemeColors.FontSmall, ThemeColors.Gold);
+            progText.alignment = TextAnchor.MiddleRight;
+            progText.rectTransform.anchorMin = new Vector2(1, 0.5f);
+            progText.rectTransform.anchorMax = new Vector2(1, 0.5f);
+            progText.rectTransform.sizeDelta = new Vector2(100, 24);
+            progText.rectTransform.anchoredPosition = new Vector2(-120, 14);
+
+            // Go button
+            var goBtn = UIComponentFactory.CreateSecondaryButton(card, "GoBtn", "前往", () => { });
+            var grt = goBtn.GetComponent<RectTransform>();
+            grt.anchorMin = new Vector2(1, 0.5f);
+            grt.anchorMax = new Vector2(1, 0.5f);
+            grt.sizeDelta = new Vector2(80, 32);
+            grt.anchoredPosition = new Vector2(-16, 0);
         }
-        private void ShowGuildSkills()
+
+        // =============================================================
+        // 3. View Switching
+        // =============================================================
+        private void UpdateView()
         {
-            var g = GuildManager.Instance.MyGuild; if (g == null) return;
-            GuildManager.Instance.GetGuildBuff(out float atk, out float def, out float hp);
-            var ov = new GameObject("Overview", typeof(RectTransform), typeof(Image));
-            ov.transform.SetParent(_detailContent, false);
-            var ovRt = ov.GetComponent<RectTransform>();
-            ovRt.anchorMin = new Vector2(0, 1); ovRt.anchorMax = new Vector2(1, 1);
-            ovRt.sizeDelta = new Vector2(0, 50); ovRt.anchoredPosition = new Vector2(0, -20);
-            ov.GetComponent<Image>().color = new Color(0.12f, 0.08f, 0.2f, 0.7f);
-            var bf = CreateText(ovRt, "BuffText", "鍏ㄤ綋鍔犳垚:  鏀诲嚮 +" + atk.ToString("F1") + "%  |  闃插尽 +" + def.ToString("F1") + "%  |  鐢熷懡 +" + hp.ToString("F1") + "%", 18);
-            bf.rectTransform.anchorMin = Vector2.zero; bf.rectTransform.anchorMax = Vector2.one;
-            bf.rectTransform.sizeDelta = Vector2.zero; bf.color = ColorGold;
-
-            float y = -85;
-            var pid = GameManager.Instance.Player.PlayerId;
-            var m = GuildManager.Instance.GetMember(pid);
-            bool canUp = m != null && m.Position >= Core.GuildPosition.Officer;
-
-            foreach (var sk in g.Skills) {
-                var row = new GameObject("SkillRow", typeof(RectTransform), typeof(Image));
-                row.transform.SetParent(_detailContent, false);
-                var rowRt = row.GetComponent<RectTransform>();
-                rowRt.anchorMin = new Vector2(0, 1); rowRt.anchorMax = new Vector2(1, 1);
-                rowRt.sizeDelta = new Vector2(0, 80); rowRt.anchoredPosition = new Vector2(0, y);
-                row.GetComponent<Image>().color = new Color(0.12f, 0.10f, 0.09f, 0.6f);
-
-                var nt = CreateText(rowRt,"Name",sk.Name,22); var ntr=(RectTransform)nt.transform;
-                ntr.anchorMin=new Vector2(0,0.5f); ntr.anchorMax=new Vector2(0,0.5f);
-                ntr.sizeDelta=new Vector2(120,30); ntr.anchoredPosition=new Vector2(30,15);
-                var lvt = CreateText(rowRt,"Level","Lv."+sk.Level+"/"+sk.MaxLevel,18); var lvr=(RectTransform)lvt.transform;
-                lvr.anchorMin=new Vector2(0,0.5f); lvr.anchorMax=new Vector2(0,0.5f);
-                lvr.sizeDelta=new Vector2(100,26); lvr.anchoredPosition=new Vector2(30,-15);
-                lvt.alignment=TextAnchor.MiddleLeft; lvt.color=ColorGold;
-                var dt = CreateText(rowRt,"Desc",sk.Description,16); var dr=(RectTransform)dt.transform;
-                dr.anchorMin=new Vector2(0,0.5f); dr.anchorMax=new Vector2(0,0.5f);
-                dr.sizeDelta=new Vector2(250,24); dr.anchoredPosition=new Vector2(160,15);
-                dt.alignment=TextAnchor.MiddleLeft; dt.color=ColorDimText;
-                var bt = CreateText(rowRt,"Bonus","鏀诲嚮+"+sk.CurrentAtkBonus.ToString("F1")+"%  闃插尽+"+sk.CurrentDefBonus.ToString("F1")+"%  鐢熷懡+"+sk.CurrentHpBonus.ToString("F1")+"%",16);
-                var br=(RectTransform)bt.transform; br.anchorMin=new Vector2(0,0.5f); br.anchorMax=new Vector2(0,0.5f);
-                br.sizeDelta=new Vector2(350,24); br.anchoredPosition=new Vector2(160,-15);
-                bt.alignment=TextAnchor.MiddleLeft; bt.color=ColorBlue;
-                var ct = CreateText(rowRt,"Cost","璧勯噾:"+sk.UpgradeCost+"  璐＄尞:"+sk.ContributionCost,14);
-                var cr=(RectTransform)ct.transform; cr.anchorMin=new Vector2(1,0.5f); cr.anchorMax=new Vector2(1,0.5f);
-                cr.sizeDelta=new Vector2(180,22); cr.anchoredPosition=new Vector2(-220,0);
-                ct.alignment=TextAnchor.MiddleRight; ct.color=ColorDimText;
-                if (canUp && !sk.IsMaxLevel) {
-                    var ub = CreateButton(rowRt,"UpgradeBtn","鍗囩骇",()=>{
-                        var code = GuildManager.Instance.UpgradeSkill(sk.SkillId, pid);
-                        var msg = code==0?"鍗囩骇鎴愬姛锛?:code==2?"宸茶揪鏈€楂樼瓑绾?:code==3?"甯細璧勯噾涓嶈冻":code==4?"涓汉璐＄尞涓嶈冻":"鍗囩骇澶辫触";
-                        GameManager.Instance.ShowNotice(msg); SwitchSubTab(2);
-                    });
-                    var ur=(RectTransform)ub.transform; ur.anchorMin=new Vector2(1,0.5f); ur.anchorMax=new Vector2(1,0.5f);
-                    ur.sizeDelta=new Vector2(80,36); ur.anchoredPosition=new Vector2(-30,0); ub.GetComponent<Image>().color=ColorAccent;
-                } else if (sk.IsMaxLevel) {
-                    var mt = CreateText(rowRt,"Max","宸叉弧绾?,16); var mr=(RectTransform)mt.transform;
-                    mr.anchorMin=new Vector2(1,0.5f); mr.anchorMax=new Vector2(1,0.5f);
-                    mr.sizeDelta=new Vector2(80,24); mr.anchoredPosition=new Vector2(-30,0); mt.color=ColorGreen;
-                }
-                y -= 90;
-            }
-            _detailContent.sizeDelta = new Vector2(0, Mathf.Abs(y) + 30);
+            if (_noGuildView != null) _noGuildView.SetActive(!_hasGuild);
+            if (_inGuildView != null) _inGuildView.SetActive(_hasGuild);
         }
-        private void ShowGuildQuests()
+
+        private void JoinDemoGuild()
         {
-            var g = GuildManager.Instance.MyGuild; if (g == null) return;
-            var quests = GuildManager.Instance.GetTodayGuildQuests();
-            float y = -20;
-            var ht = CreateText(_detailContent,"Header","浠婃棩甯細浠诲姟 (姣忔棩鍒锋柊)",20);
-            var hr=(RectTransform)ht.transform; hr.anchorMin=new Vector2(0,1); hr.anchorMax=new Vector2(0,1);
-            hr.sizeDelta=new Vector2(300,30); hr.anchoredPosition=new Vector2(20,y);
-            ht.alignment=TextAnchor.MiddleLeft; ht.color=ColorGold; y-=45;
-            var pid = GameManager.Instance.Player.PlayerId;
-            foreach (var q in quests) {
-                g.DailyQuestProgress.TryGetValue(q.QuestId, out int prog);
-                bool done = prog >= q.Target;
-                var row = new GameObject("Row", typeof(RectTransform), typeof(Image));
-                row.transform.SetParent(_detailContent, false);
-                var rr = row.GetComponent<RectTransform>();
-                rr.anchorMin=new Vector2(0,1); rr.anchorMax=new Vector2(1,1);
-                rr.sizeDelta=new Vector2(0,60); rr.anchoredPosition=new Vector2(0,y);
-                row.GetComponent<Image>().color = new Color(0.08f,0.08f,0.16f,0.6f);
-
-                var nt=CreateText(row.GetComponent<RectTransform>(),"Name",q.Name,20); var ntr=(RectTransform)nt.transform;
-                ntr.anchorMin=new Vector2(0,0.5f); ntr.anchorMax=new Vector2(0,0.5f);
-                ntr.sizeDelta=new Vector2(120,28); ntr.anchoredPosition=new Vector2(20,10);
-                nt.alignment=TextAnchor.MiddleLeft;
-
-                var dt=CreateText(row.GetComponent<RectTransform>(),"Desc",q.Description,16); var dtr=(RectTransform)dt.transform;
-                dtr.anchorMin=new Vector2(0,0.5f); dtr.anchorMax=new Vector2(0,0.5f);
-                dtr.sizeDelta=new Vector2(200,24); dtr.anchoredPosition=new Vector2(20,-14);
-                dt.alignment=TextAnchor.MiddleLeft; dt.color=ColorDimText;
-
-                var pt=CreateText(row.GetComponent<RectTransform>(),"Progress","杩涘害 "+prog+"/"+q.Target,16); var ptr=(RectTransform)pt.transform;
-                ptr.anchorMin=new Vector2(0,0.5f); ptr.anchorMax=new Vector2(0,0.5f);
-                ptr.sizeDelta=new Vector2(120,24); ptr.anchoredPosition=new Vector2(250,10);
-                pt.alignment=TextAnchor.MiddleLeft; pt.color=done?ColorGreen:ColorDimText;
-
-                var rt=CreateText(row.GetComponent<RectTransform>(),"Reward","璐＄尞+"+q.ContributionReward+" 璧勯噾+"+q.FundsReward,14); var rtr=(RectTransform)rt.transform;
-                rtr.anchorMin=new Vector2(0,0.5f); rtr.anchorMax=new Vector2(0,0.5f);
-                rtr.sizeDelta=new Vector2(200,22); rtr.anchoredPosition=new Vector2(250,-16);
-                rt.alignment=TextAnchor.MiddleLeft; rt.color=ColorGold;
-
-                var st=CreateText(row.GetComponent<RectTransform>(),"Status",done?"宸插畬鎴?鉁?:"杩涜涓?,16); var str=(RectTransform)st.transform;
-                str.anchorMin=new Vector2(1,0.5f); str.anchorMax=new Vector2(1,0.5f);
-                str.sizeDelta=new Vector2(100,24); str.anchoredPosition=new Vector2(-20,0);
-                st.color=done?ColorGreen:ColorDimText;
-                y-=68;
-            }
-            var mm = GuildManager.Instance.GetMember(pid);
-            if (mm != null) {
-                y-=10;
-                var sm=CreateText(_detailContent,"Summary","浠婃棩璐＄尞: "+mm.DailyContribution+"  |  鏈懆璐＄尞: "+mm.WeeklyContribution+"  |  鎬昏础鐚? "+mm.Contribution,18);
-                var sr=(RectTransform)sm.transform; sr.anchorMin=new Vector2(0,1); sr.anchorMax=new Vector2(0,1);
-                sr.sizeDelta=new Vector2(600,30); sr.anchoredPosition=new Vector2(20,y);
-                sm.alignment=TextAnchor.MiddleLeft; sm.color=ColorGold; y-=40;
-            }
-            _detailContent.sizeDelta = new Vector2(0, Mathf.Abs(y) + 20);
+            _hasGuild = true;
+            UpdateView();
+            Debug.Log("[Guild] 已加入同盟");
         }
-        private void ShowGuildLog()
-        {
-            var g = GuildManager.Instance.MyGuild; if (g == null) return;
-            var logs = GuildManager.Instance.GetRecentLogs(50);
-            float y = -20;
-            if (logs.Count == 0) {
-                var et = CreateText(_detailContent,"Empty","鏆傛棤甯細鏃ュ織",18);
-                var er=(RectTransform)et.transform; er.anchorMin=new Vector2(0,1); er.anchorMax=new Vector2(0,1);
-                er.sizeDelta=new Vector2(200,30); er.anchoredPosition=new Vector2(40,y);
-                et.alignment=TextAnchor.MiddleLeft; et.color=ColorDimText; y-=40;
-            } else {
-                foreach (var log in logs) {
-                    var row = new GameObject("LogRow", typeof(RectTransform), typeof(Image));
-                    row.transform.SetParent(_detailContent, false);
-                    var rr=row.GetComponent<RectTransform>();
-                    rr.anchorMin=new Vector2(0,1); rr.anchorMax=new Vector2(1,1);
-                    rr.sizeDelta=new Vector2(0,36); rr.anchoredPosition=new Vector2(0,y);
-                    row.GetComponent<Image>().color = new Color(0.08f,0.08f,0.16f,0.6f);
 
-                    var tt=CreateText(row.GetComponent<RectTransform>(),"Time",log.Time.ToString("HH:mm:ss"),14); var tr=(RectTransform)tt.transform;
-                    tr.anchorMin=new Vector2(0,0.5f); tr.anchorMax=new Vector2(0,0.5f);
-                    tr.sizeDelta=new Vector2(80,22); tr.anchoredPosition=new Vector2(20,0);
-                    tt.alignment=TextAnchor.MiddleLeft; tt.color=ColorDimText;
+        private void LeaveGuild()
+        {
+            _hasGuild = false;
+            UpdateView();
+            Debug.Log("[Guild] 已退出同盟");
+        }
 
-                    var mt=CreateText(row.GetComponent<RectTransform>(),"Message",log.Message,16); var mr=(RectTransform)mt.transform;
-                    mr.anchorMin=new Vector2(0,0.5f); mr.anchorMax=new Vector2(0,0.5f);
-                    mr.sizeDelta=new Vector2(700,24); mr.anchoredPosition=new Vector2(110,0);
-                    mt.alignment=TextAnchor.MiddleLeft; mt.color=Color.white;
-                    y-=42;
-                }
-            }
-            _detailContent.sizeDelta = new Vector2(0, Mathf.Abs(y) + 20);
-        }
-        private void ShowCreateDialog()
+        private void ApplyToGuild(string guildName)
         {
-            var p = GameManager.Instance.Player;
-            string defName = p.Name + "鐨勫府浼?;
-            int iconIdx = Random.Range(0, 10);
-            var code = GuildManager.Instance.CreateGuild(defName, iconIdx, p.PlayerId, p.Name);
-            var msg = code==0?"甯細銆?+defName+"銆嬪垱寤烘垚鍔燂紒":code==1?"鍚嶇О宸插瓨鍦?:code==2?"浣犲凡鏈夊府浼?:code==3?"閲戝竵涓嶈冻锛堥渶50000锛?:"鍙傛暟鏃犳晥";
-            GameManager.Instance.ShowNotice(msg);
-            if (code == 0) RefreshState();
+            Debug.Log($"[Guild] 已申请加入同盟: {guildName}");
         }
-        public override void Refresh()
+
+        private void BackToMain()
         {
-            base.Refresh(); RefreshState();
+            UIManager.Instance.Hide<GuildPanel>();
+            UIManager.Instance.Show<MainCityPanel>();
+        }
+
+        // =============================================================
+        // 4. Layout Helpers
+        // =============================================================
+        private static GameObject CreateContainer(RectTransform parent, string name)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.sizeDelta = Vector2.zero;
+            rt.anchoredPosition = Vector2.zero;
+            return go;
+        }
+
+        private static void PlaceTopCenter(RectTransform rt, float w, float h, float x, float y)
+        {
+            rt.anchorMin = new Vector2(0.5f, 1f);
+            rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.sizeDelta = new Vector2(w, h);
+            rt.anchoredPosition = new Vector2(x, y);
+        }
+
+        private static void PlaceBottomCenter(RectTransform rt, float w, float h, float x, float y)
+        {
+            rt.anchorMin = new Vector2(0.5f, 0f);
+            rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.sizeDelta = new Vector2(w, h);
+            rt.anchoredPosition = new Vector2(x, y);
         }
     }
 }

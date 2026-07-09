@@ -1,568 +1,407 @@
-﻿#nullable disable
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Jx3.Core;
-using System.Collections.Generic;
-using System;
-using Jx3.UI;
-using Jx3.UI.Panels;
 
 namespace Jx3.UI.Panels
 {
+    /// <summary>
+    /// 好友面板 — 好友列表 / 申请列表 / 最近组队
+    /// 金墨武侠风格 · 全程使用 UIComponentFactory + ThemeColors
+    /// </summary>
     public class FriendPanel : BasePanel
     {
-        private static readonly Color ColorBg = new Color(0.047f, 0.039f, 0.031f, 0.95f);
-        private static readonly Color ColorTabNormal = new Color(0.18f, 0.16f, 0.14f);
-        private static readonly Color ColorTabActive = new Color(0.5f, 0.28f, 0.75f);
-        private static readonly Color ColorInputBg = new Color(0.16f, 0.14f, 0.12f);
-        private static readonly Color ColorGreen = new Color(0.2f, 1.0f, 0.2f);
-        private static readonly Color ColorRed = new Color(1.0f, 0.2f, 0.2f);
-        private static readonly Color ColorGold = new Color(1f, 0.85f, 0.2f);
-        private static readonly Color ColorBtnPrimary = new Color(0.35f, 0.2f, 0.65f);
-        private static readonly Color ColorBtnDanger = new Color(0.6f, 0.15f, 0.15f);
-        private static readonly Color ColorBtnAccept = new Color(0.15f, 0.5f, 0.15f);
-        private static readonly Color ColorCardBg = new Color(0.08f, 0.08f, 0.18f, 0.8f);
-        private static readonly Color ColorReason = new Color(0.6f, 0.9f, 0.6f);
-        private static readonly Color ColorSchool = new Color(0.8f, 0.6f, 1f);
-        private static readonly Color ColorDimText = new Color(0.45f, 0.45f, 0.55f);
+        // ── Data Model ──────────────────────────────────────
 
-        private static readonly Color ColorOnline = new Color(0.13f, 0.85f, 0.13f);
-        private static readonly Color ColorOffline = new Color(0.45f, 0.45f, 0.55f);
-        private static readonly Color ColorInBattle = new Color(1f, 0.2f, 0.2f);
+        private class FriendData
+        {
+            public string Name;
+            public int Level;
+            public bool Online;
+            public string TeamInfo;
+        }
 
-        private static readonly string[] TabNames = { "濂藉弸", "璇锋眰", "鏈€杩?, "鎺ㄨ崘", "榛戝悕鍗? };
+        private enum TabType { FriendList, ApplyList, RecentTeam }
+        private static readonly string[] TabNames = { "好友列表", "申请列表", "最近组队" };
+
+        // ── State ────────────────────────────────────────────
+
+        private TabType _currentTab = TabType.FriendList;
+        private string _searchFilter = "";
+
+        // ── UI References ────────────────────────────────────
 
         private Text _onlineCountText;
+        private RectTransform _scrollContent;
+        private readonly List<Button> _tabButtons = new List<Button>();
         private InputField _searchInput;
-        private RectTransform _listContainer;
-        private int _currentTab;
-        private readonly List<Image> _tabImages = new();
-        private readonly List<Text> _tabTexts = new();
-        private Text _badgeText;
-        private GameObject _emptyHint;
+
+        // ── Demo Data ────────────────────────────────────────
+
+        private readonly List<FriendData> _friends = new List<FriendData>();
+        private readonly List<FriendData> _applyList = new List<FriendData>();
+        private readonly List<FriendData> _recentTeam = new List<FriendData>();
+
+        // ════════════════════════════════════════════════════
+        //  Lifecycle
+        // ════════════════════════════════════════════════════
 
         protected override void Awake()
         {
             base.Awake();
-            BuildUI();
-            if (FriendManager.Instance.FriendCount == 0)
-                FriendManager.Instance.AddMockData();
-            FriendManager.Instance.OnFriendListChanged += RefreshList;
-            FriendManager.Instance.OnFriendRequest += OnNewRequest;
-            FriendManager.Instance.OnRecommendListUpdated += (_) => { if (_currentTab == 3) RefreshList(); };
+            InitDemoData();
+
+            var root = transform as RectTransform;
+            UIComponentFactory.CreateBackground(root);
+
+            BuildTitleBar(root);
+            BuildSearchBar(root);
+            BuildTabBar(root);
+            BuildScrollList(root);
+            BuildBackButton(root);
+
             RefreshList();
+            UpdateOnlineCount();
         }
 
-        protected void OnDestroy()
+        public override void Refresh()
         {
-            if (FriendManager.Instance != null)
-            {
-                FriendManager.Instance.OnFriendListChanged -= RefreshList;
-                FriendManager.Instance.OnFriendRequest -= OnNewRequest;
-            }
+            base.Refresh();
+            RefreshList();
+            UpdateOnlineCount();
         }
 
-        private void OnNewRequest(FriendRequest req) { RefreshList(); }
+        // ════════════════════════════════════════════════════
+        //  Build UI
+        // ════════════════════════════════════════════════════
 
-        private void BuildUI() { /* generated by python script */ var rootRt = transform as RectTransform;
-            var bg = new GameObject("Bg", typeof(RectTransform), typeof(Image));
-            bg.transform.SetParent(transform, false);
-            bg.GetComponent<Image>().color = ColorBg;
-            var bgRt = bg.GetComponent<RectTransform>();
-            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one; bgRt.sizeDelta = Vector2.zero;
+        // ── 1. Title Bar ────────────────────────────────────
 
-            var title = CreateText(rootRt, "Title", "濂? 鍙?, 32);
-            title.fontStyle = FontStyle.Bold; title.color = ColorGold;
-            var tRt = title.rectTransform;
-            tRt.anchorMin = new Vector2(0.5f, 1f); tRt.anchorMax = new Vector2(0.5f, 1f);
-            tRt.anchoredPosition = new Vector2(0, -40); tRt.sizeDelta = new Vector2(200, 44);
+        private void BuildTitleBar(RectTransform root)
+        {
+            UIComponentFactory.CreateTitleBar(root, "好友", () => BackToMain());
 
-            _onlineCountText = CreateText(rootRt, "OnlineCount", "鍦ㄧ嚎: 0/0", 16);
-            _onlineCountText.alignment = TextAnchor.MiddleCenter;
-            _onlineCountText.color = new Color(0.6f, 0.8f, 0.6f);
-            var or = _onlineCountText.rectTransform;
-            or.anchorMin = new Vector2(0.5f, 1f); or.anchorMax = new Vector2(0.5f, 1f);
-            or.anchoredPosition = new Vector2(0, -68); or.sizeDelta = new Vector2(200, 24);
+            // Online count — placed in the title-bar area, left of the close button
+            _onlineCountText = UIComponentFactory.CreateText(root, "OnlineCount", "在线: 0/0",
+                ThemeColors.FontSmall, ThemeColors.Stamina);
+            _onlineCountText.alignment = TextAnchor.MiddleRight;
+            var rt = _onlineCountText.rectTransform;
+            rt.anchorMin = new Vector2(1, 1);
+            rt.anchorMax = new Vector2(1, 1);
+            rt.sizeDelta = new Vector2(140, 30);
+            rt.anchoredPosition = new Vector2(-180, -28);
+        }
 
-            var closeBtn = CreateButton(rootRt, "CloseBtn", "X", () => Hide());
-            var cr = closeBtn.GetComponent<RectTransform>();
-            cr.anchorMin = new Vector2(1f, 1f); cr.anchorMax = new Vector2(1f, 1f);
-            cr.anchoredPosition = new Vector2(-15, -15); cr.sizeDelta = new Vector2(36, 36);
-            closeBtn.GetComponent<Image>().color = new Color(0.25f, 0.25f, 0.35f);
-            closeBtn.GetComponentInChildren<Text>().fontSize = 18;
+        // ── 2. Search Bar ────────────────────────────────────
 
-            BuildSearchBar(rootRt);
-            BuildTabs(rootRt);
+        private void BuildSearchBar(RectTransform root)
+        {
+            // Full-width container row
+            var row = new GameObject("SearchRow", typeof(RectTransform));
+            row.transform.SetParent(root, false);
+            var rrt = row.GetComponent<RectTransform>();
+            rrt.anchorMin = new Vector2(0, 1);
+            rrt.anchorMax = new Vector2(1, 1);
+            rrt.sizeDelta = new Vector2(0, 44);
+            rrt.anchoredPosition = new Vector2(0, -80);
 
-            var listBg = new GameObject("ListBg", typeof(RectTransform), typeof(Image));
-            listBg.transform.SetParent(transform, false);
-            var lr = listBg.GetComponent<RectTransform>();
-            lr.anchorMin = new Vector2(0.5f, 0.5f); lr.anchorMax = new Vector2(0.5f, 0.5f);
-            lr.sizeDelta = new Vector2(860, 460); lr.anchoredPosition = new Vector2(0, -40);
-            listBg.GetComponent<Image>().color = new Color(0.12f, 0.10f, 0.09f);
-
-            var scrollGo = new GameObject("ScrollRect", typeof(RectTransform));
-            scrollGo.transform.SetParent(lr, false);
-            var sr = scrollGo.GetComponent<RectTransform>();
-            sr.anchorMin = Vector2.zero; sr.anchorMax = Vector2.one; sr.sizeDelta = Vector2.zero;
-
-            var scrollRect = scrollGo.AddComponent<ScrollRect>();
-            scrollRect.horizontal = false; scrollRect.vertical = true;
-            scrollRect.movementType = ScrollRect.MovementType.Clamped; scrollRect.scrollSensitivity = 20;
-
-            var vpGo = new GameObject("Viewport", typeof(RectTransform));
-            vpGo.transform.SetParent(sr, false);
-            var vpr = vpGo.GetComponent<RectTransform>();
-            vpr.anchorMin = Vector2.zero; vpr.anchorMax = Vector2.one; vpr.sizeDelta = Vector2.zero;
-            vpGo.AddComponent<Mask>().showMaskGraphic = false;
-            vpGo.AddComponent<Image>().color = Color.clear;
-            scrollRect.viewport = vpr;
-
-            var cgGo = new GameObject("Content", typeof(RectTransform));
-            cgGo.transform.SetParent(vpr, false);
-            _listContainer = cgGo.GetComponent<RectTransform>();
-            _listContainer.anchorMin = new Vector2(0, 1f); _listContainer.anchorMax = new Vector2(1f, 1f);
-            _listContainer.pivot = new Vector2(0.5f, 1f); _listContainer.sizeDelta = new Vector2(0, 0);
-            scrollRect.content = _listContainer;
-
-            // 杩斿洖涓诲煄鎸夐挳
-            var backBtn = CreateButton(rootRt, "BackToMainCityBtn", "杩斿洖涓诲煄", () =>
+            // Search input — left side
+            _searchInput = UIComponentFactory.CreateInputField(rrt, "SearchInput",
+                "🔍 搜索玩家...", new Vector2(500, 40), Vector2.zero);
+            var srt = _searchInput.GetComponent<RectTransform>();
+            srt.anchorMin = new Vector2(0, 0.5f);
+            srt.anchorMax = new Vector2(0, 0.5f);
+            srt.anchoredPosition = new Vector2(60, 0);
+            _searchInput.onValueChanged.AddListener(v =>
             {
-                UIManager.Instance.Hide<FriendPanel>();
-                UIManager.Instance.Show<MainCityPanel>();
+                _searchFilter = v;
+                RefreshList();
             });
-            var backRt = backBtn.GetComponent<RectTransform>();
-            backRt.anchorMin = new Vector2(1, 1);
-            backRt.anchorMax = new Vector2(1, 1);
-            backRt.sizeDelta = new Vector2(100, 40);
-            backRt.anchoredPosition = new Vector2(-60, -25);
+
+            // Add button — right side
+            var addBtn = UIComponentFactory.CreatePrimaryButton(rrt, "AddBtn", "添加",
+                () => { Debug.Log("[FriendPanel] 添加好友请求"); });
+            var art = addBtn.GetComponent<RectTransform>();
+            art.anchorMin = new Vector2(1, 0.5f);
+            art.anchorMax = new Vector2(1, 0.5f);
+            art.sizeDelta = new Vector2(100, 40);
+            art.anchoredPosition = new Vector2(-60, 0);
         }
 
-        private void BuildSearchBar(RectTransform parent)
+        // ── 3. Tab Bar ──────────────────────────────────────
+
+        private void BuildTabBar(RectTransform root)
         {
-            var sb = new GameObject("SearchBg", typeof(RectTransform), typeof(Image));
-            sb.transform.SetParent(parent, false);
-            var sbr = sb.GetComponent<RectTransform>();
-            sbr.anchorMin = new Vector2(0.5f, 1f); sbr.anchorMax = new Vector2(0.5f, 1f);
-            sbr.sizeDelta = new Vector2(400, 36); sbr.anchoredPosition = new Vector2(-100, -105);
-            sb.GetComponent<Image>().color = ColorInputBg;
+            var row = new GameObject("TabRow", typeof(RectTransform));
+            row.transform.SetParent(root, false);
+            var rrt = row.GetComponent<RectTransform>();
+            rrt.anchorMin = new Vector2(0, 1);
+            rrt.anchorMax = new Vector2(1, 1);
+            rrt.sizeDelta = new Vector2(0, 40);
+            rrt.anchoredPosition = new Vector2(0, -140);
 
-            var ig = new GameObject("InputField", typeof(RectTransform));
-            ig.transform.SetParent(sbr, false);
-            var ir = ig.GetComponent<RectTransform>();
-            ir.anchorMin = Vector2.zero; ir.anchorMax = Vector2.one;
-            ir.sizeDelta = new Vector2(-16, -8); ir.anchoredPosition = Vector2.zero;
-            _searchInput = ig.AddComponent<InputField>();
-            ig.AddComponent<Image>().color = Color.clear;
-
-            var it = ig.AddComponent<Text>();
-            it.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            it.fontSize = 15; it.color = Color.white;
-            it.alignment = TextAnchor.MiddleLeft; it.supportRichText = false;
-            _searchInput.textComponent = it;
-
-            var ph = new GameObject("Placeholder", typeof(RectTransform));
-            ph.transform.SetParent(ir, false);
-            var phr = ph.GetComponent<RectTransform>();
-            phr.anchorMin = Vector2.zero; phr.anchorMax = Vector2.one; phr.sizeDelta = Vector2.zero;
-            var pht = ph.AddComponent<Text>();
-            pht.text = "鎼滅储鐜╁ID/鍚嶇О...";
-            pht.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            pht.fontSize = 14; pht.color = new Color(0.4f, 0.4f, 0.5f);
-            pht.alignment = TextAnchor.MiddleLeft;
-            _searchInput.placeholder = pht;
-
-            var addBtn = CreateButton(parent, "AddFriendBtn", "娣诲姞", () => OnAddFriendClick());
-            var ar = addBtn.GetComponent<RectTransform>();
-            ar.anchorMin = new Vector2(0.5f, 1f); ar.anchorMax = new Vector2(0.5f, 1f);
-            ar.sizeDelta = new Vector2(80, 36); ar.anchoredPosition = new Vector2(155, -105);
-            addBtn.GetComponent<Image>().color = ColorBtnPrimary;
-            addBtn.GetComponentInChildren<Text>().fontSize = 16;
-        }
-
-        private void BuildTabs(RectTransform parent)
-        {
-            float tw = 150, tw2 = 10 * (TabNames.Length - 1);
-            float sx = -(tw * TabNames.Length + tw2) / 2 + tw / 2;
+            float[] tabX = { -300, 0, 300 };
             for (int i = 0; i < TabNames.Length; i++)
             {
-                var idx = i;
-                var tg = new GameObject("Tab_" + i, typeof(RectTransform), typeof(Image));
-                tg.transform.SetParent(parent, false);
-                var tr = tg.GetComponent<RectTransform>();
-                tr.anchorMin = new Vector2(0.5f, 1f); tr.anchorMax = new Vector2(0.5f, 1f);
-                tr.sizeDelta = new Vector2(tw, 34);
-                tr.anchoredPosition = new Vector2(sx + i * (tw + 10), -148);
-                var ti = tg.GetComponent<Image>();
-                ti.color = i == 0 ? ColorTabActive : ColorTabNormal;
-
-                var tt = CreateText(tr, "Label", TabNames[i], 17);
-                tt.color = i == 0 ? ColorGold : new Color(0.6f, 0.6f, 0.75f);
-                var ttr = tt.rectTransform;
-                ttr.anchorMin = Vector2.zero; ttr.anchorMax = Vector2.one; ttr.sizeDelta = Vector2.zero;
-
-                if (i == 1)
-                {
-                    _badgeText = CreateText(tr, "Badge", "", 11);
-                    _badgeText.color = Color.white;
-                    var br = _badgeText.rectTransform;
-                    br.anchorMin = new Vector2(1f, 1f); br.anchorMax = new Vector2(1f, 1f);
-                    br.sizeDelta = new Vector2(20, 20); br.anchoredPosition = new Vector2(-4, -4);
-                    var bg = br.gameObject.AddComponent<Image>();
-                    bg.color = ColorRed; bg.raycastTarget = false; bg.transform.SetAsFirstSibling();
-                }
-
-                var tb = tg.AddComponent<Button>();
-                tb.targetGraphic = ti; tb.onClick.AddListener(() => SwitchTab(idx));
-                _tabImages.Add(ti); _tabTexts.Add(tt);
+                int idx = i;
+                var tab = UIComponentFactory.CreateTabButton(rrt, "Tab" + i, TabNames[i],
+                    i == 0, () => SwitchTab(idx));
+                var rt = tab.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.5f, 0.5f);
+                rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(180, 40);
+                rt.anchoredPosition = new Vector2(tabX[i], 0);
+                _tabButtons.Add(tab);
             }
+        }
+
+        // ── 4. Scroll List ──────────────────────────────────
+
+        private void BuildScrollList(RectTransform root)
+        {
+            _scrollContent = UIComponentFactory.CreateScrollView(root, "FriendListScroll",
+                new Vector2(880, 440), new Vector2(0, -50));
+        }
+
+        // ── 5. Back Button ──────────────────────────────────
+
+        private void BuildBackButton(RectTransform root)
+        {
+            var backBtn = UIComponentFactory.CreateSecondaryButton(root, "Back", "返回主城",
+                () => BackToMain());
+            var rt = backBtn.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0);
+            rt.anchorMax = new Vector2(0.5f, 0);
+            rt.sizeDelta = new Vector2(180, 44);
+            rt.anchoredPosition = new Vector2(0, 30);
+        }
+
+        // ════════════════════════════════════════════════════
+        //  List Management
+        // ════════════════════════════════════════════════════
+
+        private void RefreshList()
+        {
+            if (_scrollContent == null) return;
+            ClearContent();
+
+            var list = GetCurrentData();
+            foreach (var fd in list)
+            {
+                if (!string.IsNullOrEmpty(_searchFilter) &&
+                    !fd.Name.Contains(_searchFilter))
+                    continue;
+                CreateFriendCard(_scrollContent, fd);
+            }
+        }
+
+        private List<FriendData> GetCurrentData()
+        {
+            switch (_currentTab)
+            {
+                case TabType.ApplyList:  return _applyList;
+                case TabType.RecentTeam: return _recentTeam;
+                default:                 return _friends;
+            }
+        }
+
+        private void ClearContent()
+        {
+            for (int i = _scrollContent.childCount - 1; i >= 0; i--)
+                Destroy(_scrollContent.GetChild(i).gameObject);
         }
 
         private void SwitchTab(int idx)
         {
-            if (_currentTab == idx) return;
-            _currentTab = idx;
-            for (int i = 0; i < _tabImages.Count; i++)
-            {
-                _tabImages[i].color = i == idx ? ColorTabActive : ColorTabNormal;
-                _tabTexts[i].color = i == idx ? ColorGold : new Color(0.6f, 0.6f, 0.75f);
-            }
+            _currentTab = (TabType)idx;
+            UpdateTabVisuals();
             RefreshList();
+            UpdateOnlineCount();
         }
 
-        private void RefreshList()
+        private void UpdateTabVisuals()
         {
-            foreach (Transform c in _listContainer) Destroy(c.gameObject);
-            if (_badgeText != null)
+            for (int i = 0; i < _tabButtons.Count; i++)
             {
-                var cnt = FriendManager.Instance.PendingRequestCount;
-                _badgeText.text = cnt > 0 ? cnt.ToString() : "";
-                _badgeText.transform.parent.gameObject.SetActive(cnt > 0);
-            }
-            if (_currentTab == 0)
-                _onlineCountText.text = "鍦ㄧ嚎: " + FriendManager.Instance.OnlineCount + "/" + FriendManager.Instance.FriendCount;
-            switch (_currentTab)
-            {
-                case 0: BuildFriendList(); break;
-                case 1: BuildRequestList(); break;
-                case 2: BuildRecentContactList(); break;
-                case 3: BuildRecommendList(); break;
-                case 4: BuildBlacklist(); break;
+                bool active = i == (int)_currentTab;
+                var img = _tabButtons[i].GetComponent<Image>();
+                var txt = _tabButtons[i].GetComponent<Text>();
+                if (img != null) img.color = active ? ThemeColors.TabActive : ThemeColors.TabInactive;
+                if (txt != null) txt.color = active ? ThemeColors.TextWhite : ThemeColors.TextNormal;
             }
         }
 
-        private void BuildFriendList()
+        private void UpdateOnlineCount()
         {
-            var friends = FriendManager.Instance.GetNormalFriends();
-            if (friends.Count == 0) { ShowEmptyHint("鏆傛棤濂藉弸, 鍘绘帹鑽愬垪琛ㄧ湅鐪嬪惂"); return; }
-            float y = 0;
-            foreach (var f in friends)
+            if (_onlineCountText == null) return;
+            var list = GetCurrentData();
+            int online = 0;
+            foreach (var f in list)
+                if (f.Online) online++;
+            _onlineCountText.text = $"在线: {online}/{list.Count}";
+        }
+
+        // ════════════════════════════════════════════════════
+        //  Friend Card
+        // ════════════════════════════════════════════════════
+
+        private void CreateFriendCard(RectTransform parent, FriendData fd)
+        {
+            var card = UIComponentFactory.CreateCard(parent, "Card_" + fd.Name,
+                new Vector2(840, 64), Vector2.zero);
+            card.GetComponent<Image>().color = ThemeColors.BgListItem;
+
+            // Ensure correct height inside the VerticalLayoutGroup
+            var le = card.gameObject.AddComponent<LayoutElement>();
+            le.preferredHeight = 64;
+
+            // Avatar with status dot
+            BuildAvatar(card, fd.Online);
+
+            // Name
+            var nameText = UIComponentFactory.CreateText(card, "Name", fd.Name,
+                ThemeColors.FontBody, fd.Online ? ThemeColors.TextBright : ThemeColors.TextDim);
+            nameText.alignment = TextAnchor.MiddleLeft;
+            var nrt = nameText.rectTransform;
+            nrt.anchorMin = new Vector2(0, 0.5f);
+            nrt.anchorMax = new Vector2(0, 0.5f);
+            nrt.sizeDelta = new Vector2(200, 30);
+            nrt.anchoredPosition = new Vector2(80, 0);
+
+            // Level
+            var lvText = UIComponentFactory.CreateText(card, "Level", "Lv." + fd.Level,
+                ThemeColors.FontSmall, ThemeColors.Gold);
+            lvText.alignment = TextAnchor.MiddleLeft;
+            var lrt = lvText.rectTransform;
+            lrt.anchorMin = new Vector2(0, 0.5f);
+            lrt.anchorMax = new Vector2(0, 0.5f);
+            lrt.sizeDelta = new Vector2(80, 30);
+            lrt.anchoredPosition = new Vector2(300, 0);
+
+            // Team info (RecentTeam tab only)
+            if (_currentTab == TabType.RecentTeam && !string.IsNullOrEmpty(fd.TeamInfo))
             {
-                var ig = new GameObject("FI", typeof(RectTransform), typeof(Image));
-                ig.transform.SetParent(_listContainer, false);
-                var ir = ig.GetComponent<RectTransform>();
-                ir.anchorMin = new Vector2(0.5f, 1f); ir.anchorMax = new Vector2(0.5f, 1f);
-                ir.sizeDelta = new Vector2(840, 56); ir.anchoredPosition = new Vector2(0, y);
-                ir.pivot = new Vector2(0.5f, 1f); ig.GetComponent<Image>().color = ColorCardBg;
-
-                var sd = new GameObject("SD", typeof(RectTransform), typeof(Image));
-                sd.transform.SetParent(ir, false);
-                var sdr = sd.GetComponent<RectTransform>();
-                sdr.anchorMin = new Vector2(0, 0.5f); sdr.anchorMax = new Vector2(0, 0.5f);
-                sdr.sizeDelta = new Vector2(16, 16); sdr.anchoredPosition = new Vector2(22, 0);
-                sd.GetComponent<Image>().color = f.OnlineStatus == FriendOnlineStatus.Online ? ColorOnline :
-                    f.OnlineStatus == FriendOnlineStatus.InBattle ? ColorInBattle : ColorOffline;
-
-                string sl = f.OnlineStatus == FriendOnlineStatus.Online ? "鍦ㄧ嚎" :
-                    f.OnlineStatus == FriendOnlineStatus.InBattle ? "鎴樻枟涓? : "绂荤嚎";
-                var lt = CreateText(ir, "SL", sl, 11);
-                lt.alignment = TextAnchor.MiddleLeft; lt.color = sd.GetComponent<Image>().color;
-                var lr = lt.rectTransform;
-                lr.anchorMin = new Vector2(0, 0.5f); lr.anchorMax = new Vector2(0, 0.5f);
-                lr.sizeDelta = new Vector2(44, 18); lr.anchoredPosition = new Vector2(34, -10);
-
-                var nt = CreateText(ir, "Name", f.Name, 17);
-                nt.alignment = TextAnchor.MiddleLeft; nt.color = Color.white; nt.fontStyle = FontStyle.Bold;
-                var nr = nt.rectTransform;
-                nr.anchorMin = new Vector2(0, 0.5f); nr.anchorMax = new Vector2(0, 0.5f);
-                nr.sizeDelta = new Vector2(120, 30); nr.anchoredPosition = new Vector2(80, 5);
-
-                var st = CreateText(ir, "School", f.SchoolName, 13);
-                st.alignment = TextAnchor.MiddleLeft; st.color = ColorSchool;
-                var sr = st.rectTransform;
-                sr.anchorMin = new Vector2(0, 0.5f); sr.anchorMax = new Vector2(0, 0.5f);
-                sr.sizeDelta = new Vector2(60, 20); sr.anchoredPosition = new Vector2(80, -12);
-
-                var lvt = CreateText(ir, "Lv", "Lv." + f.Level, 14);
-                lvt.alignment = TextAnchor.MiddleLeft; lvt.color = new Color(0.6f, 0.6f, 0.7f);
-                var lvr = lvt.rectTransform;
-                lvr.anchorMin = new Vector2(0, 0.5f); lvr.anchorMax = new Vector2(0, 0.5f);
-                lvr.sizeDelta = new Vector2(50, 24); lvr.anchoredPosition = new Vector2(175, 5);
-
-                if (f.VipLevel > 0)
-                {
-                    var vt = CreateText(ir, "Vip", "VIP" + f.VipLevel, 13);
-                    vt.alignment = TextAnchor.MiddleLeft; vt.color = ColorGold;
-                    var vr = vt.rectTransform;
-                    vr.anchorMin = new Vector2(0, 0.5f); vr.anchorMax = new Vector2(0, 0.5f);
-                    vr.sizeDelta = new Vector2(40, 20); vr.anchoredPosition = new Vector2(230, 5);
-                }
-
-                float bx = 480;
-                CreateSmallButton(ir, "Chat", "绉佽亰", bx, () => { Debug.Log("[Friend] 绉佽亰 " + f.Name); FriendManager.Instance.RecordPrivateChat(f.PlayerId, f.Name); });
-                CreateSmallButton(ir, "Team", "缁勯槦", bx+75, () => { Debug.Log("[Friend] 缁勯槦閭€璇?" + f.Name); });
-                var db = CreateSmallButton(ir, "Del", "鍒犻櫎", bx+150, () => { FriendManager.Instance.RemoveFriend(f.PlayerId); });
-                db.GetComponent<Image>().color = ColorBtnDanger;
-                var bb = CreateSmallButton(ir, "Block", "鎷夐粦", bx+225, () => { FriendManager.Instance.BlockPlayer(f.PlayerId); });
-                bb.GetComponent<Image>().color = new Color(0.4f, 0.15f, 0.15f);
-                y -= 62;
+                var ti = UIComponentFactory.CreateText(card, "TeamInfo", fd.TeamInfo,
+                    ThemeColors.FontTiny, ThemeColors.TextNormal);
+                ti.alignment = TextAnchor.MiddleLeft;
+                var tirt = ti.rectTransform;
+                tirt.anchorMin = new Vector2(0, 0.5f);
+                tirt.anchorMax = new Vector2(0, 0.5f);
+                tirt.sizeDelta = new Vector2(160, 20);
+                tirt.anchoredPosition = new Vector2(390, 0);
             }
-            _listContainer.sizeDelta = new Vector2(0, Mathf.Abs(y) + 20);
+
+            // Action buttons
+            BuildActionButtons(card, fd);
         }
 
-        private void BuildRequestList()
+        private void BuildAvatar(RectTransform card, bool online)
         {
-            var reqs = FriendManager.Instance.PendingRequests;
-            if (reqs.Count == 0) { ShowEmptyHint("鏆傛棤濂藉弸鐢宠"); return; }
-            float y = 0;
-            foreach (var r in reqs)
+            // Avatar placeholder box
+            var avatar = new GameObject("Avatar", typeof(RectTransform), typeof(Image));
+            avatar.transform.SetParent(card, false);
+            var art = avatar.GetComponent<RectTransform>();
+            art.anchorMin = new Vector2(0, 0.5f);
+            art.anchorMax = new Vector2(0, 0.5f);
+            art.sizeDelta = new Vector2(44, 44);
+            art.anchoredPosition = new Vector2(20, 0);
+            avatar.GetComponent<Image>().color = ThemeColors.AccentDim;
+
+            // Status dot — green=online, gray=offline
+            var dot = new GameObject("StatusDot", typeof(RectTransform), typeof(Image));
+            dot.transform.SetParent(art, false);
+            var drt = dot.GetComponent<RectTransform>();
+            drt.anchorMin = new Vector2(1, 0);
+            drt.anchorMax = new Vector2(1, 0);
+            drt.sizeDelta = new Vector2(14, 14);
+            drt.anchoredPosition = new Vector2(-2, 2);
+            dot.GetComponent<Image>().color = online ? ThemeColors.ChatLocal : ThemeColors.TextDim;
+        }
+
+        private void BuildActionButtons(RectTransform card, FriendData fd)
+        {
+            if (_currentTab == TabType.ApplyList)
             {
-                var ig = new GameObject("RI", typeof(RectTransform), typeof(Image));
-                ig.transform.SetParent(_listContainer, false);
-                var ir = ig.GetComponent<RectTransform>();
-                ir.anchorMin = new Vector2(0.5f, 1f); ir.anchorMax = new Vector2(0.5f, 1f);
-                ir.sizeDelta = new Vector2(840, 56); ir.anchoredPosition = new Vector2(0, y);
-                ir.pivot = new Vector2(0.5f, 1f); ig.GetComponent<Image>().color = ColorCardBg;
+                // Accept / Reject for friend requests
+                var acceptBtn = UIComponentFactory.CreatePrimaryButton(card, "Accept", "接受",
+                    () => { Debug.Log($"[FriendPanel] 接受申请: {fd.Name}"); });
+                SetRightAnchor(acceptBtn.GetComponent<RectTransform>(), -150, 70, 32);
 
-                var at = CreateText(ir, "Av", r.FromName.Length > 0 ? r.FromName[0].ToString() : "?", 22);
-                at.color = ColorSchool; at.fontStyle = FontStyle.Bold;
-                var ar = at.rectTransform;
-                ar.anchorMin = new Vector2(0, 0.5f); ar.anchorMax = new Vector2(0, 0.5f);
-                ar.sizeDelta = new Vector2(36, 36); ar.anchoredPosition = new Vector2(28, 0);
-                var ab = at.gameObject.AddComponent<Image>();
-                ab.color = new Color(0.2f, 0.15f, 0.35f); ab.transform.SetAsFirstSibling();
-
-                var nt = CreateText(ir, "Name", r.FromName, 17);
-                nt.alignment = TextAnchor.MiddleLeft; nt.fontStyle = FontStyle.Bold; nt.color = Color.white;
-                var nr = nt.rectTransform;
-                nr.anchorMin = new Vector2(0, 0.5f); nr.anchorMax = new Vector2(0, 0.5f);
-                nr.sizeDelta = new Vector2(120, 30); nr.anchoredPosition = new Vector2(72, 5);
-
-                var it = CreateText(ir, "Info", r.FromSchoolName + " Lv." + r.FromLevel, 13);
-                it.alignment = TextAnchor.MiddleLeft; it.color = ColorDimText;
-                var ihr = it.rectTransform;
-                ihr.anchorMin = new Vector2(0, 0.5f); ihr.anchorMax = new Vector2(0, 0.5f);
-                ihr.sizeDelta = new Vector2(120, 20); ihr.anchoredPosition = new Vector2(72, -12);
-
-                if (!string.IsNullOrEmpty(r.Message))
-                {
-                    var mt = CreateText(ir, "Msg", "鐣欒█: " + r.Message, 13);
-                    mt.alignment = TextAnchor.MiddleLeft; mt.color = new Color(0.7f, 0.7f, 0.5f);
-                    var mr = mt.rectTransform;
-                    mr.anchorMin = new Vector2(0, 0.5f); mr.anchorMax = new Vector2(0, 0.5f);
-                    mr.sizeDelta = new Vector2(200, 20); mr.anchoredPosition = new Vector2(200, 5);
-                }
-
-                var abtn = CreateSmallButton(ir, "Accept", "鎺ュ彈", 550, () => { FriendManager.Instance.AcceptRequest(r.RequestId); });
-                abtn.GetComponent<Image>().color = ColorBtnAccept;
-                var dbtn = CreateSmallButton(ir, "Decline", "鎷掔粷", 625, () => { FriendManager.Instance.DeclineRequest(r.RequestId); });
-                dbtn.GetComponent<Image>().color = ColorBtnDanger;
-                y -= 62;
-            }
-            _listContainer.sizeDelta = new Vector2(0, Mathf.Abs(y) + 20);
-        }
-
-        private void BuildRecentContactList()
-        {
-            var cs = FriendManager.Instance.RecentContacts;
-            if (cs.Count == 0) { ShowEmptyHint("鏆傛棤鏈€杩戣仈绯讳汉, 寮€濮嬬鑱婂惂"); return; }
-            float y = 0;
-            foreach (var c in cs)
-            {
-                var ig = new GameObject("CI", typeof(RectTransform), typeof(Image));
-                ig.transform.SetParent(_listContainer, false);
-                var ir = ig.GetComponent<RectTransform>();
-                ir.anchorMin = new Vector2(0.5f, 1f); ir.anchorMax = new Vector2(0.5f, 1f);
-                ir.sizeDelta = new Vector2(840, 50); ir.anchoredPosition = new Vector2(0, y);
-                ir.pivot = new Vector2(0.5f, 1f); ig.GetComponent<Image>().color = ColorCardBg;
-
-                var nt = CreateText(ir, "Name", c.Name, 17);
-                nt.alignment = TextAnchor.MiddleLeft; nt.color = c.IsFriend ? Color.white : new Color(0.7f, 0.7f, 0.8f);
-                var nr = nt.rectTransform;
-                nr.anchorMin = new Vector2(0, 0.5f); nr.anchorMax = new Vector2(0, 0.5f);
-                nr.sizeDelta = new Vector2(140, 30); nr.anchoredPosition = new Vector2(30, 0);
-
-                if (c.IsFriend)
-                {
-                    var ft = CreateText(ir, "FT", "[濂藉弸]", 13);
-                    ft.alignment = TextAnchor.MiddleLeft; ft.color = ColorGreen;
-                    var fr = ft.rectTransform;
-                    fr.anchorMin = new Vector2(0, 0.5f); fr.anchorMax = new Vector2(0, 0.5f);
-                    fr.sizeDelta = new Vector2(50, 20); fr.anchoredPosition = new Vector2(170, 0);
-                }
-
-                var ma = (int)(DateTime.Now - c.LastChatTime).TotalMinutes;
-                string ts = ma < 1 ? "鍒氬垰" : ma < 60 ? ma + "鍒嗛挓鍓? : (ma / 60) + "灏忔椂鍓?;
-                var tt = CreateText(ir, "Time", ts, 13);
-                tt.alignment = TextAnchor.MiddleRight; tt.color = ColorDimText;
-                var tr = tt.rectTransform;
-                tr.anchorMin = new Vector2(1f, 0.5f); tr.anchorMax = new Vector2(1f, 0.5f);
-                tr.sizeDelta = new Vector2(100, 20); tr.anchoredPosition = new Vector2(-130, 0);
-
-                CreateSmallButton(ir, "Chat", "绉佽亰", 600, () => { Debug.Log("[Friend] 绉佽亰: " + c.Name); });
-                y -= 56;
-            }
-            _listContainer.sizeDelta = new Vector2(0, Mathf.Abs(y) + 20);
-        }
-
-        private void BuildRecommendList()
-        {
-            FriendManager.Instance.RefreshRecommendList();
-            var recs = FriendManager.Instance.RecommendList;
-            if (recs.Count == 0) { ShowEmptyHint("鏆傛棤鎺ㄨ崘濂藉弸"); return; }
-            float y = 0;
-            foreach (var rec in recs)
-            {
-                var ig = new GameObject("Rec", typeof(RectTransform), typeof(Image));
-                ig.transform.SetParent(_listContainer, false);
-                var ir = ig.GetComponent<RectTransform>();
-                ir.anchorMin = new Vector2(0.5f, 1f); ir.anchorMax = new Vector2(0.5f, 1f);
-                ir.sizeDelta = new Vector2(840, 62); ir.anchoredPosition = new Vector2(0, y);
-                ir.pivot = new Vector2(0.5f, 1f); ig.GetComponent<Image>().color = ColorCardBg;
-
-                var sd = new GameObject("SD", typeof(RectTransform), typeof(Image));
-                sd.transform.SetParent(ir, false);
-                var sdr = sd.GetComponent<RectTransform>();
-                sdr.anchorMin = new Vector2(0, 0.5f); sdr.anchorMax = new Vector2(0, 0.5f);
-                sdr.sizeDelta = new Vector2(14, 14); sdr.anchoredPosition = new Vector2(22, 5);
-                sd.GetComponent<Image>().color = rec.Online ? ColorOnline : ColorOffline;
-
-                var nt = CreateText(ir, "Name", rec.Name, 17);
-                nt.alignment = TextAnchor.MiddleLeft; nt.fontStyle = FontStyle.Bold; nt.color = Color.white;
-                var nr = nt.rectTransform;
-                nr.anchorMin = new Vector2(0, 0.5f); nr.anchorMax = new Vector2(0, 0.5f);
-                nr.sizeDelta = new Vector2(120, 30); nr.anchoredPosition = new Vector2(50, 8);
-
-                var st = CreateText(ir, "Sch", rec.SchoolName, 13);
-                st.alignment = TextAnchor.MiddleLeft; st.color = ColorSchool;
-                var sr = st.rectTransform;
-                sr.anchorMin = new Vector2(0, 0.5f); sr.anchorMax = new Vector2(0, 0.5f);
-                sr.sizeDelta = new Vector2(50, 20); sr.anchoredPosition = new Vector2(50, -10);
-
-                var lvt = CreateText(ir, "Lv", "Lv." + rec.Level, 14);
-                lvt.alignment = TextAnchor.MiddleLeft; lvt.color = new Color(0.6f, 0.6f, 0.7f);
-                var lvr = lvt.rectTransform;
-                lvr.anchorMin = new Vector2(0, 0.5f); lvr.anchorMax = new Vector2(0, 0.5f);
-                lvr.sizeDelta = new Vector2(50, 24); lvr.anchoredPosition = new Vector2(115, 8);
-
-                if (!string.IsNullOrEmpty(rec.RecommendReason))
-                {
-                    var rt = CreateText(ir, "Reason", rec.RecommendReason, 13);
-                    rt.alignment = TextAnchor.MiddleLeft; rt.color = ColorReason;
-                    var rr = rt.rectTransform;
-                    rr.anchorMin = new Vector2(0, 0.5f); rr.anchorMax = new Vector2(0, 0.5f);
-                    rr.sizeDelta = new Vector2(140, 20); rr.anchoredPosition = new Vector2(180, 8);
-                }
-
-                var ot = CreateText(ir, "OL", rec.Online ? "鍦ㄧ嚎" : "绂荤嚎", 12);
-                ot.color = rec.Online ? ColorGreen : ColorOffline;
-                var or = ot.rectTransform;
-                or.anchorMin = new Vector2(0, 0.5f); or.anchorMax = new Vector2(0, 0.5f);
-                or.sizeDelta = new Vector2(40, 20); or.anchoredPosition = new Vector2(180, -10);
-
-                var ab = CreateSmallButton(ir, "Add", "娣诲姞", 550, () => { FriendManager.Instance.AddFriend(rec.PlayerId); });
-                ab.GetComponent<Image>().color = ColorBtnPrimary;
-                y -= 68;
-            }
-            _listContainer.sizeDelta = new Vector2(0, Mathf.Abs(y) + 20);
-        }
-
-        private void BuildBlacklist()
-        {
-            var bl = FriendManager.Instance.GetBlacklistedPlayers();
-            if (bl.Count == 0) { ShowEmptyHint("榛戝悕鍗曚负绌?); return; }
-            float y = 0;
-            foreach (var b in bl)
-            {
-                var ig = new GameObject("BI", typeof(RectTransform), typeof(Image));
-                ig.transform.SetParent(_listContainer, false);
-                var ir = ig.GetComponent<RectTransform>();
-                ir.anchorMin = new Vector2(0.5f, 1f); ir.anchorMax = new Vector2(0.5f, 1f);
-                ir.sizeDelta = new Vector2(840, 50); ir.anchoredPosition = new Vector2(0, y);
-                ir.pivot = new Vector2(0.5f, 1f);
-                ig.GetComponent<Image>().color = new Color(0.12f, 0.08f, 0.08f, 0.8f);
-
-                var dd = new GameObject("BD", typeof(RectTransform), typeof(Image));
-                dd.transform.SetParent(ir, false);
-                var dr = dd.GetComponent<RectTransform>();
-                dr.anchorMin = new Vector2(0, 0.5f); dr.anchorMax = new Vector2(0, 0.5f);
-                dr.sizeDelta = new Vector2(12, 12); dr.anchoredPosition = new Vector2(22, 0);
-                dd.GetComponent<Image>().color = ColorRed;
-
-                var nt = CreateText(ir, "Name", b.Name, 17);
-                nt.alignment = TextAnchor.MiddleLeft; nt.color = new Color(0.8f, 0.5f, 0.5f);
-                var nr = nt.rectTransform;
-                nr.anchorMin = new Vector2(0, 0.5f); nr.anchorMax = new Vector2(0, 0.5f);
-                nr.sizeDelta = new Vector2(140, 30); nr.anchoredPosition = new Vector2(50, 0);
-
-                var tagt = CreateText(ir, "Tag", "宸叉媺榛?, 13);
-                tagt.alignment = TextAnchor.MiddleLeft; tagt.color = ColorRed;
-                var tagr = tagt.rectTransform;
-                tagr.anchorMin = new Vector2(0, 0.5f); tagr.anchorMax = new Vector2(0, 0.5f);
-                tagr.sizeDelta = new Vector2(50, 20); tagr.anchoredPosition = new Vector2(190, 0);
-
-                var ub = CreateSmallButton(ir, "UB", "鍙栨秷鎷夐粦", 550, () => { FriendManager.Instance.UnblockPlayer(b.PlayerId); });
-                ub.GetComponent<Image>().color = new Color(0.25f, 0.3f, 0.45f);
-                y -= 56;
-            }
-            _listContainer.sizeDelta = new Vector2(0, Mathf.Abs(y) + 20);
-        }
-
-        private void ShowEmptyHint(string text)
-        {
-            if (_emptyHint != null) Destroy(_emptyHint);
-            _emptyHint = new GameObject("EH", typeof(RectTransform));
-            _emptyHint.transform.SetParent(_listContainer, false);
-            var ht = _emptyHint.AddComponent<Text>();
-            ht.text = text; ht.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            ht.fontSize = 18; ht.alignment = TextAnchor.MiddleCenter;
-            ht.color = new Color(0.4f, 0.4f, 0.5f);
-            var hr = ht.rectTransform;
-            hr.anchorMin = new Vector2(0.5f, 0.5f); hr.anchorMax = new Vector2(0.5f, 0.5f);
-            hr.sizeDelta = new Vector2(400, 60); hr.anchoredPosition = Vector2.zero;
-            _listContainer.sizeDelta = Vector2.zero;
-        }
-
-        private Button CreateSmallButton(RectTransform parent, string name, string text, float x, Action onClick)
-        {
-            var btn = CreateButton(parent, name, text, onClick);
-            var rt = btn.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0, 0.5f); rt.anchorMax = new Vector2(0, 0.5f);
-            rt.sizeDelta = new Vector2(70, 28); rt.anchoredPosition = new Vector2(x, 0);
-            btn.GetComponent<Image>().color = new Color(0.25f, 0.25f, 0.4f);
-            btn.GetComponentInChildren<Text>().fontSize = 13;
-            return btn;
-        }
-
-        private void OnAddFriendClick()
-        {
-            var name = _searchInput.text.Trim();
-            if (string.IsNullOrEmpty(name)) { Debug.Log("[Friend] 璇疯緭鍏ョ帺瀹跺悕绉?); return; }
-            if (ulong.TryParse(name, out var id))
-            {
-                Debug.Log("[Friend] 鎼滅储鐜╁ID: " + id);
-                FriendManager.Instance.AddFriend(id);
+                var rejectBtn = UIComponentFactory.CreateButton(card, "Reject", "拒绝",
+                    ThemeColors.BtnDanger,
+                    () => { Debug.Log($"[FriendPanel] 拒绝申请: {fd.Name}"); },
+                    ThemeColors.FontTiny);
+                SetRightAnchor(rejectBtn.GetComponent<RectTransform>(), -60, 60, 32);
             }
             else
             {
-                Debug.Log("[Friend] 鎼滅储鐜╁鍚嶇О: " + name);
-                FriendManager.Instance.SearchPlayer(name, (results) =>
-                {
-                    if (results.Count == 0) Debug.Log("[Friend] 鏈壘鍒扮帺瀹? " + name);
-                    else foreach (var r in results) FriendManager.Instance.AddFriend(r.PlayerId);
-                });
+                // Chat / Team / Delete for friends and recent teammates
+                var chatBtn = UIComponentFactory.CreateSecondaryButton(card, "Chat", "私聊",
+                    () => { Debug.Log($"[FriendPanel] 私聊: {fd.Name}"); });
+                SetRightAnchor(chatBtn.GetComponent<RectTransform>(), -250, 70, 32);
+
+                var teamBtn = UIComponentFactory.CreateSecondaryButton(card, "Team", "组队",
+                    () => { Debug.Log($"[FriendPanel] 组队: {fd.Name}"); });
+                SetRightAnchor(teamBtn.GetComponent<RectTransform>(), -160, 70, 32);
+
+                var delBtn = UIComponentFactory.CreateButton(card, "Del", "删除",
+                    ThemeColors.BtnDanger,
+                    () => { Debug.Log($"[FriendPanel] 删除: {fd.Name}"); },
+                    ThemeColors.FontTiny);
+                SetRightAnchor(delBtn.GetComponent<RectTransform>(), -60, 60, 32);
             }
-            _searchInput.text = "";
+        }
+
+        /// <summary>
+        /// Anchors a RectTransform to the right edge of its parent with the given
+        /// horizontal offset, width, and height.
+        /// </summary>
+        private static void SetRightAnchor(RectTransform rt, float xOffset, float w, float h)
+        {
+            rt.anchorMin = new Vector2(1, 0.5f);
+            rt.anchorMax = new Vector2(1, 0.5f);
+            rt.sizeDelta = new Vector2(w, h);
+            rt.anchoredPosition = new Vector2(xOffset, 0);
+        }
+
+        // ════════════════════════════════════════════════════
+        //  Navigation
+        // ════════════════════════════════════════════════════
+
+        private void BackToMain()
+        {
+            UIManager.Instance.Hide<FriendPanel>();
+            UIManager.Instance.Show<MainCityPanel>();
+        }
+
+        // ════════════════════════════════════════════════════
+        //  Demo Data
+        // ════════════════════════════════════════════════════
+
+        private void InitDemoData()
+        {
+            // ── 10 friends, mixed online/offline ──
+            _friends.Add(new FriendData { Name = "侠客_10001", Level = 20, Online = true  });
+            _friends.Add(new FriendData { Name = "剑心无痕",    Level = 35, Online = true  });
+            _friends.Add(new FriendData { Name = "白云城主",    Level = 42, Online = true  });
+            _friends.Add(new FriendData { Name = "天涯过客",    Level = 28, Online = false });
+            _friends.Add(new FriendData { Name = "一剑封喉",    Level = 15, Online = false });
+            _friends.Add(new FriendData { Name = "醉卧沙场",    Level = 50, Online = true  });
+            _friends.Add(new FriendData { Name = "清风明月",    Level = 33, Online = false });
+            _friends.Add(new FriendData { Name = "落花有意",    Level = 25, Online = true  });
+            _friends.Add(new FriendData { Name = "听雨小筑",    Level = 47, Online = false });
+            _friends.Add(new FriendData { Name = "折剑归田",    Level = 19, Online = true  });
+
+            // ── Friend requests ──
+            _applyList.Add(new FriendData { Name = "孤独求败", Level = 60, Online = true  });
+            _applyList.Add(new FriendData { Name = "风华绝代", Level = 38, Online = false });
+            _applyList.Add(new FriendData { Name = "陌上花开", Level = 22, Online = true  });
+
+            // ── Recent teammates ──
+            _recentTeam.Add(new FriendData { Name = "剑心无痕", Level = 35, Online = true,  TeamInfo = "3小时前" });
+            _recentTeam.Add(new FriendData { Name = "醉卧沙场", Level = 50, Online = true,  TeamInfo = "昨天"    });
+            _recentTeam.Add(new FriendData { Name = "白云城主", Level = 42, Online = true,  TeamInfo = "2天前"   });
+            _recentTeam.Add(new FriendData { Name = "落花有意", Level = 25, Online = false, TeamInfo = "3天前"   });
         }
     }
 }
