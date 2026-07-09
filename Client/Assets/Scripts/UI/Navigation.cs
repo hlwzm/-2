@@ -2,7 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System;
+using Jx3.Core;
 using Jx3.Core.Scene;
+using Jx3.UI.Panels;
 
 namespace Jx3.UI
 {
