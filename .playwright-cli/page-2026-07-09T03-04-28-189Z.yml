@@ -1,0 +1,17 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - text: 🦊 指尖江湖2
+    - generic [ref=e4]: 管理后台
+  - navigation [ref=e5]:
+    - generic [ref=e6] [cursor=pointer]: 📊 总览
+    - generic [ref=e7] [cursor=pointer]: 👥 用户管理
+    - generic [ref=e8] [cursor=pointer]: 📋 操作日志
+    - generic [ref=e9] [cursor=pointer]: 🏪 交易监控
+    - generic [ref=e10] [cursor=pointer]: ✉️ 邮件系统
+    - generic [ref=e11] [cursor=pointer]: 🎁 物品发放
+    - generic [ref=e12] [cursor=pointer]: 💰 货币修改
+    - generic [ref=e13] [cursor=pointer]: 🚨 举报管理
+    - generic [ref=e14] [cursor=pointer]: 🏰 副本统计
+    - generic [ref=e15] [cursor=pointer]: 🖥️ 服务器
+    - generic [ref=e16] [cursor=pointer]: 📈 数据统计
+    - generic [ref=e17] [cursor=pointer]: 📢 公告管理

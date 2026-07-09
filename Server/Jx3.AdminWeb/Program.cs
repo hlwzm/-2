@@ -37,6 +37,34 @@ static ulong SumGold(List<TradeListing> list) => list.Aggregate(0UL, (acc, l) =>
 static string CST() => DateTime.UtcNow.AddHours(8).ToString("yyyy-MM-dd HH:mm:ss");
 var demoUserCache = new List<object>();
 var demoUserCacheTime = DateTime.MinValue;
+
+// ══ Seed demo log data ══
+void SeedLogData() {
+    if (ActionLogStore.Instance.GetTodayStats().loginCount > 0) return;
+    var r = new Random();
+    string[][] players = [new[] {"侠客_10001","10001"},new[] {"侠客_10002","10002"},new[] {"侠客_10003","10003"},new[] {"侠客_10004","10004"},new[] {"侠客_10005","10005"}];
+    string[] acts = ["login","chat","trade_sell","trade_buy","dungeon","pvp","quest","guild","shop"];
+    string[] msgs = ["有人组队打稻香村吗？","收玄铁，价格好说！","帮会收人啦~","副本来人4=1","出售紫晶石","谢谢大佬带飞！"];
+    string[] dngs = ["风雨稻香村","天子峰","荻花宫","战宝迦兰","持国天王殿"];
+    string[] its = ["玄铁剑","紫晶石","龙鳞甲","凤羽冠","星陨铁","培元丹","大还丹"];
+    for (int i = 0; i < 150; i++) {
+        int pi = r.Next(players.Length);
+        var pid = ulong.Parse(players[pi][1]);
+        var nm = players[pi][0];
+        var ac = acts[r.Next(acts.Length)];
+        var dt = ac switch {
+            "login" => "登录游戏",
+            "chat" => "发送消息: " + msgs[r.Next(msgs.Length)],
+            "trade_sell" => "上架物品 " + its[r.Next(its.Length)] + " x" + r.Next(1,10),
+            "trade_buy" => "购买 " + its[r.Next(its.Length)],
+            "dungeon" => "进入副本 " + dngs[r.Next(dngs.Length)],
+            "pvp" => "PVP匹配", "quest" => "提交任务", "guild" => "帮会操作", "shop" => "商店购买", _ => "其他操作"
+        };
+        ActionLogStore.Instance.AddLog(pid, nm, ac, dt);
+    }
+    Console.WriteLine($"  Seeded demo log data: {ActionLogStore.Instance.GetTodayStats().loginCount} logins today");
+}
+SeedLogData();
 List<object> GetDemoUsers() {
     if (demoUserCache.Count > 0 && (DateTime.UtcNow - demoUserCacheTime).TotalMinutes < 5) return demoUserCache;
     demoUserCache.Clear();
