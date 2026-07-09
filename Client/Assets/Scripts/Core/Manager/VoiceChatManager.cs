@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
@@ -133,7 +133,7 @@ namespace Jx3.Core
 
         // ===== 麦克风录制 =====
 
-        private void StartRecording()
+        public void StartRecording()
         {
             if (_selectedMic == null)
             {
@@ -164,7 +164,7 @@ namespace Jx3.Core
             _encodeThread.Start();
         }
 
-        private void StopRecording()
+        public void StopRecording()
         {
             if (!IsRecording) return;
 
