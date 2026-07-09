@@ -23,8 +23,8 @@ docker-compose up -d
 ### 2. 建表 (自动执行 或 手动)
 
 ```bash
-mysql -h127.0.0.1 -uroot -p123456 jx3 < Server/SQL/create_tables.sql
-mysql -h127.0.0.1 -uroot -p123456 jx3 < Server/SQL/init_data.sql
+mysql -h127.0.0.1 -uroot -p<your_password> jx3 < Server/SQL/create_tables.sql
+mysql -h127.0.0.1 -uroot -p<your_password> jx3 < Server/SQL/init_data.sql
 ```
 
 ### 3. 启动服务器
@@ -43,7 +43,7 @@ dotnet run --project Jx3.Login
 ### 4. 访问后台管理
 
 打开浏览器: http://localhost:9100
-用户名/密码: admin / admin123
+用户名/密码: 参见 appsettings.json 配置
 
 ## 项目结构
 
