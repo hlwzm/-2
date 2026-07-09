@@ -29,7 +29,7 @@ namespace Jx3.Core
             public string Name = "";
             public int Level = 1;
             public ulong Gold, BindGold, Tongbao;
-            public int MapId = 1001;
+            public int VipLevel; public int MapId = 1001;
             public string Token = "";
         }
 
