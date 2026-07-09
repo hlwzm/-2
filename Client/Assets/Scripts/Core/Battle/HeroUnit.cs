@@ -39,7 +39,6 @@ namespace Jx3.Core.Battle
 
         void Start()
         {
-            // 加载技能
             var heroSkills = SkillConfig.GetHeroSkills(heroId);
             for (int i = 0; i < Mathf.Min(heroSkills.Count, 3); i++)
                 skills[i] = heroSkills[i];
@@ -117,6 +116,24 @@ namespace Jx3.Core.Battle
             modelRoot = new GameObject("HeroModel");
             modelRoot.transform.SetParent(transform, false);
 
+            // 尝试加载预制体模型
+            string prefabPath = string.Format("Art/Models/Heroes/Hero_{0}", heroId);
+            GameObject prefab = Resources.Load<GameObject>(prefabPath);
+            if (prefab != null)
+            {
+                GameObject model = Object.Instantiate(prefab, modelRoot.transform);
+                model.name = "ModelInstance";
+                var renderers = model.GetComponentsInChildren<MeshRenderer>();
+                if (renderers.Length > 0)
+                    bodyMaterial = renderers[0].material;
+
+                var animCtrl = GetComponent<AnimationController>();
+                if (animCtrl != null) { animCtrl.bodyRoot = modelRoot.transform; }
+                return;
+            }
+
+            // Fallback: 胶囊体
+            Debug.LogWarning(string.Format("[HeroUnit] 未找到预制体 {0}，使用胶囊体备用", prefabPath));
             var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             body.name = "Body";
             body.transform.SetParent(modelRoot.transform, false);
@@ -124,8 +141,8 @@ namespace Jx3.Core.Battle
             body.transform.localScale = new Vector3(0.6f, 1, 0.6f);
 
             bodyMaterial = body.GetComponent<MeshRenderer>().material;
-            var animCtrl = GetComponent<AnimationController>();
-            if (animCtrl != null) { animCtrl.bodyRoot = modelRoot.transform; }
+            var animCtrl2 = GetComponent<AnimationController>();
+            if (animCtrl2 != null) { animCtrl2.bodyRoot = modelRoot.transform; }
             var quality = HeroConfig.Get(heroId)?.quality ?? 3;
             bodyMaterial.color = quality switch
             {
